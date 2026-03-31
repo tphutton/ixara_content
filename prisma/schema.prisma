@@ -68,6 +68,28 @@ enum AssetSource {
   manual
 }
 
+enum AutomationType {
+  weekly_social_content
+}
+
+enum AutomationStatus {
+  draft
+  active
+  paused
+  archived
+}
+
+enum AutomationFrequency {
+  manual
+  weekly
+}
+
+enum AutomationRunStatus {
+  running
+  succeeded
+  failed
+}
+
 model UserAccess {
   id             String           @id @default(cuid())
   clerkUserId    String           @unique
@@ -86,6 +108,9 @@ model UserAccess {
   assetsUpdated      Asset[]            @relation("AssetUpdatedBy")
   schedulesCreated   ContentSchedule[]  @relation("ScheduleCreatedBy")
   schedulesApproved  ContentSchedule[]  @relation("ScheduleApprovedBy")
+  automationsCreated AutomationWorkflow[] @relation("AutomationCreatedBy")
+  automationsUpdated AutomationWorkflow[] @relation("AutomationUpdatedBy")
+  automationRuns     AutomationRun[]    @relation("AutomationTriggeredBy")
   chatThreads        ChatThread[]
   actionLogs         ContentActionLog[]
 
@@ -278,6 +303,8 @@ model BrandProfile {
   preferredCTAs     String[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  automationWorkflows AutomationWorkflow[]
 }
 
 model Asset {
@@ -362,4 +389,59 @@ model CampaignAsset {
 
   @@unique([campaignId, assetId])
   @@index([campaignId])
+}
+
+model AutomationWorkflow {
+  id                  String              @id @default(cuid())
+  name                String
+  type                AutomationType
+  status              AutomationStatus    @default(draft)
+  frequency           AutomationFrequency @default(weekly)
+  description         String?
+  promptTemplate      String?
+  brandProfileId      String?
+  brandName           String?
+  targetContentStatus ContentStatus       @default(draft)
+  itemCount           Int                 @default(5)
+  dayOfWeek           Int?
+  runTime             String?
+  timezone            String?
+  channels            String[]
+  platforms           String[]
+  region              String?
+  country             String?
+  sport               String?
+  lastRunAt           DateTime?
+  nextRunAt           DateTime?
+  createdById         String?
+  updatedById         String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  brandProfile BrandProfile? @relation(fields: [brandProfileId], references: [id], onDelete: SetNull)
+  createdBy    UserAccess?   @relation("AutomationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    UserAccess?   @relation("AutomationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  runs         AutomationRun[]
+
+  @@index([status, nextRunAt])
+  @@index([brandName, type])
+}
+
+model AutomationRun {
+  id            String              @id @default(cuid())
+  workflowId    String
+  status        AutomationRunStatus
+  summary       String?
+  output        Json?
+  errorMessage  String?
+  startedAt     DateTime            @default(now())
+  completedAt   DateTime?
+  triggeredById String?
+  createdAt     DateTime            @default(now())
+
+  workflow    AutomationWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  triggeredBy UserAccess?        @relation("AutomationTriggeredBy", fields: [triggeredById], references: [id], onDelete: SetNull)
+
+  @@index([workflowId, startedAt])
+  @@index([status, startedAt])
 }

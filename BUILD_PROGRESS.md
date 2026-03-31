@@ -21,6 +21,8 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Schedule oversight now includes readiness evaluation, approval queues, and editor-driven approval actions so the calendar can feed future automation safely.
 - Content and blog list pages now expose lightweight operational queues so the team can quickly isolate automation-ready versus needs-attention records without introducing a heavy reporting layer.
 - The chat workspace has been redesigned into a more production-ready Quill operator console with a stronger split layout for conversation, threads, and tool activity.
+- A first automation foundation is now in place with controllable workflow records, manual execution, run history, and weekly social content generation into draft content records.
+- Automation health, due-run execution, and AI-side automation controls are now visible in the workspace so operators can monitor and trigger workflows safely before full background scheduling.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -50,6 +52,8 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Added schedule queue filters, readiness evaluation, and approval actions for editor/admin review workflows.
 - [x] Added lightweight queue filtering for content and blog readiness, keeping editorial oversight practical ahead of automation work.
 - [x] Refreshed the chat workspace UI with Quill branding, avatar support, and a cleaner split-panel layout.
+- [x] Added the first automation workspace with workflow CRUD, run history, activation controls, and weekly social draft generation.
+- [x] Added automation runner controls, health summaries, dashboard visibility, and safe automation tools for Quill.
 
 ## In Progress
 - [ ] Continue production polish, UX refinement, and rollout preparation.
@@ -69,6 +73,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `BrandProfile` for editorial guidance and AI consistency controls.
 - `Asset`, `ContentAsset`, `BlogAsset`, and `CampaignAsset` for reusable media management and relationship tracking.
 - `Blog.brand` now links blog records into the same brand-rule system used by content, campaigns, and schedule metadata.
+- `AutomationWorkflow` and `AutomationRun` now provide the basis for controlled recurring content generation and future scheduler execution.
 
 ## Pages / Routes
 - `/`
@@ -93,6 +98,10 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/schedule/[id]`
 - `/admin/approvals`
 - `/settings`
+- `/automations`
+- `/automations/new`
+- `/automations/[id]`
+- `/api/automations/run-due`
 
 ## Known Issues / Notes
 - Workspace approval enforcement is active for protected routes and the chat API.
@@ -106,11 +115,12 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Content and blog actions now auto-fill missing metadata from matching brand profiles and record brand-rule warnings in the action log.
 - Schedule pages now expose queue-style filtering for all, ready, needs-attention, approved, and this-week views.
 - Content and blog pages now expose queue-style filtering for automation-ready and needs-attention views.
+- `/automations` now supports workflow setup, manual execution, activation/pausing, due-run checks, and run logs. Scheduling metadata and a protected runner endpoint are stored now; background execution wiring is the next phase.
 - Prisma is pinned to `6.14.x` because the local Node runtime is `20.18.2`, while Prisma `7.x` requires Node `20.19+`.
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
 
 ## Next Steps
 - Finalize deployment envs in Railway, Clerk, OpenAI, campaigns API, and WordPress sync.
-- Expand editorial oversight further with richer cross-page filters and more explicit review ownership/reporting.
-- Lay the groundwork for future automation on top of the current content, schedule, asset, and brand-profile foundations.
+- Connect the protected automation runner to a real scheduled trigger in Railway or another job system.
+- Add the next automation layer: more workflow types beyond weekly social content, plus deeper safety controls and operator reporting.
 - Add social publishing architecture after automation is designed.

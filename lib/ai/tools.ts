@@ -1,4 +1,6 @@
 import {
+  AutomationStatus,
+  AutomationType,
   BlogStatus,
   ContentStatus,
   ContentType,
@@ -6,6 +8,8 @@ import {
   type UserAccess,
 } from "@prisma/client";
 import { createActionLog } from "@/lib/actions/action-log";
+import { getAutomationHealthSummary, runDueAutomations } from "@/lib/automation/runner";
+import { runWeeklySocialAutomation } from "@/lib/automation/generate-weekly-social";
 import {
   applyBrandRulesToBlog,
   applyBrandRulesToContent,
@@ -1056,6 +1060,130 @@ async function deleteCampaignTool(args: Record<string, unknown>, context: ToolCo
   };
 }
 
+async function listAutomationsTool(args: Record<string, unknown>) {
+  const status = asOptionalString(args.status);
+  const type = asOptionalString(args.type);
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 25) : 10;
+
+  const items = await prisma.automationWorkflow.findMany({
+    where: {
+      status: status ? (status as AutomationStatus) : undefined,
+      type: type ? (type as AutomationType) : undefined,
+    },
+    include: {
+      brandProfile: {
+        select: { brandName: true },
+      },
+      runs: {
+        orderBy: { startedAt: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: [{ status: "asc" }, { nextRunAt: "asc" }, { updatedAt: "desc" }],
+    take: limit,
+  });
+
+  return {
+    toolName: "list_automations",
+    summary: `Found ${items.length} automation workflow${items.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: items.length,
+      items: items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        status: item.status,
+        frequency: item.frequency,
+        brand: item.brandProfile?.brandName ?? item.brandName,
+        nextRunAt: item.nextRunAt?.toISOString() ?? null,
+        latestRun: item.runs[0]
+          ? {
+              status: item.runs[0].status,
+              summary: item.runs[0].summary,
+              startedAt: item.runs[0].startedAt.toISOString(),
+            }
+          : null,
+      })),
+    },
+  };
+}
+
+async function getAutomationHealthTool() {
+  const summary = await getAutomationHealthSummary();
+
+  return {
+    toolName: "get_automation_health",
+    summary: "Loaded automation health summary.",
+    payload: {
+      total: summary.total,
+      active: summary.active,
+      dueNow: summary.dueNow,
+      failedRecently: summary.failedRecently,
+      nextDue: summary.nextDue
+        ? {
+            id: summary.nextDue.id,
+            name: summary.nextDue.name,
+            nextRunAt: summary.nextDue.nextRunAt?.toISOString() ?? null,
+          }
+        : null,
+    },
+  };
+}
+
+async function runAutomationTool(args: Record<string, unknown>, context: ToolContext) {
+  const id = asOptionalString(args.id);
+  const runDue = asBoolean(args.runDue);
+
+  if (runDue) {
+    const result = await runDueAutomations();
+
+    await createActionLog({
+      userId: context.access.id,
+      actionType: "run",
+      targetType: "automation_runner",
+      targetId: "due",
+      summary: `AI triggered due automation runner (${result.results.length} workflow${result.results.length === 1 ? "" : "s"} checked)`,
+      afterData: result,
+      source: "ai",
+    });
+
+    return {
+      toolName: "run_automation",
+      summary: `Ran due automation check across ${result.checked} workflow${result.checked === 1 ? "" : "s"}.`,
+      payload: result,
+    };
+  }
+
+  if (!id) {
+    throw new Error("id is required unless runDue is true.");
+  }
+
+  const workflow = await prisma.automationWorkflow.findUniqueOrThrow({
+    where: { id },
+  });
+
+  if (workflow.type !== AutomationType.weekly_social_content) {
+    throw new Error("Unsupported automation type.");
+  }
+
+  const output = await runWeeklySocialAutomation({
+    workflow,
+    triggeredBy: context.access,
+  });
+
+  return {
+    toolName: "run_automation",
+    summary: `Ran automation "${workflow.name}" and created ${output.createdContent.length} draft${output.createdContent.length === 1 ? "" : "s"}.`,
+    payload: {
+      workflowId: workflow.id,
+      workflowName: workflow.name,
+      createdCount: output.createdContent.length,
+      contentIds: output.createdContent.map((item) => item.id),
+      titles: output.createdContent.map((item) => item.title),
+    },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -1076,6 +1204,9 @@ const toolHandlers: Record<string, ToolHandler> = {
   get_campaign: async (args) => getCampaignTool(args),
   upsert_campaign: upsertCampaignTool,
   delete_campaign: deleteCampaignTool,
+  list_automations: async (args) => listAutomationsTool(args),
+  get_automation_health: async () => getAutomationHealthTool(),
+  run_automation: runAutomationTool,
 };
 
 export const contentOpsTools: ToolDefinition[] = [
@@ -1532,6 +1663,49 @@ export const contentOpsTools: ToolDefinition[] = [
           campaign_id: { type: "string" },
         },
         required: ["campaign_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_automations",
+      description: "List saved automation workflows with optional filtering by status or type.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: Object.values(AutomationStatus) },
+          type: { type: "string", enum: Object.values(AutomationType) },
+          limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_automation_health",
+      description: "Get automation health counts including due workflows, recent failures, and next scheduled run.",
+      parameters: {
+        type: "object",
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "run_automation",
+      description: "Run a specific automation workflow by id, or run all due automations when runDue is true.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          runDue: { type: "boolean" },
+        },
         additionalProperties: false,
       },
     },

@@ -138,6 +138,47 @@ export default async function DashboardPage() {
           </div>
         </section>
 
+        <section className="card card--padded content-block content-block--wide">
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center" }}>
+            <h3>Automation Health</h3>
+            <Link className="button button--secondary" href="/automations">
+              Open Automations
+            </Link>
+          </div>
+          <div className="dashboard-breakdown" style={{ marginTop: 18 }}>
+            <article className="card card--padded metric-card">
+              <h3>Active workflows</h3>
+              <strong>{summary.automations.active}</strong>
+              <p className="muted" style={{ margin: "10px 0 0" }}>
+                {summary.automations.total} total configured workflows
+              </p>
+            </article>
+            <article className="card card--padded metric-card">
+              <h3>Due now</h3>
+              <strong>{summary.automations.dueNow}</strong>
+              <p className="muted" style={{ margin: "10px 0 0" }}>
+                Ready for safe runner execution
+              </p>
+            </article>
+            <article className="card card--padded metric-card">
+              <h3>Recent failures</h3>
+              <strong>{summary.automations.failedRecently}</strong>
+              <p className="muted" style={{ margin: "10px 0 0" }}>
+                Failed runs in the last 7 days
+              </p>
+            </article>
+            <article className="card card--padded metric-card">
+              <h3>Next due</h3>
+              <strong>{summary.automations.nextDue ? format(summary.automations.nextDue.nextRunAt as Date, "MMM d") : "—"}</strong>
+              <p className="muted" style={{ margin: "10px 0 0" }}>
+                {summary.automations.nextDue
+                  ? `${summary.automations.nextDue.name} • ${format(summary.automations.nextDue.nextRunAt as Date, "p")}`
+                  : "No upcoming scheduled run"}
+              </p>
+            </article>
+          </div>
+        </section>
+
         <section className="card card--padded content-block content-block--narrow">
           <h3>Quick Links</h3>
           <div className="stack" style={{ marginTop: 18 }}>
@@ -175,6 +216,12 @@ export default async function DashboardPage() {
               <strong>Manage brand profiles</strong>
               <p className="muted" style={{ margin: "8px 0 0" }}>
                 Store tone, audience, region, and CTA rules for the editorial workspace.
+              </p>
+            </Link>
+            <Link className="card card--padded" href="/automations">
+              <strong>Control automations</strong>
+              <p className="muted" style={{ margin: "8px 0 0" }}>
+                Define and run repeatable weekly content-generation workflows.
               </p>
             </Link>
           </div>

@@ -3,28 +3,36 @@ import clsx from "clsx";
 const toneByStatus: Record<string, string> = {
   active: "rgba(15, 118, 110, 0.12)",
   approved: "rgba(15, 118, 110, 0.12)",
+  failed: "rgba(180, 35, 24, 0.12)",
   draft: "rgba(21, 94, 239, 0.12)",
   idea: "rgba(71, 84, 103, 0.12)",
+  paused: "rgba(181, 71, 8, 0.12)",
   pending: "rgba(181, 71, 8, 0.12)",
   planned: "rgba(21, 94, 239, 0.12)",
   published: "rgba(2, 132, 199, 0.12)",
   ready: "rgba(15, 118, 110, 0.12)",
   review: "rgba(146, 64, 14, 0.12)",
+  running: "rgba(21, 94, 239, 0.12)",
   scheduled: "rgba(91, 33, 182, 0.12)",
+  succeeded: "rgba(15, 118, 110, 0.12)",
   warning: "rgba(181, 71, 8, 0.12)",
 };
 
 const textByStatus: Record<string, string> = {
   active: "#0f766e",
   approved: "#0f766e",
+  failed: "#b42318",
   draft: "#155eef",
   idea: "#475467",
+  paused: "#b54708",
   pending: "#b54708",
   planned: "#155eef",
   published: "#027a9d",
   ready: "#0f766e",
   review: "#92400e",
+  running: "#155eef",
   scheduled: "#5b21b6",
+  succeeded: "#0f766e",
   warning: "#b54708",
 };
 

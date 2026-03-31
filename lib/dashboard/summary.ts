@@ -1,4 +1,5 @@
 import { ContentStatus, BlogStatus, ScheduleStatus } from "@prisma/client";
+import { getAutomationHealthSummary } from "@/lib/automation/runner";
 import { safeListCampaigns } from "@/lib/campaigns/client";
 import { prisma } from "@/lib/prisma";
 
@@ -28,6 +29,7 @@ export async function getDashboardSummary() {
     upcomingSchedule,
     recentActions,
     totalThreads,
+    automationHealth,
     campaignsResponse,
   ] = await Promise.all([
     prisma.content.groupBy({
@@ -104,6 +106,7 @@ export async function getDashboardSummary() {
       take: 8,
     }),
     prisma.chatThread.count(),
+    getAutomationHealthSummary(),
     safeListCampaigns({ limit: 100 }),
   ]);
 
@@ -150,6 +153,16 @@ export async function getDashboardSummary() {
         value: totalThreads,
         detail: `${recentActions.filter((action) => action.source === "ai").length} recent AI actions`,
       },
+      {
+        label: "Active Automations",
+        value: automationHealth.active,
+        detail:
+          automationHealth.dueNow > 0
+            ? `${automationHealth.dueNow} due now`
+            : automationHealth.nextDue
+              ? `Next: ${automationHealth.nextDue.name}`
+              : "No scheduled runs",
+      },
     ],
     contentStatusBreakdown: Object.values(ContentStatus).map((status) => ({
       status,
@@ -184,5 +197,6 @@ export async function getDashboardSummary() {
       active: activeCampaignCount,
       error: campaignsResponse.error,
     },
+    automations: automationHealth,
   };
 }

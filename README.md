@@ -60,6 +60,15 @@ Asset and brand operations are now in place:
 - Brand-driven defaults for content and blogs so missing tone, audience, websites, geography, and CTA fields can inherit from saved profiles
 - Dashboard readiness visibility for records that still need metadata before automation or publishing
 
+Automation foundations are now in place:
+
+- `/automations` workspace for creating and managing recurring workflows
+- Workflow activation, pause, and manual run controls
+- Execution history through `AutomationRun`
+- First automation type: weekly social content generation into draft `Content` records
+- Protected runner endpoint for due automations at `/api/automations/run-due`
+- Dashboard and Quill visibility into automation health and upcoming runs
+
 ## Planned Stack
 
 - Next.js 16
@@ -104,12 +113,14 @@ Local development:
 - `CAMPAIGNS_API_BASE_URL=https://data.techsport.asia/api`
 - `CAMPAIGNS_API_KEY`
 - `WORDPRESS_MEDIA_BASE_URL=https://media.ixara.tech/wp-json/wp/v2`
+- `AUTOMATION_RUNNER_SECRET`
 
 Railway deployment:
 
 - Add the same variables in the Railway service settings
 - Set `NEXT_PUBLIC_APP_URL` to the final Railway app URL
 - Keep `CAMPAIGNS_API_KEY`, `CLERK_SECRET_KEY`, `OPENAI_API_KEY`, and `DATABASE_URL` server-side only
+- Keep `AUTOMATION_RUNNER_SECRET` server-side only and use it for scheduled runner calls
 
 ## Clerk Setup
 
@@ -137,6 +148,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - `/dashboard`
 - `/chat`
 - `/assets`
+- `/automations`
 - `/campaigns`
 - `/content`
 - `/blogs`
@@ -149,4 +161,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - The assistant now has tool access to content, blogs, schedules, campaigns, synced assets, dashboard summaries, and brand profiles.
 - WordPress remains the media origin while the local `Asset` table handles cataloging, search, and record relationships.
 - Content and blog mutations now apply matching brand profile defaults server-side, and blogs now carry a dedicated `brand` field for consistent editorial grouping.
+- Automation scheduling metadata and manual runs are now live, but background job execution is still the next planned step before social publishing.
+- Quill can now inspect automation health, list workflows, and trigger safe automation runs through the same server-side tool layer used for content operations.
+- The protected runner endpoint accepts either `Authorization: Bearer <AUTOMATION_RUNNER_SECRET>` or `x-automation-secret` and is designed for a future Railway cron or external scheduler.
 - See `BUILD_PROGRESS.md` for milestone-by-milestone status.
