@@ -65,9 +65,16 @@ Automation foundations are now in place:
 - `/automations` workspace for creating and managing recurring workflows
 - Workflow activation, pause, and manual run controls
 - Execution history through `AutomationRun`
-- First automation type: weekly social content generation into draft `Content` records
+- Automation types: weekly social content generation into draft `Content` records, plus blog draft generation into structured `Blog` records
 - Protected runner endpoint for due automations at `/api/automations/run-due`
 - Dashboard and Quill visibility into automation health and upcoming runs
+
+Social publishing and analytics foundations are now being added:
+
+- `/social-accounts` for registering future live publishing/analytics connections
+- `/analytics` for storing imported post history and performance snapshots
+- Quill tool access to connected accounts, published post history, and top-performing posts
+- Internal schema support for future OAuth-based live sync, publishing history, and analytics ingestion
 
 ## Planned Stack
 
@@ -114,6 +121,8 @@ Local development:
 - `CAMPAIGNS_API_KEY`
 - `WORDPRESS_MEDIA_BASE_URL=https://media.ixara.tech/wp-json/wp/v2`
 - `AUTOMATION_RUNNER_SECRET`
+- `META_APP_ID` for future live Meta OAuth
+- `META_APP_SECRET` for future live Meta OAuth
 
 Railway deployment:
 
@@ -121,6 +130,7 @@ Railway deployment:
 - Set `NEXT_PUBLIC_APP_URL` to the final Railway app URL
 - Keep `CAMPAIGNS_API_KEY`, `CLERK_SECRET_KEY`, `OPENAI_API_KEY`, and `DATABASE_URL` server-side only
 - Keep `AUTOMATION_RUNNER_SECRET` server-side only and use it for scheduled runner calls
+- Keep `META_APP_SECRET` server-side only when live Meta OAuth is added
 
 ## Clerk Setup
 
@@ -150,6 +160,8 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - `/assets`
 - `/automations`
 - `/campaigns`
+- `/social-accounts`
+- `/analytics`
 - `/content`
 - `/blogs`
 - `/schedule`
@@ -161,7 +173,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - The assistant now has tool access to content, blogs, schedules, campaigns, synced assets, dashboard summaries, and brand profiles.
 - WordPress remains the media origin while the local `Asset` table handles cataloging, search, and record relationships.
 - Content and blog mutations now apply matching brand profile defaults server-side, and blogs now carry a dedicated `brand` field for consistent editorial grouping.
-- Automation scheduling metadata and manual runs are now live, but background job execution is still the next planned step before social publishing.
+- Automation scheduling metadata and manual runs are now live, and workflows can generate either short-form content drafts or structured blog drafts. Background job execution is still the next planned step before social publishing.
 - Quill can now inspect automation health, list workflows, and trigger safe automation runs through the same server-side tool layer used for content operations.
 - The protected runner endpoint accepts either `Authorization: Bearer <AUTOMATION_RUNNER_SECRET>` or `x-automation-secret` and is designed for a future Railway cron or external scheduler.
 - See `BUILD_PROGRESS.md` for milestone-by-milestone status.

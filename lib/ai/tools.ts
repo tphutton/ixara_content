@@ -2,12 +2,16 @@ import {
   AutomationStatus,
   AutomationType,
   BlogStatus,
+  ConnectedAccountStatus,
   ContentStatus,
   ContentType,
+  PublishedPostStatus,
   ScheduleStatus,
+  SocialPlatform,
   type UserAccess,
 } from "@prisma/client";
 import { createActionLog } from "@/lib/actions/action-log";
+import { runBlogPostAutomation } from "@/lib/automation/generate-blog-posts";
 import { getAutomationHealthSummary, runDueAutomations } from "@/lib/automation/runner";
 import { runWeeklySocialAutomation } from "@/lib/automation/generate-weekly-social";
 import {
@@ -1060,6 +1064,174 @@ async function deleteCampaignTool(args: Record<string, unknown>, context: ToolCo
   };
 }
 
+async function listConnectedAccountsTool(args: Record<string, unknown>) {
+  const platformInput = asOptionalString(args.platform);
+  const statusInput = asOptionalString(args.status);
+  const platform = platformInput
+    ? parseEnumValue(platformInput, Object.values(SocialPlatform), SocialPlatform.facebook)
+    : undefined;
+  const status = statusInput
+    ? parseEnumValue(
+        statusInput,
+        Object.values(ConnectedAccountStatus),
+        ConnectedAccountStatus.pending_setup,
+      )
+    : undefined;
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 25) : 12;
+
+  const items = await prisma.connectedAccount.findMany({
+    where: {
+      platform: platform ?? undefined,
+      status: status ?? undefined,
+    },
+    include: {
+      brandProfile: {
+        select: { brandName: true },
+      },
+    },
+    orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
+    take: limit,
+  });
+
+  return {
+    toolName: "list_connected_accounts",
+    summary: `Found ${items.length} connected account${items.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: items.length,
+      items: items.map((item) => ({
+        id: item.id,
+        platform: item.platform,
+        status: item.status,
+        accountName: item.accountName,
+        accountHandle: item.accountHandle,
+        brand: item.brandProfile?.brandName ?? item.brandName,
+        lastSyncedAt: item.lastSyncedAt?.toISOString() ?? null,
+        lastSyncStatus: item.lastSyncStatus,
+      })),
+    },
+  };
+}
+
+async function listPublishedPostsTool(args: Record<string, unknown>) {
+  const platformInput = asOptionalString(args.platform);
+  const statusInput = asOptionalString(args.status);
+  const platform = platformInput
+    ? parseEnumValue(platformInput, Object.values(SocialPlatform), SocialPlatform.instagram)
+    : undefined;
+  const status = statusInput
+    ? parseEnumValue(statusInput, Object.values(PublishedPostStatus), PublishedPostStatus.imported)
+    : undefined;
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 25) : 12;
+
+  const items = await prisma.publishedPost.findMany({
+    where: {
+      platform: platform ?? undefined,
+      status: status ?? undefined,
+    },
+    include: {
+      connectedAccount: {
+        select: { accountName: true },
+      },
+      content: {
+        select: { title: true, brand: true },
+      },
+      blog: {
+        select: { title: true, brand: true },
+      },
+      analyticsSnapshots: {
+        orderBy: { capturedAt: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    take: limit,
+  });
+
+  return {
+    toolName: "list_published_posts",
+    summary: `Found ${items.length} published post record${items.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: items.length,
+      items: items.map((item) => ({
+        id: item.id,
+        platform: item.platform,
+        status: item.status,
+        title: item.titleSnapshot ?? item.content?.title ?? item.blog?.title ?? null,
+        brand: item.content?.brand ?? item.blog?.brand ?? null,
+        accountName: item.connectedAccount?.accountName ?? item.platformAccountName,
+        publishedAt: item.publishedAt?.toISOString() ?? null,
+        latestAnalytics: item.analyticsSnapshots[0]
+          ? {
+              capturedAt: item.analyticsSnapshots[0].capturedAt.toISOString(),
+              impressions: item.analyticsSnapshots[0].impressions,
+              engagements: item.analyticsSnapshots[0].engagements,
+              engagementRate: item.analyticsSnapshots[0].engagementRate,
+              clicks: item.analyticsSnapshots[0].clicks,
+            }
+          : null,
+      })),
+    },
+  };
+}
+
+async function getTopPerformingPostsTool(args: Record<string, unknown>) {
+  const platformInput = asOptionalString(args.platform);
+  const platform = platformInput
+    ? parseEnumValue(platformInput, Object.values(SocialPlatform), SocialPlatform.instagram)
+    : undefined;
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 10) : 5;
+
+  const items = await prisma.publishedPost.findMany({
+    where: {
+      platform: platform ?? undefined,
+    },
+    include: {
+      connectedAccount: {
+        select: { accountName: true },
+      },
+      content: {
+        select: { title: true, brand: true },
+      },
+      blog: {
+        select: { title: true, brand: true },
+      },
+      analyticsSnapshots: {
+        orderBy: { capturedAt: "desc" },
+        take: 1,
+      },
+    },
+    take: 100,
+  });
+
+  const ranked = items
+    .map((item) => ({
+      item,
+      latest: item.analyticsSnapshots[0] ?? null,
+    }))
+    .filter((entry) => entry.latest)
+    .sort((a, b) => (b.latest?.engagementRate ?? -1) - (a.latest?.engagementRate ?? -1))
+    .slice(0, limit);
+
+  return {
+    toolName: "get_top_performing_posts",
+    summary: `Found ${ranked.length} top-performing post${ranked.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: ranked.length,
+      items: ranked.map(({ item, latest }) => ({
+        id: item.id,
+        platform: item.platform,
+        title: item.titleSnapshot ?? item.content?.title ?? item.blog?.title ?? null,
+        brand: item.content?.brand ?? item.blog?.brand ?? null,
+        accountName: item.connectedAccount?.accountName ?? item.platformAccountName,
+        engagementRate: latest?.engagementRate ?? null,
+        engagements: latest?.engagements ?? null,
+        impressions: latest?.impressions ?? null,
+        clicks: latest?.clicks ?? null,
+      })),
+    },
+  };
+}
+
 async function listAutomationsTool(args: Record<string, unknown>) {
   const status = asOptionalString(args.status);
   const type = asOptionalString(args.type);
@@ -1162,26 +1334,45 @@ async function runAutomationTool(args: Record<string, unknown>, context: ToolCon
     where: { id },
   });
 
-  if (workflow.type !== AutomationType.weekly_social_content) {
-    throw new Error("Unsupported automation type.");
+  if (workflow.type === AutomationType.weekly_social_content) {
+    const output = await runWeeklySocialAutomation({
+      workflow,
+      triggeredBy: context.access,
+    });
+
+    return {
+      toolName: "run_automation",
+      summary: `Ran automation "${workflow.name}" and created ${output.createdContent.length} draft${output.createdContent.length === 1 ? "" : "s"}.`,
+      payload: {
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        createdCount: output.createdContent.length,
+        contentIds: output.createdContent.map((item) => item.id),
+        titles: output.createdContent.map((item) => item.title),
+      },
+    };
   }
 
-  const output = await runWeeklySocialAutomation({
-    workflow,
-    triggeredBy: context.access,
-  });
+  if (workflow.type === AutomationType.blog_post_generation) {
+    const output = await runBlogPostAutomation({
+      workflow,
+      triggeredBy: context.access,
+    });
 
-  return {
-    toolName: "run_automation",
-    summary: `Ran automation "${workflow.name}" and created ${output.createdContent.length} draft${output.createdContent.length === 1 ? "" : "s"}.`,
-    payload: {
-      workflowId: workflow.id,
-      workflowName: workflow.name,
-      createdCount: output.createdContent.length,
-      contentIds: output.createdContent.map((item) => item.id),
-      titles: output.createdContent.map((item) => item.title),
-    },
-  };
+    return {
+      toolName: "run_automation",
+      summary: `Ran automation "${workflow.name}" and created ${output.createdBlogs.length} blog draft${output.createdBlogs.length === 1 ? "" : "s"}.`,
+      payload: {
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        createdCount: output.createdBlogs.length,
+        blogIds: output.createdBlogs.map((item) => item.id),
+        titles: output.createdBlogs.map((item) => item.title),
+      },
+    };
+  }
+
+  throw new Error("Unsupported automation type.");
 }
 
 const toolHandlers: Record<string, ToolHandler> = {
@@ -1204,6 +1395,9 @@ const toolHandlers: Record<string, ToolHandler> = {
   get_campaign: async (args) => getCampaignTool(args),
   upsert_campaign: upsertCampaignTool,
   delete_campaign: deleteCampaignTool,
+  list_connected_accounts: async (args) => listConnectedAccountsTool(args),
+  list_published_posts: async (args) => listPublishedPostsTool(args),
+  get_top_performing_posts: async (args) => getTopPerformingPostsTool(args),
   list_automations: async (args) => listAutomationsTool(args),
   get_automation_health: async () => getAutomationHealthTool(),
   run_automation: runAutomationTool,
@@ -1663,6 +1857,53 @@ export const contentOpsTools: ToolDefinition[] = [
           campaign_id: { type: "string" },
         },
         required: ["campaign_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_connected_accounts",
+      description: "List connected or prepared social accounts available for publishing and analytics sync.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string" },
+          status: { type: "string" },
+          limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_published_posts",
+      description: "List imported or synced published post records with latest analytics snapshots when available.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string" },
+          status: { type: "string" },
+          limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_top_performing_posts",
+      description: "Return the highest-performing published posts ranked by latest engagement rate.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string" },
+          limit: { type: "number" },
+        },
         additionalProperties: false,
       },
     },

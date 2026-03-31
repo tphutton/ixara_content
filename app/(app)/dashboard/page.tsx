@@ -221,7 +221,19 @@ export default async function DashboardPage() {
             <Link className="card card--padded" href="/automations">
               <strong>Control automations</strong>
               <p className="muted" style={{ margin: "8px 0 0" }}>
-                Define and run repeatable weekly content-generation workflows.
+                Define and run repeatable social and blog-generation workflows.
+              </p>
+            </Link>
+            <Link className="card card--padded" href="/social-accounts">
+              <strong>Manage social accounts</strong>
+              <p className="muted" style={{ margin: "8px 0 0" }}>
+                Prepare connected account records for future live publishing and analytics sync.
+              </p>
+            </Link>
+            <Link className="card card--padded" href="/analytics">
+              <strong>Review analytics</strong>
+              <p className="muted" style={{ margin: "8px 0 0" }}>
+                Import past posts and performance data so Quill can learn from results.
               </p>
             </Link>
           </div>

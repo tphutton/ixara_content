@@ -33,7 +33,7 @@ export default async function AutomationsPage() {
     <section className="page-shell">
       <WorkspaceHeader
         title="Automations"
-        description="Control recurring editorial workflows that will later power automated weekly content generation and operational scheduling."
+        description="Control recurring editorial workflows for social content, blog generation, and the next layer of automation-ready publishing operations."
       />
 
       <div className="stack">

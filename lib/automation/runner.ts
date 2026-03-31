@@ -1,4 +1,5 @@
 import { AutomationStatus, AutomationType, type AutomationWorkflow, type UserAccess } from "@prisma/client";
+import { runBlogPostAutomation } from "@/lib/automation/generate-blog-posts";
 import { prisma } from "@/lib/prisma";
 import { runWeeklySocialAutomation } from "@/lib/automation/generate-weekly-social";
 
@@ -17,6 +18,13 @@ async function getWorkflowTriggerUser(workflow: AutomationWorkflow) {
 async function runSingleWorkflow(workflow: AutomationWorkflow, triggeredBy: UserAccess) {
   if (workflow.type === AutomationType.weekly_social_content) {
     return runWeeklySocialAutomation({
+      workflow,
+      triggeredBy,
+    });
+  }
+
+  if (workflow.type === AutomationType.blog_post_generation) {
+    return runBlogPostAutomation({
       workflow,
       triggeredBy,
     });
@@ -68,7 +76,8 @@ export async function runDueAutomations() {
         workflowId: workflow.id,
         name: workflow.name,
         status: "succeeded" as const,
-        createdCount: output.createdContent.length,
+        createdCount:
+          "createdContent" in output ? output.createdContent.length : output.createdBlogs.length,
       });
     } catch (error) {
       results.push({

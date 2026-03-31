@@ -9,6 +9,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createActionLog } from "@/lib/actions/action-log";
+import { runBlogPostAutomation } from "@/lib/automation/generate-blog-posts";
 import { runWeeklySocialAutomation } from "@/lib/automation/generate-weekly-social";
 import { runDueAutomations } from "@/lib/automation/runner";
 import { calculateNextAutomationRun } from "@/lib/automation/schedule";
@@ -156,18 +157,24 @@ export async function runAutomationNowAction(id: string) {
   const access = await requireEditorialUserAccess();
   const workflow = await prisma.automationWorkflow.findUniqueOrThrow({ where: { id } });
 
-  if (workflow.type !== AutomationType.weekly_social_content) {
+  if (workflow.type === AutomationType.weekly_social_content) {
+    await runWeeklySocialAutomation({
+      workflow,
+      triggeredBy: access,
+    });
+  } else if (workflow.type === AutomationType.blog_post_generation) {
+    await runBlogPostAutomation({
+      workflow,
+      triggeredBy: access,
+    });
+  } else {
     throw new Error("Unsupported automation type.");
   }
-
-  await runWeeklySocialAutomation({
-    workflow,
-    triggeredBy: access,
-  });
 
   revalidatePath("/automations");
   revalidatePath(`/automations/${id}`);
   revalidatePath("/content");
+  revalidatePath("/blogs");
   revalidatePath("/dashboard");
 }
 
@@ -207,4 +214,5 @@ export async function runDueAutomationsAction() {
   revalidatePath("/automations");
   revalidatePath("/dashboard");
   revalidatePath("/content");
+  revalidatePath("/blogs");
 }

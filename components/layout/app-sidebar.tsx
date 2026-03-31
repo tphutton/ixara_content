@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   Bot,
   CalendarDays,
   Image as ImageIcon,
@@ -24,6 +25,8 @@ const navItems = [
   { href: "/assets", label: "Assets", icon: ImageIcon },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
+  { href: "/social-accounts", label: "Social Accounts", icon: ShieldCheck },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/automations", label: "Automations", icon: Bot },
   { href: "/admin/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/settings", label: "Settings", icon: Settings },

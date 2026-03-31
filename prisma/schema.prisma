@@ -70,6 +70,7 @@ enum AssetSource {
 
 enum AutomationType {
   weekly_social_content
+  blog_post_generation
 }
 
 enum AutomationStatus {
@@ -88,6 +89,32 @@ enum AutomationRunStatus {
   running
   succeeded
   failed
+}
+
+enum SocialPlatform {
+  facebook
+  instagram
+  linkedin
+  x
+  tiktok
+  youtube
+  manual_import
+}
+
+enum ConnectedAccountStatus {
+  pending_setup
+  active
+  needs_reauth
+  disconnected
+  error
+}
+
+enum PublishedPostStatus {
+  draft
+  published
+  failed
+  deleted
+  imported
 }
 
 model UserAccess {
@@ -111,6 +138,10 @@ model UserAccess {
   automationsCreated AutomationWorkflow[] @relation("AutomationCreatedBy")
   automationsUpdated AutomationWorkflow[] @relation("AutomationUpdatedBy")
   automationRuns     AutomationRun[]    @relation("AutomationTriggeredBy")
+  connectedAccountsCreated ConnectedAccount[] @relation("ConnectedAccountCreatedBy")
+  connectedAccountsUpdated ConnectedAccount[] @relation("ConnectedAccountUpdatedBy")
+  publishedPostsCreated    PublishedPost[]    @relation("PublishedPostCreatedBy")
+  publishedPostsUpdated    PublishedPost[]    @relation("PublishedPostUpdatedBy")
   chatThreads        ChatThread[]
   actionLogs         ContentActionLog[]
 
@@ -150,6 +181,7 @@ model Content {
   primaryAsset Asset?          @relation("ContentPrimaryAsset", fields: [primaryAssetId], references: [id], onDelete: SetNull)
   assets     ContentAsset[]
   schedules ContentSchedule[]
+  publishedPosts PublishedPost[]
 
   @@index([status, contentType])
   @@index([brand, sport, region, country])
@@ -209,6 +241,7 @@ model Blog {
   featureAsset Asset?         @relation("BlogFeatureAsset", fields: [featureAssetId], references: [id], onDelete: SetNull)
   assets      BlogAsset[]
   schedules ContentSchedule[]
+  publishedPosts PublishedPost[]
 
   @@index([status, postDate])
   @@index([brand, category, sport, region, country])
@@ -238,6 +271,7 @@ model ContentSchedule {
   blog       Blog?       @relation(fields: [blogId], references: [id], onDelete: SetNull)
   approvedBy UserAccess? @relation("ScheduleApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
   createdBy  UserAccess? @relation("ScheduleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  publishedPosts PublishedPost[]
 
   @@index([scheduledFor, status])
   @@index([brand, sport, region, country])
@@ -305,6 +339,7 @@ model BrandProfile {
   updatedAt         DateTime @updatedAt
 
   automationWorkflows AutomationWorkflow[]
+  connectedAccounts   ConnectedAccount[]
 }
 
 model Asset {
@@ -444,4 +479,97 @@ model AutomationRun {
 
   @@index([workflowId, startedAt])
   @@index([status, startedAt])
+}
+
+model ConnectedAccount {
+  id                    String               @id @default(cuid())
+  platform              SocialPlatform
+  status                ConnectedAccountStatus @default(pending_setup)
+  accountName           String
+  accountHandle         String?
+  externalAccountId     String?
+  brandProfileId        String?
+  brandName             String?
+  region                String?
+  country               String?
+  scopes                String[]
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  lastSyncedAt          DateTime?
+  lastSyncStatus        String?
+  metadata              Json?
+  createdById           String?
+  updatedById           String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  brandProfile BrandProfile? @relation(fields: [brandProfileId], references: [id], onDelete: SetNull)
+  createdBy    UserAccess?   @relation("ConnectedAccountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    UserAccess?   @relation("ConnectedAccountUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  publishedPosts PublishedPost[]
+
+  @@unique([platform, externalAccountId])
+  @@index([status, platform])
+  @@index([brandName, region, country])
+}
+
+model PublishedPost {
+  id                    String              @id @default(cuid())
+  connectedAccountId    String?
+  contentId             String?
+  blogId                String?
+  scheduleId            String?
+  platform              SocialPlatform
+  platformAccountName   String?
+  externalPostId        String?
+  externalPostUrl       String?
+  titleSnapshot         String?
+  captionSnapshot       String?
+  mediaSnapshot         Json?
+  status                PublishedPostStatus @default(imported)
+  publishedAt           DateTime?
+  importedAt            DateTime?
+  latestAnalyticsAt     DateTime?
+  createdById           String?
+  updatedById           String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  connectedAccount ConnectedAccount?      @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  content          Content?               @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  blog             Blog?                  @relation(fields: [blogId], references: [id], onDelete: SetNull)
+  schedule         ContentSchedule?       @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  createdBy        UserAccess?            @relation("PublishedPostCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy        UserAccess?            @relation("PublishedPostUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  analyticsSnapshots PostAnalyticsSnapshot[]
+
+  @@unique([platform, externalPostId])
+  @@index([connectedAccountId, publishedAt])
+  @@index([contentId, blogId, scheduleId])
+  @@index([status, platform, publishedAt])
+}
+
+model PostAnalyticsSnapshot {
+  id               String        @id @default(cuid())
+  publishedPostId  String
+  capturedAt       DateTime      @default(now())
+  impressions      Int?
+  reach            Int?
+  engagements      Int?
+  likes            Int?
+  comments         Int?
+  shares           Int?
+  saves            Int?
+  clicks           Int?
+  videoViews       Int?
+  engagementRate   Float?
+  clickThroughRate Float?
+  metadata         Json?
+  createdAt        DateTime      @default(now())
+
+  publishedPost PublishedPost @relation(fields: [publishedPostId], references: [id], onDelete: Cascade)
+
+  @@index([publishedPostId, capturedAt])
+  @@index([capturedAt])
 }

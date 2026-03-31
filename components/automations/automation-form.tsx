@@ -45,6 +45,7 @@ export function AutomationForm({ action, workflow, brandProfiles }: AutomationFo
         <Field htmlFor="type" label="Automation type">
           <select defaultValue={workflow?.type ?? AutomationType.weekly_social_content} id="type" name="type">
             <option value={AutomationType.weekly_social_content}>weekly_social_content</option>
+            <option value={AutomationType.blog_post_generation}>blog_post_generation</option>
           </select>
         </Field>
 
@@ -88,7 +89,11 @@ export function AutomationForm({ action, workflow, brandProfiles }: AutomationFo
           />
         </Field>
 
-        <Field htmlFor="targetContentStatus" label="Target content status">
+        <Field
+          htmlFor="targetContentStatus"
+          hint="Used by social content workflows. Blog workflows currently create draft blog records."
+          label="Target content status"
+        >
           <select
             defaultValue={workflow?.targetContentStatus ?? ContentStatus.draft}
             id="targetContentStatus"
@@ -141,11 +146,19 @@ export function AutomationForm({ action, workflow, brandProfiles }: AutomationFo
         </Field>
       </div>
 
-      <Field htmlFor="description" label="Workflow description">
+      <Field
+        htmlFor="description"
+        hint="Use this for the operational goal of the workflow, such as the audience, cadence, or editorial purpose."
+        label="Workflow description"
+      >
         <textarea defaultValue={workflow?.description ?? ""} id="description" name="description" rows={3} />
       </Field>
 
-      <Field htmlFor="promptTemplate" label="Prompt template">
+      <Field
+        htmlFor="promptTemplate"
+        hint="Describe what should be generated here. For blog workflows, include the blog topics, angle, structure, and any section-level expectations."
+        label="Prompt template"
+      >
         <textarea
           defaultValue={workflow?.promptTemplate ?? ""}
           id="promptTemplate"

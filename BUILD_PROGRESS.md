@@ -24,6 +24,8 @@ Production-ready internal web application for AI-assisted content operations, bu
 - A first automation foundation is now in place with controllable workflow records, manual execution, run history, and weekly social content generation into draft content records.
 - Automation health, due-run execution, and AI-side automation controls are now visible in the workspace so operators can monitor and trigger workflows safely before full background scheduling.
 - Core operational pages now include stronger summary surfaces, active filter states, and a schedule calendar that blends scheduled content with campaigns for real planning visibility.
+- Automation workflows now support both short-form social generation and structured blog draft generation from the same operator-controlled workflow model.
+- The social publishing and analytics foundation is now in place through connected account records, published post history, and analytics snapshots so future live sync has a production-safe home.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -56,11 +58,15 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Added the first automation workspace with workflow CRUD, run history, activation controls, and weekly social draft generation.
 - [x] Added automation runner controls, health summaries, dashboard visibility, and safe automation tools for Quill.
 - [x] Polished core list pages with summary cards, clearer controls, and a shared planning calendar for schedule plus campaigns.
+- [x] Added a second automation type for structured blog draft generation, including runner support, Quill support, and database-backed execution.
+- [x] Added connected social account management, published post history, analytics snapshots, analytics UI, and Quill access to historical performance data.
 
 ## In Progress
-- [ ] Continue production polish, UX refinement, and rollout preparation.
+- [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
 
 ## Pending
+- [ ] Add OAuth-based live platform connections starting with Meta so registered social accounts can sync real publishing and analytics data.
+- [ ] Add automated sync jobs for connected accounts to ingest live post and performance data on a schedule.
 - [ ] Add platform publishing workflows and social-channel delivery.
 - [ ] Expand asset relationships into section-level blog media slots and publishing-ready variants.
 
@@ -76,6 +82,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `Asset`, `ContentAsset`, `BlogAsset`, and `CampaignAsset` for reusable media management and relationship tracking.
 - `Blog.brand` now links blog records into the same brand-rule system used by content, campaigns, and schedule metadata.
 - `AutomationWorkflow` and `AutomationRun` now provide the basis for controlled recurring content generation and future scheduler execution.
+- `ConnectedAccount`, `PublishedPost`, and `PostAnalyticsSnapshot` now hold the future social connection, publishing history, and performance intelligence layer.
 
 ## Pages / Routes
 - `/`
@@ -100,6 +107,8 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/schedule/[id]`
 - `/admin/approvals`
 - `/settings`
+- `/social-accounts`
+- `/analytics`
 - `/automations`
 - `/automations/new`
 - `/automations/[id]`
@@ -118,6 +127,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Schedule pages now expose queue-style filtering for all, ready, needs-attention, approved, and this-week views.
 - Content and blog pages now expose queue-style filtering for automation-ready and needs-attention views.
 - `/automations` now supports workflow setup, manual execution, activation/pausing, due-run checks, and run logs. Scheduling metadata and a protected runner endpoint are stored now; background execution wiring is the next phase.
+- Automation types now include both `weekly_social_content` and `blog_post_generation`, with the prompt template acting as the per-workflow generation brief.
 - `/schedule` now supports both table and calendar views, with campaign windows layered into the same monthly planning surface as scheduled content and blog items.
 - Prisma is pinned to `6.14.x` because the local Node runtime is `20.18.2`, while Prisma `7.x` requires Node `20.19+`.
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
@@ -127,4 +137,5 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Connect the protected automation runner to a real scheduled trigger in Railway or another job system.
 - Add the next automation layer: more workflow types beyond weekly social content, plus deeper safety controls and operator reporting.
 - Add bulk actions, notifications, and approval inbox patterns so operators can move faster once automation volume increases.
+- Build the first live OAuth connection flow, starting with Meta account authorization, token handling, and background analytics sync.
 - Add social publishing architecture after automation is designed.
