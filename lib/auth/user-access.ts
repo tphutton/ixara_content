@@ -105,6 +105,16 @@ export async function requireAdminUserAccess() {
   return access;
 }
 
+export async function requireEditorialUserAccess() {
+  const access = await requireApprovedUserAccess();
+
+  if (access.role === UserRole.viewer) {
+    redirect("/dashboard");
+  }
+
+  return access;
+}
+
 export function isUserRole(value: FormDataEntryValue | null): value is UserRole {
   return value === UserRole.admin || value === UserRole.editor || value === UserRole.viewer;
 }

@@ -18,6 +18,9 @@ Production-ready internal web application for AI-assisted content operations, bu
 - WordPress media is now synced into a local `Asset` catalog so content, blogs, campaigns, and chat can reuse the same media records.
 - Brand profiles are now managed inside Settings and injected into the AI chat context to keep editorial output aligned with shared rules.
 - Brand profiles now actively shape content and blog workflows through server-side default inheritance, blog-level brand metadata, and readiness guidance in the editor UI and dashboard.
+- Schedule oversight now includes readiness evaluation, approval queues, and editor-driven approval actions so the calendar can feed future automation safely.
+- Content and blog list pages now expose lightweight operational queues so the team can quickly isolate automation-ready versus needs-attention records without introducing a heavy reporting layer.
+- The chat workspace has been redesigned into a more production-ready Quill operator console with a stronger split layout for conversation, threads, and tool activity.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -44,6 +47,9 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Replaced the placeholder Settings page with live Brand Profile CRUD for shared editorial guidance.
 - [x] Extended AI chat with asset sync/search tools and brand profile context/tool access.
 - [x] Added brand-aware defaults and warnings for content/blog creation, including a new `Blog.brand` field and dashboard publishing-readiness visibility.
+- [x] Added schedule queue filters, readiness evaluation, and approval actions for editor/admin review workflows.
+- [x] Added lightweight queue filtering for content and blog readiness, keeping editorial oversight practical ahead of automation work.
+- [x] Refreshed the chat workspace UI with Quill branding, avatar support, and a cleaner split-panel layout.
 
 ## In Progress
 - [ ] Continue production polish, UX refinement, and rollout preparation.
@@ -57,6 +63,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `Content` for short-form editorial and campaign content records.
 - `Blog` for structured 8-block article records.
 - `ContentSchedule` for scheduling content and blog publishing operations.
+- `ContentSchedule.approvedById` is now active as part of the review and readiness workflow for future automation/publishing.
 - `ChatThread` and `ChatMessage` for assistant conversations and tool traces.
 - `ContentActionLog` for mutation audit history.
 - `BrandProfile` for editorial guidance and AI consistency controls.
@@ -97,11 +104,13 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Campaign create/update/delete still depend on the upstream API being reachable at request time, but list/dashboard/chat now fail more gracefully.
 - WordPress media sync uses the public REST API and defaults to `https://media.ixara.tech/wp-json/wp/v2` unless `WORDPRESS_MEDIA_BASE_URL` is set.
 - Content and blog actions now auto-fill missing metadata from matching brand profiles and record brand-rule warnings in the action log.
+- Schedule pages now expose queue-style filtering for all, ready, needs-attention, approved, and this-week views.
+- Content and blog pages now expose queue-style filtering for automation-ready and needs-attention views.
 - Prisma is pinned to `6.14.x` because the local Node runtime is `20.18.2`, while Prisma `7.x` requires Node `20.19+`.
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
 
 ## Next Steps
 - Finalize deployment envs in Railway, Clerk, OpenAI, campaigns API, and WordPress sync.
-- Expand editorial oversight with richer filters, approval views, and more explicit “ready this week” workflow screens.
+- Expand editorial oversight further with richer cross-page filters and more explicit review ownership/reporting.
 - Lay the groundwork for future automation on top of the current content, schedule, asset, and brand-profile foundations.
 - Add social publishing architecture after automation is designed.
