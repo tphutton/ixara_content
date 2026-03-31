@@ -18,6 +18,13 @@ export function parseStringArray(value: FormDataEntryValue | null) {
     .filter(Boolean);
 }
 
+export function parseStringArrayEntries(values: FormDataEntryValue[]) {
+  return values
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 export function parseBoolean(value: FormDataEntryValue | null) {
   return value === "true" || value === "on";
 }

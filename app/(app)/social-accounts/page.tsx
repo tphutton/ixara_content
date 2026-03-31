@@ -1,18 +1,29 @@
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 import { ConnectedAccountForm } from "@/components/social/connected-account-form";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { SummaryStats } from "@/components/ui/summary-stats";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { prisma } from "@/lib/prisma";
+import { isMetaConfigured, isMetaPlatform } from "@/lib/social/meta";
 import {
   createConnectedAccountAction,
   disconnectConnectedAccountAction,
+  syncConnectedAccountNowAction,
   updateConnectedAccountAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function SocialAccountsPage() {
+type SocialAccountsPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    success?: string;
+  }>;
+};
+
+export default async function SocialAccountsPage({ searchParams }: SocialAccountsPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const [brandProfiles, accounts] = await Promise.all([
     prisma.brandProfile.findMany({
       select: { id: true, brandName: true },
@@ -32,6 +43,7 @@ export default async function SocialAccountsPage() {
   const needsAttentionCount = accounts.filter((account) =>
     account.status === "needs_reauth" || account.status === "error",
   ).length;
+  const metaConfigured = isMetaConfigured();
 
   return (
     <section className="page-shell">
@@ -65,6 +77,26 @@ export default async function SocialAccountsPage() {
         ]}
       />
 
+      {resolvedSearchParams?.success ? (
+        <div className="card card--padded">
+          <strong>Connection updated</strong>
+          <p className="muted" style={{ margin: "8px 0 0" }}>
+            {resolvedSearchParams.success === "meta_connected"
+              ? "Meta account connected successfully. You can sync posts and analytics now."
+              : resolvedSearchParams.success}
+          </p>
+        </div>
+      ) : null}
+
+      {resolvedSearchParams?.error ? (
+        <div className="card card--padded">
+          <strong>Connection issue</strong>
+          <p className="muted" style={{ margin: "8px 0 0" }}>
+            {resolvedSearchParams.error}
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
         <article className="card card--padded">
           <p className="kicker">Add account</p>
@@ -94,7 +126,7 @@ export default async function SocialAccountsPage() {
               <strong>2. Connect OAuth later</strong>
               <p className="muted" style={{ marginBottom: 0 }}>
                 When Meta or another provider is ready, these records become the destination for
-                account IDs, scopes, and encrypted tokens.
+                account IDs, scopes, encrypted tokens, and sync metadata.
               </p>
             </div>
             <div>
@@ -102,6 +134,14 @@ export default async function SocialAccountsPage() {
               <p className="muted" style={{ marginBottom: 0 }}>
                 Synced data will populate the analytics workspace so Quill can learn from what
                 actually performed well.
+              </p>
+            </div>
+            <div>
+              <strong>Meta readiness</strong>
+              <p className="muted" style={{ marginBottom: 0 }}>
+                {metaConfigured
+                  ? "Meta app credentials are configured, so Facebook and Instagram accounts can be connected from this page."
+                  : "Meta app credentials are not configured yet. Add the Meta env vars before trying to connect Facebook or Instagram accounts."}
               </p>
             </div>
           </div>
@@ -127,6 +167,8 @@ export default async function SocialAccountsPage() {
             {accounts.map((account) => {
               const updateAction = updateConnectedAccountAction.bind(null, account.id);
               const disconnectAction = disconnectConnectedAccountAction.bind(null, account.id);
+              const syncAction = syncConnectedAccountNowAction.bind(null, account.id);
+              const canUseMetaFlow = metaConfigured && isMetaPlatform(account.platform);
 
               return (
                 <article className="card card--padded" key={account.id}>
@@ -165,12 +207,32 @@ export default async function SocialAccountsPage() {
                     brandProfiles={brandProfiles}
                   />
 
-                  <div style={{ marginTop: 16 }}>
-                    <form action={disconnectAction}>
-                      <button className="button button--secondary" type="submit">
-                        Mark disconnected
-                      </button>
-                    </form>
+                  <div className="toolbar" style={{ marginTop: 16 }}>
+                    <div className="toolbar__group">
+                      {canUseMetaFlow ? (
+                        <Link
+                          className="button button--primary"
+                          href={`/api/social/meta/start?accountId=${account.id}`}
+                        >
+                          Connect Meta
+                        </Link>
+                      ) : null}
+                      {canUseMetaFlow && account.encryptedAccessToken ? (
+                        <form action={syncAction}>
+                          <button className="button button--secondary" type="submit">
+                            Sync now
+                          </button>
+                        </form>
+                      ) : null}
+                    </div>
+
+                    <div className="toolbar__group">
+                      <form action={disconnectAction}>
+                        <button className="button button--secondary" type="submit">
+                          Mark disconnected
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 </article>
               );

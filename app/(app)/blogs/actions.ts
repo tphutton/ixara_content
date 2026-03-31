@@ -11,6 +11,7 @@ import {
   parseNullableDate,
   parseOptionalString,
   parseStringArray,
+  parseStringArrayEntries,
 } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
 
@@ -40,7 +41,7 @@ function getBlogInput(formData: FormData) {
     featureImage: parseOptionalString(formData.get("featureImage")),
     featureAssetId: parseOptionalString(formData.get("featureAssetId")),
     ...sections,
-    websites: parseStringArray(formData.get("websites")),
+    websites: parseStringArrayEntries(formData.getAll("websites")),
     category: parseOptionalString(formData.get("category")),
     tags: parseStringArray(formData.get("tags")),
     authorBio: parseOptionalString(formData.get("authorBio")),

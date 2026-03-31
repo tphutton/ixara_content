@@ -9,6 +9,7 @@ import { createActionLog } from "@/lib/actions/action-log";
 import { requireEditorialUserAccess } from "@/lib/auth/user-access";
 import { parseOptionalString, parseStringArray } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
+import { syncConnectedMetaAccount } from "@/lib/social/meta-sync";
 
 function parseEnum<T extends string>(value: FormDataEntryValue | null, allowed: readonly T[], fallback: T) {
   return allowed.includes(value as T) ? (value as T) : fallback;
@@ -125,4 +126,17 @@ export async function disconnectConnectedAccountAction(id: string) {
 
   revalidatePath("/social-accounts");
   revalidatePath("/analytics");
+}
+
+export async function syncConnectedAccountNowAction(id: string) {
+  const access = await requireEditorialUserAccess();
+
+  await syncConnectedMetaAccount({
+    accountId: id,
+    userId: access.id,
+  });
+
+  revalidatePath("/social-accounts");
+  revalidatePath("/analytics");
+  revalidatePath("/dashboard");
 }

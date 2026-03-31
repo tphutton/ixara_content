@@ -13,3 +13,11 @@ export const contentStatusOptions = Object.values(ContentStatus);
 export const contentTypeOptions = Object.values(ContentType);
 export const blogStatusOptions = Object.values(BlogStatus);
 export const scheduleStatusOptions = Object.values(ScheduleStatus);
+
+export const websiteOptions = [
+  "StadioMate",
+  "Nollux Asia",
+  "StadioPulse",
+  "IxaraTech",
+  "IxaraConnect",
+] as const;

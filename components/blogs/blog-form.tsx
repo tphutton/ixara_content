@@ -1,5 +1,5 @@
 import { Blog, BlogStatus } from "@prisma/client";
-import { blogStatusOptions } from "@/lib/constants/options";
+import { blogStatusOptions, websiteOptions } from "@/lib/constants/options";
 import { Field } from "@/components/forms/field";
 import { SubmitButton } from "@/components/forms/submit-button";
 
@@ -18,6 +18,8 @@ export function BlogForm({
   assets = [],
   brandProfiles = [],
 }: BlogFormProps) {
+  const selectedWebsites = new Set(blog?.websites ?? []);
+
   return (
     <form action={action} className="stack">
       <datalist id="brand-profile-options">
@@ -115,8 +117,29 @@ export function BlogForm({
           <input defaultValue={blog?.tags.join(", ") ?? ""} id="tags" name="tags" />
         </Field>
 
-        <Field htmlFor="websites" hint="Comma separated" label="Websites">
-          <input defaultValue={blog?.websites.join(", ") ?? ""} id="websites" name="websites" />
+        <Field hint="Select one or more destinations" label="Websites">
+          <div className="card card--padded" style={{ display: "grid", gap: 10 }}>
+            {websiteOptions.map((website) => (
+              <label
+                key={website}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  fontSize: "0.95rem",
+                  color: "var(--muted-foreground)",
+                }}
+              >
+                <input
+                  defaultChecked={selectedWebsites.has(website)}
+                  name="websites"
+                  type="checkbox"
+                  value={website}
+                />
+                <span>{website}</span>
+              </label>
+            ))}
+          </div>
         </Field>
 
         <Field htmlFor="sources" hint="Comma separated URLs or references" label="Sources">

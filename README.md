@@ -76,6 +76,13 @@ Social publishing and analytics foundations are now being added:
 - Quill tool access to connected accounts, published post history, and top-performing posts
 - Internal schema support for future OAuth-based live sync, publishing history, and analytics ingestion
 
+Legacy blog compatibility is now in place:
+
+- `/api/blogs`
+- `/api/blogs/by_brand?brand=...`
+- `/api/blogs/[id]`
+- Import script for the deprecated TechSport blogs source with legacy ID preservation
+
 ## Planned Stack
 
 - Next.js 16
@@ -99,6 +106,8 @@ Additional environment for campaigns:
 
 - `CAMPAIGNS_API_BASE_URL`
 - `CAMPAIGNS_API_KEY`
+- `LEGACY_BLOGS_API_URL`
+- `LEGACY_BLOGS_API_KEY`
 
 Additional environment for assets:
 
@@ -119,10 +128,14 @@ Local development:
 - `INITIAL_ADMIN_EMAIL`
 - `CAMPAIGNS_API_BASE_URL=https://data.techsport.asia/api`
 - `CAMPAIGNS_API_KEY`
+- `LEGACY_BLOGS_API_URL=https://data.techsport.asia/api/tables/blogs`
+- `LEGACY_BLOGS_API_KEY`
 - `WORDPRESS_MEDIA_BASE_URL=https://media.ixara.tech/wp-json/wp/v2`
 - `AUTOMATION_RUNNER_SECRET`
 - `META_APP_ID` for future live Meta OAuth
 - `META_APP_SECRET` for future live Meta OAuth
+- `META_SCOPES` optional override for Meta permissions
+- `SOCIAL_ACCOUNT_ENCRYPTION_KEY` for encrypting stored social access tokens
 
 Railway deployment:
 
@@ -131,6 +144,7 @@ Railway deployment:
 - Keep `CAMPAIGNS_API_KEY`, `CLERK_SECRET_KEY`, `OPENAI_API_KEY`, and `DATABASE_URL` server-side only
 - Keep `AUTOMATION_RUNNER_SECRET` server-side only and use it for scheduled runner calls
 - Keep `META_APP_SECRET` server-side only when live Meta OAuth is added
+- Keep `SOCIAL_ACCOUNT_ENCRYPTION_KEY` server-side only because it protects stored platform tokens
 
 ## Clerk Setup
 
@@ -162,6 +176,9 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - `/campaigns`
 - `/social-accounts`
 - `/analytics`
+- `/api/blogs`
+- `/api/blogs/by_brand`
+- `/api/blogs/[id]`
 - `/content`
 - `/blogs`
 - `/schedule`
@@ -171,6 +188,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 ## Notes
 
 - The assistant now has tool access to content, blogs, schedules, campaigns, synced assets, dashboard summaries, and brand profiles.
+- Legacy blogs can be imported with `npm run import:legacy:blogs`, which upserts by preserved legacy IDs and keeps the compatibility API stable for older clients.
 - WordPress remains the media origin while the local `Asset` table handles cataloging, search, and record relationships.
 - Content and blog mutations now apply matching brand profile defaults server-side, and blogs now carry a dedicated `brand` field for consistent editorial grouping.
 - Automation scheduling metadata and manual runs are now live, and workflows can generate either short-form content drafts or structured blog drafts. Background job execution is still the next planned step before social publishing.

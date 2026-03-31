@@ -189,6 +189,9 @@ model Content {
 
 model Blog {
   id             String      @id @default(cuid())
+  legacyExternalId Int?      @unique
+  legacyBlogId    String?    @unique
+  legacyZohoId    String?
   title          String
   brand          String?
   postDate       DateTime?
@@ -245,6 +248,7 @@ model Blog {
 
   @@index([status, postDate])
   @@index([brand, category, sport, region, country])
+  @@index([legacyZohoId])
 }
 
 model ContentSchedule {

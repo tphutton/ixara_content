@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import:legacy:blogs": "node scripts/import-legacy-blogs.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.7",
