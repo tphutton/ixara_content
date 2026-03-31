@@ -1,4 +1,7 @@
-import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import {
+  ChatCompletionAssistantMessageParam,
+  ChatCompletionMessageParam,
+} from "openai/resources/chat/completions";
 import { prisma } from "@/lib/prisma";
 import { executeContentOpsTool, contentOpsTools } from "@/lib/ai/tools";
 import { getOpenAIClient } from "@/lib/openai";
@@ -39,6 +42,10 @@ type StoredChatMessage = {
   content: string;
   toolName: string | null;
   toolPayload: unknown;
+};
+
+type StoredAssistantToolPayload = {
+  toolCalls?: ChatCompletionAssistantMessageParam["tool_calls"];
 };
 
 function getThreadTitle(message: string) {
@@ -84,27 +91,59 @@ function toOpenAIMessages(
   messages: StoredChatMessage[],
   brandProfileContext: string,
 ): ChatCompletionMessageParam[] {
-  return [
+  const conversation: ChatCompletionMessageParam[] = [
     {
       role: "system",
       content: `${SYSTEM_PROMPT}\n\nCurrent brand profiles:\n${brandProfileContext}`,
     },
-    ...messages.map((message) => {
-      if (message.role === "tool") {
-        return {
-          role: "tool",
-          content: message.content,
-          tool_call_id:
-            (message.toolPayload as { toolCallId?: string } | null)?.toolCallId ?? message.id,
-        } satisfies ChatCompletionMessageParam;
+  ];
+
+  let lastAssistantHadToolCalls = false;
+
+  for (const message of messages) {
+    if (message.role === "tool") {
+      if (!lastAssistantHadToolCalls) {
+        continue;
       }
 
-      return {
-        role: message.role === "assistant" ? "assistant" : "user",
+      conversation.push({
+        role: "tool",
         content: message.content,
-      } satisfies ChatCompletionMessageParam;
-    }),
-  ];
+        tool_call_id:
+          (message.toolPayload as { toolCallId?: string } | null)?.toolCallId ?? message.id,
+      });
+      continue;
+    }
+
+    if (message.role === "assistant") {
+      const toolCalls = (message.toolPayload as StoredAssistantToolPayload | null)?.toolCalls;
+
+      if (toolCalls?.length) {
+        conversation.push({
+          role: "assistant",
+          content: message.content,
+          tool_calls: toolCalls,
+        });
+        lastAssistantHadToolCalls = true;
+        continue;
+      }
+
+      conversation.push({
+        role: "assistant",
+        content: message.content,
+      });
+      lastAssistantHadToolCalls = false;
+      continue;
+    }
+
+    conversation.push({
+      role: "user",
+      content: message.content,
+    });
+    lastAssistantHadToolCalls = false;
+  }
+
+  return conversation;
 }
 
 async function getOrCreateThread(access: CurrentUserAccess, threadId: string | undefined, message: string) {
@@ -148,6 +187,25 @@ async function saveToolMessages(threadId: string, toolResults: Array<{ toolName:
       }),
     ),
   );
+}
+
+async function saveAssistantToolCallMessage(input: {
+  threadId: string;
+  content: string;
+  toolCalls: NonNullable<ChatCompletionAssistantMessageParam["tool_calls"]>;
+}) {
+  return prisma.chatMessage.create({
+    data: {
+      threadId: input.threadId,
+      role: "assistant",
+      content: input.content,
+      toolPayload: JSON.parse(
+        JSON.stringify({
+          toolCalls: input.toolCalls,
+        }),
+      ) as object,
+    },
+  });
 }
 
 export async function runContentOpsChat(input: {
@@ -203,6 +261,12 @@ export async function runContentOpsChat(input: {
     }
 
     if (assistantMessage.tool_calls?.length) {
+      await saveAssistantToolCallMessage({
+        threadId: thread.id,
+        content: assistantMessage.content ?? "",
+        toolCalls: assistantMessage.tool_calls,
+      });
+
       conversation.push({
         role: "assistant",
         content: assistantMessage.content ?? "",

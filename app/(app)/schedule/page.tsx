@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { addMonths, format, startOfMonth, subMonths } from "date-fns";
+import {
+  addMonths,
+  addWeeks,
+  endOfWeek,
+  format,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+  subWeeks,
+} from "date-fns";
 import { CampaignApiNotice } from "@/components/campaigns/campaign-api-notice";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { OperationsCalendar } from "@/components/schedule/operations-calendar";
@@ -16,6 +25,7 @@ type SchedulePageProps = {
     queue?: string;
     view?: string;
     month?: string;
+    week?: string;
   }>;
 };
 
@@ -30,8 +40,11 @@ const queueOptions = [
 export default async function SchedulePage({ searchParams }: SchedulePageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const queue = resolvedSearchParams?.queue ?? "all";
-  const view = resolvedSearchParams?.view ?? "calendar";
+  const rawView = resolvedSearchParams?.view ?? "month";
+  const view = rawView === "calendar" ? "month" : rawView;
   const monthParam = resolvedSearchParams?.month ?? format(startOfMonth(new Date()), "yyyy-MM");
+  const weekParam =
+    resolvedSearchParams?.week ?? format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const now = new Date();
   const weekEnd = new Date(now);
   weekEnd.setDate(weekEnd.getDate() + 7);
@@ -41,6 +54,12 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     : startOfMonth(parsedMonth);
   const previousMonth = format(subMonths(currentMonth, 1), "yyyy-MM");
   const nextMonth = format(addMonths(currentMonth, 1), "yyyy-MM");
+  const parsedWeek = new Date(`${weekParam}T00:00:00`);
+  const currentWeek = Number.isNaN(parsedWeek.getTime())
+    ? startOfWeek(new Date(), { weekStartsOn: 1 })
+    : startOfWeek(parsedWeek, { weekStartsOn: 1 });
+  const previousWeek = format(subWeeks(currentWeek, 1), "yyyy-MM-dd");
+  const nextWeek = format(addWeeks(currentWeek, 1), "yyyy-MM-dd");
 
   const [scheduleRows, campaignsResponse] = await Promise.all([
     prisma.contentSchedule.findMany({
@@ -120,21 +139,23 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   const campaigns = campaignsResponse.ok ? campaignsResponse.data : [];
   const activeCampaigns = campaigns.filter((campaign) => campaign.campaign_status === "active").length;
 
-  function buildScheduleHref(next: { queue?: string; view?: string; month?: string }) {
+  function buildScheduleHref(next: { queue?: string; view?: string; month?: string; week?: string }) {
     const params = new URLSearchParams();
     const resolvedQueue = next.queue ?? queue;
     const resolvedView = next.view ?? view;
     const resolvedMonth = next.month ?? monthParam;
+    const resolvedWeek = next.week ?? weekParam;
 
     if (resolvedQueue !== "all") {
       params.set("queue", resolvedQueue);
     }
 
-    if (resolvedView !== "calendar") {
+    if (resolvedView !== "month") {
       params.set("view", resolvedView);
     }
 
     params.set("month", resolvedMonth);
+    params.set("week", resolvedWeek);
 
     return `/schedule?${params.toString()}`;
   }
@@ -187,10 +208,17 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           <div className="toolbar__group">
             <Link
               className="button button--secondary"
-              data-active={view === "calendar"}
-              href={buildScheduleHref({ view: "calendar" })}
+              data-active={view === "month"}
+              href={buildScheduleHref({ view: "month" })}
             >
-              Calendar view
+              Month view
+            </Link>
+            <Link
+              className="button button--secondary"
+              data-active={view === "week"}
+              href={buildScheduleHref({ view: "week" })}
+            >
+              Week view
             </Link>
             <Link
               className="button button--secondary"
@@ -214,40 +242,59 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           </div>
         </div>
 
-        {view === "calendar" ? (
+        {view === "month" || view === "week" ? (
           <>
             <div className="card card--padded">
               <div className="section-heading">
                 <div>
-                  <p className="kicker">Monthly planning</p>
-                  <h3 style={{ marginTop: 0 }}>{format(currentMonth, "MMMM yyyy")}</h3>
+                  <p className="kicker">{view === "week" ? "Weekly planning" : "Monthly planning"}</p>
+                  <h3 style={{ marginTop: 0 }}>
+                    {view === "week"
+                      ? `${format(currentWeek, "d MMM")} – ${format(endOfWeek(currentWeek, { weekStartsOn: 1 }), "d MMM yyyy")}`
+                      : format(currentMonth, "MMMM yyyy")}
+                  </h3>
                 </div>
                 <div className="toolbar__group">
                   <Link
                     className="button button--secondary"
-                    href={buildScheduleHref({ month: previousMonth })}
+                    href={
+                      view === "week"
+                        ? buildScheduleHref({ week: previousWeek })
+                        : buildScheduleHref({ month: previousMonth })
+                    }
                   >
-                    Previous month
+                    {view === "week" ? "Previous week" : "Previous month"}
                   </Link>
                   <Link
                     className="button button--secondary"
-                    href={buildScheduleHref({
-                      month: format(startOfMonth(new Date()), "yyyy-MM"),
-                    })}
+                    href={
+                      view === "week"
+                        ? buildScheduleHref({
+                            week: format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+                          })
+                        : buildScheduleHref({
+                            month: format(startOfMonth(new Date()), "yyyy-MM"),
+                          })
+                    }
                   >
-                    Current month
+                    {view === "week" ? "Current week" : "Current month"}
                   </Link>
                   <Link
                     className="button button--secondary"
-                    href={buildScheduleHref({ month: nextMonth })}
+                    href={
+                      view === "week"
+                        ? buildScheduleHref({ week: nextWeek })
+                        : buildScheduleHref({ month: nextMonth })
+                    }
                   >
-                    Next month
+                    {view === "week" ? "Next week" : "Next month"}
                   </Link>
                 </div>
               </div>
             </div>
 
             <OperationsCalendar
+              anchorDate={weekParam}
               campaigns={campaigns}
               month={monthParam}
               scheduleItems={filteredRows.map((row) => ({
@@ -259,6 +306,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
                 brand: row.brand,
                 channel: row.channel,
               }))}
+              viewMode={view === "week" ? "week" : "month"}
             />
           </>
         ) : filteredRows.length === 0 ? (

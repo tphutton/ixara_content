@@ -28,6 +28,8 @@ Production-ready internal web application for AI-assisted content operations, bu
 - The social publishing and analytics foundation is now in place through connected account records, published post history, and analytics snapshots so future live sync has a production-safe home.
 - Legacy TechSport blogs can now be imported into the live `Blog` model with preserved legacy IDs, and a compatibility API is available so older clients can read blogs without a schema rewrite.
 - The blog workspace now uses a clearer editorial UX with card-based list views, review-first article detail pages, and a dedicated edit overlay instead of forcing every user straight into a long form.
+- The schedule workspace now includes both monthly and weekly planning views, with campaigns clearly treated as all-day planning blocks and scheduled posts shown as timed entries.
+- Chat history replay is now more resilient because assistant tool-call messages are persisted correctly and orphaned legacy tool messages are skipped.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -65,6 +67,8 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Added the first Meta OAuth and sync scaffold so Facebook and Instagram account records can be connected and synced once credentials are configured.
 - [x] Added a legacy blog import path plus compatibility API endpoints that preserve old blog IDs and response fields for deprecated clients.
 - [x] Rebuilt the blog workspace UX with a more professional queue view, structured article overview, and focused update overlay.
+- [x] Upgraded the schedule calendar with a polished weekly view that separates all-day campaigns from timed publishing items.
+- [x] Fixed Quill thread replay so stored tool messages no longer break future chat requests.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
@@ -141,9 +145,11 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/automations` now supports workflow setup, manual execution, activation/pausing, due-run checks, and run logs. Scheduling metadata and a protected runner endpoint are stored now; background execution wiring is the next phase.
 - Automation types now include both `weekly_social_content` and `blog_post_generation`, with the prompt template acting as the per-workflow generation brief.
 - `/schedule` now supports both table and calendar views, with campaign windows layered into the same monthly planning surface as scheduled content and blog items.
+- `/schedule` now supports monthly and weekly planning views, with campaigns pinned as all-day blocks and scheduled items ordered by time within each day.
 - Facebook and Instagram account records can now use the first Meta OAuth callback flow and manual sync action once `META_APP_ID`, `META_APP_SECRET`, `META_SCOPES`, and `SOCIAL_ACCOUNT_ENCRYPTION_KEY` are configured.
 - `npm run import:legacy:blogs` now fetches the deprecated TechSport blogs API and upserts into the current Prisma `Blog` model using preserved legacy identifiers.
 - Blog editing is now split into review and edit modes so editors can inspect article readiness, metadata, and section coverage before opening the update panel.
+- Quill now stores assistant tool-call records before tool outputs, which prevents OpenAI history validation errors on subsequent thread messages.
 - Prisma is pinned to `6.14.x` because the local Node runtime is `20.18.2`, while Prisma `7.x` requires Node `20.19+`.
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
 
@@ -155,3 +161,30 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Build the first live OAuth connection flow, starting with Meta account authorization, token handling, and background analytics sync.
 - Expand the compatibility API layer only where older clients still need it, then retire legacy blog consumers once the new client paths are fully adopted.
 - Add social publishing architecture after automation is designed.
+
+## Quill Tool Inventory
+- `list_content`: Read short-form content records with optional status, type, brand, and limit filters.
+- `create_content`: Create a new content record.
+- `update_content`: Update an existing content record by id.
+- `list_blogs`: Read blog/article records with optional status, sport, and limit filters.
+- `create_blog`: Create a structured blog record with up to 8 text/image sections.
+- `update_blog`: Update an existing blog record by id.
+- `list_schedule_entries`: Read schedule/calendar entries with optional status and limit filters.
+- `create_schedule_entry`: Create a new schedule entry linked to content or a blog.
+- `update_schedule_entry`: Update an existing schedule entry by id.
+- `get_dashboard_summary`: Return dashboard counts, schedule visibility, and recent activity.
+- `list_assets`: Read synced WordPress/media assets with optional brand, campaign, geography, and search filters.
+- `sync_wordpress_assets`: Pull the latest media from the configured WordPress source into the internal asset catalog.
+- `list_brand_profiles`: Read saved editorial brand profiles.
+- `get_brand_profile`: Read a single brand profile by id or brand name.
+- `upsert_brand_profile`: Create or update a brand profile.
+- `list_campaigns`: Read campaign records from the external TechSport campaigns API.
+- `get_campaign`: Read a single campaign by `campaign_id`.
+- `upsert_campaign`: Create or update a campaign in the external campaigns API.
+- `delete_campaign`: Delete a campaign by `campaign_id`.
+- `list_connected_accounts`: Read connected social account records for future publishing and analytics sync.
+- `list_published_posts`: Read imported/synced published post records and their latest analytics snapshots.
+- `get_top_performing_posts`: Read the best-performing posts ranked by latest engagement rate.
+- `list_automations`: Read saved automation workflows with optional status/type filters.
+- `get_automation_health`: Read automation health counts including due runs and recent failures.
+- `run_automation`: Run a specific workflow by id or trigger all due workflows.
