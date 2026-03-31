@@ -2,6 +2,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SummaryStats } from "@/components/ui/summary-stats";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
+import { getBlogReadiness } from "@/lib/blogs/readiness";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -21,22 +22,9 @@ const queueOptions = [
   { key: "review", label: "In review" },
 ] as const;
 
-function getBlogReadiness(row: {
-  brand: string | null;
-  websites: string[];
-  featureAssetId: string | null;
-  featureImage: string | null;
-}) {
-  const reasons: string[] = [];
-
-  if (!row.brand) reasons.push("brand");
-  if (row.websites.length === 0) reasons.push("websites");
-  if (!row.featureAssetId && !row.featureImage) reasons.push("feature image");
-
-  return {
-    ready: reasons.length === 0,
-    reasons,
-  };
+function stripHtml(value: string | null) {
+  if (!value) return "";
+  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 export default async function BlogsPage({ searchParams }: BlogsPageProps) {
@@ -180,41 +168,57 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
             </p>
           </div>
         ) : (
-          <div className="card table-shell">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Brand</th>
-                  <th>Category</th>
-                  <th>Author</th>
-                  <th>Sport</th>
-                  <th>Region</th>
-                  <th>Readiness</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <Link href={`/blogs/${row.id}`}>{row.title}</Link>
-                    </td>
-                    <td>{row.brand ?? "—"}</td>
-                    <td>{row.category ?? "—"}</td>
-                    <td>{row.authorName ?? "—"}</td>
-                    <td>{row.sport ?? "—"}</td>
-                    <td>{row.region ?? "—"}</td>
-                    <td>
-                      <StatusBadge label={row.readiness.ready ? "ready" : "warning"} />
-                    </td>
-                    <td>
+          <div className="blog-list">
+            {filteredRows.map((row) => (
+              <article className="card card--padded blog-list-card" key={row.id}>
+                <div className="blog-list-card__header">
+                  <div className="stack" style={{ gap: 8 }}>
+                    <div className="blog-chip-row">
                       <StatusBadge label={row.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <StatusBadge label={row.readiness.ready ? "ready" : "warning"} />
+                      {row.category ? <span className="inline-chip">{row.category}</span> : null}
+                    </div>
+                    <div>
+                      <Link className="blog-list-card__title" href={`/blogs/${row.id}`}>
+                        {row.title}
+                      </Link>
+                      <p className="muted" style={{ marginTop: 8 }}>
+                        {stripHtml(row.text1).slice(0, 220) || "No introduction added yet."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="toolbar__group">
+                    <Link className="button button--secondary" href={`/blogs/${row.id}`}>
+                      View
+                    </Link>
+                    <Link className="button button--primary" href={`/blogs/${row.id}?edit=1`}>
+                      Update
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="blog-list-card__meta">
+                  <div>
+                    <span>Brand</span>
+                    <strong>{row.brand ?? "—"}</strong>
+                  </div>
+                  <div>
+                    <span>Author</span>
+                    <strong>{row.authorName ?? "—"}</strong>
+                  </div>
+                  <div>
+                    <span>Websites</span>
+                    <strong>{row.websites.length ? row.websites.join(", ") : "—"}</strong>
+                  </div>
+                  <div>
+                    <span>Coverage</span>
+                    <strong>
+                      {[row.sport, row.region, row.country].filter(Boolean).join(" • ") || "—"}
+                    </strong>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </div>

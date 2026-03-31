@@ -27,6 +27,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Automation workflows now support both short-form social generation and structured blog draft generation from the same operator-controlled workflow model.
 - The social publishing and analytics foundation is now in place through connected account records, published post history, and analytics snapshots so future live sync has a production-safe home.
 - Legacy TechSport blogs can now be imported into the live `Blog` model with preserved legacy IDs, and a compatibility API is available so older clients can read blogs without a schema rewrite.
+- The blog workspace now uses a clearer editorial UX with card-based list views, review-first article detail pages, and a dedicated edit overlay instead of forcing every user straight into a long form.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -63,6 +64,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Added connected social account management, published post history, analytics snapshots, analytics UI, and Quill access to historical performance data.
 - [x] Added the first Meta OAuth and sync scaffold so Facebook and Instagram account records can be connected and synced once credentials are configured.
 - [x] Added a legacy blog import path plus compatibility API endpoints that preserve old blog IDs and response fields for deprecated clients.
+- [x] Rebuilt the blog workspace UX with a more professional queue view, structured article overview, and focused update overlay.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
@@ -122,6 +124,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/api/blogs/[id]`
 - `/api/social/meta/start`
 - `/api/social/meta/callback`
+- `/blogs/[id]?edit=1`
 
 ## Known Issues / Notes
 - Workspace approval enforcement is active for protected routes and the chat API.
@@ -140,6 +143,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/schedule` now supports both table and calendar views, with campaign windows layered into the same monthly planning surface as scheduled content and blog items.
 - Facebook and Instagram account records can now use the first Meta OAuth callback flow and manual sync action once `META_APP_ID`, `META_APP_SECRET`, `META_SCOPES`, and `SOCIAL_ACCOUNT_ENCRYPTION_KEY` are configured.
 - `npm run import:legacy:blogs` now fetches the deprecated TechSport blogs API and upserts into the current Prisma `Blog` model using preserved legacy identifiers.
+- Blog editing is now split into review and edit modes so editors can inspect article readiness, metadata, and section coverage before opening the update panel.
 - Prisma is pinned to `6.14.x` because the local Node runtime is `20.18.2`, while Prisma `7.x` requires Node `20.19+`.
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
 

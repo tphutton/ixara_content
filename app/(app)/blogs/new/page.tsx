@@ -35,17 +35,21 @@ export default async function NewBlogPage() {
     <section className="page-shell">
       <WorkspaceHeader
         title="New Blog"
-        description="Create a structured article with author metadata, feature image, and up to 8 managed content sections."
+        description="Create a structured article with grouped metadata, curated website destinations, and a cleaner 8-section editorial workflow."
       />
 
-      <div className="grid" style={{ gridTemplateColumns: "1.2fr 0.8fr", alignItems: "start" }}>
+      <div className="grid" style={{ gridTemplateColumns: "1.15fr 0.85fr", alignItems: "start" }}>
         <div className="stack">
-        <Link className="button button--secondary" href="/blogs">
-          Back to blogs
-        </Link>
-        <div className="card card--padded">
+          <div className="toolbar">
+            <div className="toolbar__group">
+              <Link className="button button--secondary" href="/blogs">
+                Back to blogs
+              </Link>
+            </div>
+            <span className="inline-chip">Draft setup</span>
+          </div>
+
           <BlogForm action={createBlogAction} assets={assets} brandProfiles={brandProfiles} />
-        </div>
         </div>
 
         <BrandRuleGuide profiles={brandProfiles} />

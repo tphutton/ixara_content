@@ -28,6 +28,15 @@ export function BlogForm({
         ))}
       </datalist>
 
+      <section className="card card--padded">
+        <div className="section-heading">
+          <div>
+            <p className="kicker">Article setup</p>
+            <h3>Core metadata</h3>
+          </div>
+          <span className="inline-chip">Required for a clean editorial record</span>
+        </div>
+
       <div className="form-grid form-grid--2">
         <Field htmlFor="title" label="Title">
           <input defaultValue={blog?.title ?? ""} id="title" name="title" required />
@@ -111,6 +120,16 @@ export function BlogForm({
           <textarea defaultValue={blog?.authorBio ?? ""} id="authorBio" name="authorBio" rows={4} />
         </Field>
       </div>
+      </section>
+
+      <section className="card card--padded">
+        <div className="section-heading">
+          <div>
+            <p className="kicker">Distribution</p>
+            <h3>Publishing metadata</h3>
+          </div>
+          <span className="inline-chip">Websites, tags, and source context</span>
+        </div>
 
       <div className="form-grid form-grid--2">
         <Field htmlFor="tags" hint="Comma separated" label="Tags">
@@ -146,10 +165,18 @@ export function BlogForm({
           <input defaultValue={blog?.sources.join(", ") ?? ""} id="sources" name="sources" />
         </Field>
       </div>
+      </section>
 
-      <Field htmlFor="sourcePrompt" label="Source prompt">
-        <textarea defaultValue={blog?.sourcePrompt ?? ""} id="sourcePrompt" name="sourcePrompt" rows={4} />
-      </Field>
+      <section className="card card--padded">
+        <Field htmlFor="sourcePrompt" label="Source prompt">
+          <textarea
+            defaultValue={blog?.sourcePrompt ?? ""}
+            id="sourcePrompt"
+            name="sourcePrompt"
+            rows={4}
+          />
+        </Field>
+      </section>
 
       {sectionIndexes.map((index) => {
         const textKey = `text${index}` as keyof Blog;
