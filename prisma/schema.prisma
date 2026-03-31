@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  editor
+  viewer
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+enum ContentStatus {
+  idea
+  draft
+  approved
+  scheduled
+  published
+  archived
+}
+
+enum ContentType {
+  social_post
+  caption
+  ad_copy
+  newsletter
+  video_script
+  campaign_copy
+  promo_copy
+}
+
+enum BlogStatus {
+  idea
+  draft
+  review
+  approved
+  published
+  archived
+}
+
+enum ScheduleStatus {
+  planned
+  ready
+  scheduled
+  published
+  missed
+  cancelled
+}
+
+enum ChatRole {
+  user
+  assistant
+  tool
+  system
+}
+
+model UserAccess {
+  id             String           @id @default(cuid())
+  clerkUserId    String           @unique
+  email          String           @unique
+  fullName       String?
+  role           UserRole         @default(viewer)
+  approvalStatus ApprovalStatus   @default(pending)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  contentCreated     Content[]          @relation("ContentCreatedBy")
+  contentUpdated     Content[]          @relation("ContentUpdatedBy")
+  blogsCreated       Blog[]             @relation("BlogCreatedBy")
+  blogsUpdated       Blog[]             @relation("BlogUpdatedBy")
+  schedulesCreated   ContentSchedule[]  @relation("ScheduleCreatedBy")
+  schedulesApproved  ContentSchedule[]  @relation("ScheduleApprovedBy")
+  chatThreads        ChatThread[]
+  actionLogs         ContentActionLog[]
+
+  @@index([approvalStatus, role])
+}
+
+model Content {
+  id             String        @id @default(cuid())
+  title          String
+  body           String?
+  hook           String?
+  cta            String?
+  contentType    ContentType
+  platform       String?
+  status         ContentStatus @default(idea)
+  campaignName   String?
+  brand          String?
+  sport          String?
+  region         String?
+  country        String?
+  tags           String[]
+  targetAudience String?
+  tone           String?
+  websites       String[]
+  assetImage     String?
+  assetCaption   String?
+  aiGenerated    Boolean       @default(false)
+  sourcePrompt   String?
+  createdById    String?
+  updatedById    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  createdBy UserAccess?        @relation("ContentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy UserAccess?        @relation("ContentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  schedules ContentSchedule[]
+
+  @@index([status, contentType])
+  @@index([brand, sport, region, country])
+}
+
+model Blog {
+  id             String      @id @default(cuid())
+  title          String
+  postDate       DateTime?
+  authorName     String?
+  authorImage    String?
+  featureImage   String?
+  text1          String?
+  image1         String?
+  image1Caption  String?
+  text2          String?
+  image2         String?
+  image2Caption  String?
+  text3          String?
+  image3         String?
+  image3Caption  String?
+  text4          String?
+  image4         String?
+  image4Caption  String?
+  text5          String?
+  image5         String?
+  image5Caption  String?
+  text6          String?
+  image6         String?
+  image6Caption  String?
+  text7          String?
+  image7         String?
+  image7Caption  String?
+  text8          String?
+  image8         String?
+  image8Caption  String?
+  websites       String[]
+  category       String?
+  tags           String[]
+  authorBio      String?
+  status         BlogStatus   @default(idea)
+  sport          String?
+  region         String?
+  country        String?
+  sources        String[]
+  createdById    String?
+  updatedById    String?
+  aiGenerated    Boolean      @default(false)
+  sourcePrompt   String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  createdBy UserAccess?       @relation("BlogCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy UserAccess?       @relation("BlogUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  schedules ContentSchedule[]
+
+  @@index([status, postDate])
+  @@index([category, sport, region, country])
+}
+
+model ContentSchedule {
+  id              String         @id @default(cuid())
+  contentId       String?
+  blogId          String?
+  scheduledFor    DateTime
+  channel         String?
+  platformAccount String?
+  status          ScheduleStatus @default(planned)
+  campaignName    String?
+  priority        String?
+  notes           String?
+  brand           String?
+  sport           String?
+  region          String?
+  country         String?
+  approvedById    String?
+  createdById     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  content    Content?    @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  blog       Blog?       @relation(fields: [blogId], references: [id], onDelete: SetNull)
+  approvedBy UserAccess? @relation("ScheduleApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  createdBy  UserAccess? @relation("ScheduleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([scheduledFor, status])
+  @@index([brand, sport, region, country])
+}
+
+model ChatThread {
+  id          String        @id @default(cuid())
+  userId      String
+  title       String
+  contextType String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user     UserAccess    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id          String    @id @default(cuid())
+  threadId    String
+  role        ChatRole
+  content     String
+  toolName    String?
+  toolPayload Json?
+  createdAt   DateTime  @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+model ContentActionLog {
+  id         String   @id @default(cuid())
+  userId     String
+  actionType String
+  targetType String
+  targetId   String
+  summary    String
+  beforeData Json?
+  afterData  Json?
+  source     String
+  createdAt  DateTime @default(now())
+
+  user UserAccess @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model BrandProfile {
+  id                String   @id @default(cuid())
+  brandName         String   @unique
+  description       String?
+  defaultTone       String?
+  targetAudience    String?
+  preferredWebsites String[]
+  sports            String[]
+  regions           String[]
+  countries         String[]
+  bannedPhrases     String[]
+  preferredCTAs     String[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
