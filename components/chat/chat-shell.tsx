@@ -199,11 +199,28 @@ export function ChatShell({
           ) : (
             visibleMessages.map((entry) => (
               <article className="chat-message" data-role={entry.role} key={entry.id}>
-                <div className="chat-message__meta">
-                  <strong>{entry.role === "assistant" ? "Quill" : "You"}</strong>
-                  <span className="muted">{new Date(entry.createdAt).toLocaleTimeString()}</span>
+                <div className="chat-message__row">
+                  <div className="chat-message__avatar" data-role={entry.role}>
+                    {entry.role === "assistant" ? (
+                      <Image
+                        alt="Quill avatar"
+                        height={44}
+                        src="https://media.ixara.tech/wp-content/uploads/2026/03/5df61a5e-b2be-4944-95b9-ea0f663002fc.webp"
+                        width={44}
+                      />
+                    ) : (
+                      <span>Y</span>
+                    )}
+                  </div>
+
+                  <div className="chat-message__body">
+                    <div className="chat-message__meta">
+                      <strong>{entry.role === "assistant" ? "Quill" : "You"}</strong>
+                      <span className="muted">{new Date(entry.createdAt).toLocaleTimeString()}</span>
+                    </div>
+                    <p style={{ margin: "10px 0 0", whiteSpace: "pre-wrap" }}>{entry.content}</p>
+                  </div>
                 </div>
-                <p style={{ margin: "10px 0 0", whiteSpace: "pre-wrap" }}>{entry.content}</p>
               </article>
             ))
           )}

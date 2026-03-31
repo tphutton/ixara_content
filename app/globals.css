@@ -215,11 +215,45 @@ textarea {
   grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr);
   gap: 20px;
   align-items: start;
+  height: calc(100vh - 180px);
+  min-height: 680px;
 }
 
+.chat-workspace__primary,
 .chat-workspace__secondary {
+  height: 100%;
+  min-height: 0;
+}
+
+.chat-workspace__primary {
   display: grid;
-  gap: 20px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 251, 0.98), rgba(255, 255, 255, 0.9)),
+    radial-gradient(circle at top left, rgba(192, 28, 28, 0.08), transparent 42%);
+}
+
+.chat-workspace__secondary > .card {
+  overflow: hidden;
+}
+
+.chat-workspace__secondary > .card:first-child {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.chat-workspace__secondary > .card:last-child {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.chat-workspace__secondary .stack {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .chat-hero {
@@ -241,7 +275,7 @@ textarea {
   place-items: center;
   width: 72px;
   height: 72px;
-  border-radius: 22px;
+  border-radius: 999px;
   background: linear-gradient(180deg, rgba(255, 244, 244, 0.95), rgba(255, 255, 255, 0.88));
   border: 1px solid rgba(192, 28, 28, 0.18);
   box-shadow: 0 18px 36px rgba(192, 28, 28, 0.12);
@@ -266,14 +300,15 @@ textarea {
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.82);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(250, 251, 255, 0.88));
   text-align: left;
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
 }
 
 .chat-thread-card[data-active="true"] {
   border-color: rgba(192, 28, 28, 0.26);
-  background: linear-gradient(180deg, rgba(255, 246, 246, 0.96), rgba(255, 255, 255, 0.9));
+  background: linear-gradient(180deg, rgba(255, 246, 246, 0.98), rgba(255, 255, 255, 0.92));
+  box-shadow: 0 18px 36px rgba(192, 28, 28, 0.12);
 }
 
 .table-shell {
@@ -459,26 +494,70 @@ textarea {
 .chat-log {
   display: grid;
   gap: 14px;
-  max-height: 720px;
+  min-height: 0;
   padding-right: 6px;
   overflow-y: auto;
 }
 
 .chat-message {
-  padding: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.chat-message__row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.chat-message__avatar {
+  display: grid;
+  flex: 0 0 44px;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.chat-message__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chat-message__avatar[data-role="assistant"] {
+  background: linear-gradient(180deg, rgba(255, 243, 243, 0.96), rgba(255, 255, 255, 0.92));
+  border-color: rgba(192, 28, 28, 0.14);
+}
+
+.chat-message__avatar[data-role="user"] {
+  background: linear-gradient(135deg, #102033, #304255);
+  color: white;
+  font-weight: 700;
+}
+
+.chat-message__body {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 18px;
   border: 1px solid var(--border);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.78);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
 }
 
-.chat-message[data-role="assistant"] {
-  background: rgba(255, 248, 248, 0.88);
-  border-color: rgba(192, 28, 28, 0.16);
+.chat-message[data-role="assistant"] .chat-message__body {
+  background: linear-gradient(180deg, rgba(255, 248, 248, 0.94), rgba(255, 255, 255, 0.9));
+  border-color: rgba(192, 28, 28, 0.12);
 }
 
-.chat-message[data-role="user"] {
-  background: rgba(21, 94, 239, 0.08);
-  border-color: rgba(21, 94, 239, 0.14);
+.chat-message[data-role="user"] .chat-message__body {
+  background: linear-gradient(180deg, rgba(246, 249, 255, 0.96), rgba(255, 255, 255, 0.9));
+  border-color: rgba(21, 94, 239, 0.12);
 }
 
 .chat-message__meta {
@@ -498,13 +577,14 @@ textarea {
 
 .chat-compose textarea {
   width: 100%;
-  min-height: 120px;
+  min-height: 116px;
   padding: 14px 16px;
   border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 251, 255, 0.92));
   color: var(--text);
   resize: vertical;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .dashboard-breakdown {
@@ -556,6 +636,8 @@ textarea {
 
   .chat-workspace {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
   }
 
 }
