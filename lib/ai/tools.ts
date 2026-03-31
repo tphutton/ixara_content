@@ -7,6 +7,10 @@ import {
 } from "@prisma/client";
 import { createActionLog } from "@/lib/actions/action-log";
 import {
+  applyBrandRulesToBlog,
+  applyBrandRulesToContent,
+} from "@/lib/brand-profiles/rules";
+import {
   deleteCampaign,
   getCampaign,
   listCampaigns,
@@ -91,6 +95,11 @@ async function listContentTool(args: Record<string, unknown>) {
       contentType: contentType ? (contentType as ContentType) : undefined,
       brand: brand ?? undefined,
     },
+    include: {
+      primaryAsset: {
+        select: { id: true, title: true, fileUrl: true },
+      },
+    },
     orderBy: { updatedAt: "desc" },
     take: limit,
   });
@@ -107,6 +116,7 @@ async function listContentTool(args: Record<string, unknown>) {
         contentType: item.contentType,
         platform: item.platform,
         brand: item.brand,
+        primaryAsset: item.primaryAsset,
         updatedAt: item.updatedAt.toISOString(),
       })),
     },
@@ -114,7 +124,7 @@ async function listContentTool(args: Record<string, unknown>) {
 }
 
 async function createContentTool(args: Record<string, unknown>, context: ToolContext) {
-  const data = {
+  const prepared = {
     title: asRequiredString(args.title, "title"),
     body: asOptionalString(args.body),
     hook: asOptionalString(args.hook),
@@ -137,12 +147,14 @@ async function createContentTool(args: Record<string, unknown>, context: ToolCon
     websites: asStringArray(args.websites),
     assetImage: asOptionalString(args.assetImage),
     assetCaption: asOptionalString(args.assetCaption),
+    primaryAssetId: asOptionalString(args.primaryAssetId),
     aiGenerated: true,
     sourcePrompt: asOptionalString(args.sourcePrompt),
     createdById: context.access.id,
     updatedById: context.access.id,
   };
 
+  const { data, profile, warnings } = await applyBrandRulesToContent(prepared);
   const content = await prisma.content.create({ data });
 
   await createActionLog({
@@ -150,8 +162,12 @@ async function createContentTool(args: Record<string, unknown>, context: ToolCon
     actionType: "create",
     targetType: "content",
     targetId: content.id,
-    summary: `AI created content "${content.title}"`,
-    afterData: content,
+    summary: `AI created content "${content.title}"${profile ? ` using ${profile.brandName} rules` : ""}${warnings.length > 0 ? ` with ${warnings.length} brand warning${warnings.length === 1 ? "" : "s"}` : ""}`,
+    afterData: {
+      ...content,
+      brandProfileApplied: profile?.brandName ?? null,
+      brandWarnings: warnings,
+    },
     source: "ai",
   });
 
@@ -171,40 +187,76 @@ async function updateContentTool(args: Record<string, unknown>, context: ToolCon
   const id = asRequiredString(args.id, "id");
   const before = await prisma.content.findUniqueOrThrow({ where: { id } });
 
+  const prepared = {
+    title: asOptionalString(args.title) ?? undefined,
+    body: args.body !== undefined ? asOptionalString(args.body) : undefined,
+    hook: args.hook !== undefined ? asOptionalString(args.hook) : undefined,
+    cta: args.cta !== undefined ? asOptionalString(args.cta) : undefined,
+    contentType:
+      args.contentType !== undefined
+        ? parseEnumValue(args.contentType, Object.values(ContentType), before.contentType)
+        : undefined,
+    platform: args.platform !== undefined ? asOptionalString(args.platform) : undefined,
+    status:
+      args.status !== undefined
+        ? parseEnumValue(args.status, Object.values(ContentStatus), before.status)
+        : undefined,
+    campaignName: args.campaignName !== undefined ? asOptionalString(args.campaignName) : undefined,
+    brand: args.brand !== undefined ? asOptionalString(args.brand) : undefined,
+    sport: args.sport !== undefined ? asOptionalString(args.sport) : undefined,
+    region: args.region !== undefined ? asOptionalString(args.region) : undefined,
+    country: args.country !== undefined ? asOptionalString(args.country) : undefined,
+    tags: Array.isArray(args.tags) ? asStringArray(args.tags) : undefined,
+    targetAudience:
+      args.targetAudience !== undefined ? asOptionalString(args.targetAudience) : undefined,
+    tone: args.tone !== undefined ? asOptionalString(args.tone) : undefined,
+    websites: Array.isArray(args.websites) ? asStringArray(args.websites) : undefined,
+    assetImage: args.assetImage !== undefined ? asOptionalString(args.assetImage) : undefined,
+    assetCaption:
+      args.assetCaption !== undefined ? asOptionalString(args.assetCaption) : undefined,
+    primaryAssetId:
+      args.primaryAssetId !== undefined ? asOptionalString(args.primaryAssetId) : undefined,
+    aiGenerated: args.aiGenerated !== undefined ? asBoolean(args.aiGenerated) : undefined,
+    sourcePrompt:
+      args.sourcePrompt !== undefined ? asOptionalString(args.sourcePrompt) : undefined,
+    updatedById: context.access.id,
+  };
+
+  const mergedForRules = {
+    title: prepared.title ?? before.title,
+    body: prepared.body !== undefined ? prepared.body : before.body,
+    hook: prepared.hook !== undefined ? prepared.hook : before.hook,
+    cta: prepared.cta !== undefined ? prepared.cta : before.cta,
+    brand: prepared.brand !== undefined ? prepared.brand : before.brand,
+    tone: prepared.tone !== undefined ? prepared.tone : before.tone,
+    targetAudience:
+      prepared.targetAudience !== undefined ? prepared.targetAudience : before.targetAudience,
+    websites: prepared.websites !== undefined ? prepared.websites : before.websites,
+    sport: prepared.sport !== undefined ? prepared.sport : before.sport,
+    region: prepared.region !== undefined ? prepared.region : before.region,
+    country: prepared.country !== undefined ? prepared.country : before.country,
+    sourcePrompt:
+      prepared.sourcePrompt !== undefined ? prepared.sourcePrompt : before.sourcePrompt,
+  };
+
+  const {
+    data: brandAdjustedData,
+    profile,
+    warnings,
+  } = await applyBrandRulesToContent(mergedForRules);
+
   const updated = await prisma.content.update({
     where: { id },
     data: {
-      title: asOptionalString(args.title) ?? undefined,
-      body: args.body !== undefined ? asOptionalString(args.body) : undefined,
-      hook: args.hook !== undefined ? asOptionalString(args.hook) : undefined,
-      cta: args.cta !== undefined ? asOptionalString(args.cta) : undefined,
-      contentType:
-        args.contentType !== undefined
-          ? parseEnumValue(args.contentType, Object.values(ContentType), before.contentType)
-          : undefined,
-      platform: args.platform !== undefined ? asOptionalString(args.platform) : undefined,
-      status:
-        args.status !== undefined
-          ? parseEnumValue(args.status, Object.values(ContentStatus), before.status)
-          : undefined,
-      campaignName:
-        args.campaignName !== undefined ? asOptionalString(args.campaignName) : undefined,
-      brand: args.brand !== undefined ? asOptionalString(args.brand) : undefined,
-      sport: args.sport !== undefined ? asOptionalString(args.sport) : undefined,
-      region: args.region !== undefined ? asOptionalString(args.region) : undefined,
-      country: args.country !== undefined ? asOptionalString(args.country) : undefined,
-      tags: Array.isArray(args.tags) ? asStringArray(args.tags) : undefined,
-      targetAudience:
-        args.targetAudience !== undefined ? asOptionalString(args.targetAudience) : undefined,
-      tone: args.tone !== undefined ? asOptionalString(args.tone) : undefined,
-      websites: Array.isArray(args.websites) ? asStringArray(args.websites) : undefined,
-      assetImage: args.assetImage !== undefined ? asOptionalString(args.assetImage) : undefined,
-      assetCaption:
-        args.assetCaption !== undefined ? asOptionalString(args.assetCaption) : undefined,
-      aiGenerated: args.aiGenerated !== undefined ? asBoolean(args.aiGenerated) : undefined,
-      sourcePrompt:
-        args.sourcePrompt !== undefined ? asOptionalString(args.sourcePrompt) : undefined,
-      updatedById: context.access.id,
+      ...prepared,
+      cta: brandAdjustedData.cta,
+      tone: brandAdjustedData.tone,
+      targetAudience: brandAdjustedData.targetAudience,
+      websites: brandAdjustedData.websites,
+      sport: brandAdjustedData.sport,
+      region: brandAdjustedData.region,
+      country: brandAdjustedData.country,
+      brand: brandAdjustedData.brand,
     },
   });
 
@@ -213,9 +265,13 @@ async function updateContentTool(args: Record<string, unknown>, context: ToolCon
     actionType: "update",
     targetType: "content",
     targetId: updated.id,
-    summary: `AI updated content "${updated.title}"`,
+    summary: `AI updated content "${updated.title}"${profile ? ` using ${profile.brandName} rules` : ""}${warnings.length > 0 ? ` with ${warnings.length} brand warning${warnings.length === 1 ? "" : "s"}` : ""}`,
     beforeData: before,
-    afterData: updated,
+    afterData: {
+      ...updated,
+      brandProfileApplied: profile?.brandName ?? null,
+      brandWarnings: warnings,
+    },
     source: "ai",
   });
 
@@ -241,6 +297,11 @@ async function listBlogsTool(args: Record<string, unknown>) {
       status: status ? (status as BlogStatus) : undefined,
       sport: sport ?? undefined,
     },
+    include: {
+      featureAsset: {
+        select: { id: true, title: true, fileUrl: true },
+      },
+    },
     orderBy: { updatedAt: "desc" },
     take: limit,
   });
@@ -254,8 +315,10 @@ async function listBlogsTool(args: Record<string, unknown>) {
         id: item.id,
         title: item.title,
         status: item.status,
+        brand: item.brand,
         category: item.category,
         sport: item.sport,
+        featureAsset: item.featureAsset,
         updatedAt: item.updatedAt.toISOString(),
       })),
     },
@@ -271,12 +334,14 @@ async function createBlogTool(args: Record<string, unknown>, context: ToolContex
     ]),
   );
 
-  const data = {
+  const prepared = {
     title: asRequiredString(args.title, "title"),
+    brand: asOptionalString(args.brand),
     postDate: asNullableDate(args.postDate),
     authorName: asOptionalString(args.authorName),
     authorImage: asOptionalString(args.authorImage),
     featureImage: asOptionalString(args.featureImage),
+    featureAssetId: asOptionalString(args.featureAssetId),
     ...sectionFields,
     websites: asStringArray(args.websites),
     category: asOptionalString(args.category),
@@ -293,6 +358,7 @@ async function createBlogTool(args: Record<string, unknown>, context: ToolContex
     updatedById: context.access.id,
   };
 
+  const { data, profile, warnings } = await applyBrandRulesToBlog(prepared);
   const blog = await prisma.blog.create({ data });
 
   await createActionLog({
@@ -300,8 +366,12 @@ async function createBlogTool(args: Record<string, unknown>, context: ToolContex
     actionType: "create",
     targetType: "blog",
     targetId: blog.id,
-    summary: `AI created blog "${blog.title}"`,
-    afterData: blog,
+    summary: `AI created blog "${blog.title}"${profile ? ` using ${profile.brandName} rules` : ""}${warnings.length > 0 ? ` with ${warnings.length} brand warning${warnings.length === 1 ? "" : "s"}` : ""}`,
+    afterData: {
+      ...blog,
+      brandProfileApplied: profile?.brandName ?? null,
+      brandWarnings: warnings,
+    },
     source: "ai",
   });
 
@@ -344,32 +414,73 @@ async function updateBlogTool(args: Record<string, unknown>, context: ToolContex
     ]),
   );
 
+  const prepared = {
+    title: asOptionalString(args.title) ?? undefined,
+    brand: args.brand !== undefined ? asOptionalString(args.brand) : undefined,
+    postDate: args.postDate !== undefined ? asNullableDate(args.postDate) : undefined,
+    authorName: args.authorName !== undefined ? asOptionalString(args.authorName) : undefined,
+    authorImage: args.authorImage !== undefined ? asOptionalString(args.authorImage) : undefined,
+    featureImage:
+      args.featureImage !== undefined ? asOptionalString(args.featureImage) : undefined,
+    featureAssetId:
+      args.featureAssetId !== undefined ? asOptionalString(args.featureAssetId) : undefined,
+    websites: Array.isArray(args.websites) ? asStringArray(args.websites) : undefined,
+    category: args.category !== undefined ? asOptionalString(args.category) : undefined,
+    tags: Array.isArray(args.tags) ? asStringArray(args.tags) : undefined,
+    authorBio: args.authorBio !== undefined ? asOptionalString(args.authorBio) : undefined,
+    status:
+      args.status !== undefined
+        ? parseEnumValue(args.status, Object.values(BlogStatus), before.status)
+        : undefined,
+    sport: args.sport !== undefined ? asOptionalString(args.sport) : undefined,
+    region: args.region !== undefined ? asOptionalString(args.region) : undefined,
+    country: args.country !== undefined ? asOptionalString(args.country) : undefined,
+    sources: Array.isArray(args.sources) ? asStringArray(args.sources) : undefined,
+    aiGenerated: args.aiGenerated !== undefined ? asBoolean(args.aiGenerated) : undefined,
+    sourcePrompt:
+      args.sourcePrompt !== undefined ? asOptionalString(args.sourcePrompt) : undefined,
+    updatedById: context.access.id,
+  };
+
+  const mergedForRules = {
+    title: prepared.title ?? before.title,
+    brand: prepared.brand !== undefined ? prepared.brand : before.brand,
+    websites: prepared.websites !== undefined ? prepared.websites : before.websites,
+    sport: prepared.sport !== undefined ? prepared.sport : before.sport,
+    region: prepared.region !== undefined ? prepared.region : before.region,
+    country: prepared.country !== undefined ? prepared.country : before.country,
+    sourcePrompt:
+      prepared.sourcePrompt !== undefined ? prepared.sourcePrompt : before.sourcePrompt,
+    text1:
+      dynamicSectionData.text1 !== undefined ? (dynamicSectionData.text1 as string | null) : before.text1,
+    text2:
+      dynamicSectionData.text2 !== undefined ? (dynamicSectionData.text2 as string | null) : before.text2,
+    text3:
+      dynamicSectionData.text3 !== undefined ? (dynamicSectionData.text3 as string | null) : before.text3,
+    text4:
+      dynamicSectionData.text4 !== undefined ? (dynamicSectionData.text4 as string | null) : before.text4,
+    text5:
+      dynamicSectionData.text5 !== undefined ? (dynamicSectionData.text5 as string | null) : before.text5,
+    text6:
+      dynamicSectionData.text6 !== undefined ? (dynamicSectionData.text6 as string | null) : before.text6,
+    text7:
+      dynamicSectionData.text7 !== undefined ? (dynamicSectionData.text7 as string | null) : before.text7,
+    text8:
+      dynamicSectionData.text8 !== undefined ? (dynamicSectionData.text8 as string | null) : before.text8,
+  };
+
+  const { data: brandAdjustedData, profile, warnings } = await applyBrandRulesToBlog(mergedForRules);
+
   const blog = await prisma.blog.update({
     where: { id },
     data: {
-      title: asOptionalString(args.title) ?? undefined,
-      postDate: args.postDate !== undefined ? asNullableDate(args.postDate) : undefined,
-      authorName: args.authorName !== undefined ? asOptionalString(args.authorName) : undefined,
-      authorImage: args.authorImage !== undefined ? asOptionalString(args.authorImage) : undefined,
-      featureImage:
-        args.featureImage !== undefined ? asOptionalString(args.featureImage) : undefined,
+      ...prepared,
       ...dynamicSectionData,
-      websites: Array.isArray(args.websites) ? asStringArray(args.websites) : undefined,
-      category: args.category !== undefined ? asOptionalString(args.category) : undefined,
-      tags: Array.isArray(args.tags) ? asStringArray(args.tags) : undefined,
-      authorBio: args.authorBio !== undefined ? asOptionalString(args.authorBio) : undefined,
-      status:
-        args.status !== undefined
-          ? parseEnumValue(args.status, Object.values(BlogStatus), before.status)
-          : undefined,
-      sport: args.sport !== undefined ? asOptionalString(args.sport) : undefined,
-      region: args.region !== undefined ? asOptionalString(args.region) : undefined,
-      country: args.country !== undefined ? asOptionalString(args.country) : undefined,
-      sources: Array.isArray(args.sources) ? asStringArray(args.sources) : undefined,
-      aiGenerated: args.aiGenerated !== undefined ? asBoolean(args.aiGenerated) : undefined,
-      sourcePrompt:
-        args.sourcePrompt !== undefined ? asOptionalString(args.sourcePrompt) : undefined,
-      updatedById: context.access.id,
+      brand: brandAdjustedData.brand,
+      websites: brandAdjustedData.websites,
+      sport: brandAdjustedData.sport,
+      region: brandAdjustedData.region,
+      country: brandAdjustedData.country,
     },
   });
 
@@ -378,9 +489,13 @@ async function updateBlogTool(args: Record<string, unknown>, context: ToolContex
     actionType: "update",
     targetType: "blog",
     targetId: blog.id,
-    summary: `AI updated blog "${blog.title}"`,
+    summary: `AI updated blog "${blog.title}"${profile ? ` using ${profile.brandName} rules` : ""}${warnings.length > 0 ? ` with ${warnings.length} brand warning${warnings.length === 1 ? "" : "s"}` : ""}`,
     beforeData: before,
-    afterData: blog,
+    afterData: {
+      ...blog,
+      brandProfileApplied: profile?.brandName ?? null,
+      brandWarnings: warnings,
+    },
     source: "ai",
   });
 
@@ -613,6 +728,211 @@ async function getDashboardSummaryTool() {
   };
 }
 
+async function listAssetsTool(args: Record<string, unknown>) {
+  const brand = asOptionalString(args.brand);
+  const campaignName = asOptionalString(args.campaignName);
+  const sport = asOptionalString(args.sport);
+  const region = asOptionalString(args.region);
+  const country = asOptionalString(args.country);
+  const search = asOptionalString(args.search);
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 25) : 12;
+
+  const items = await prisma.asset.findMany({
+    where: {
+      brand: brand ?? undefined,
+      campaignName: campaignName ?? undefined,
+      sport: sport ?? undefined,
+      region: region ?? undefined,
+      country: country ?? undefined,
+      OR: search
+        ? [
+            { title: { contains: search, mode: "insensitive" } },
+            { altText: { contains: search, mode: "insensitive" } },
+            { caption: { contains: search, mode: "insensitive" } },
+            { tags: { has: search } },
+          ]
+        : undefined,
+    },
+    orderBy: [{ syncedAt: "desc" }, { updatedAt: "desc" }],
+    take: limit,
+  });
+
+  return {
+    toolName: "list_assets",
+    summary: `Found ${items.length} asset${items.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: items.length,
+      items: items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        source: item.source,
+        fileUrl: item.fileUrl,
+        thumbnailUrl: item.thumbnailUrl,
+        mimeType: item.mimeType,
+        width: item.width,
+        height: item.height,
+        brand: item.brand,
+        campaignName: item.campaignName,
+        sport: item.sport,
+        region: item.region,
+        country: item.country,
+        tags: item.tags,
+      })),
+    },
+  };
+}
+
+async function syncWordPressAssetsTool(context: ToolContext) {
+  const { syncLatestWordPressMedia } = await import("@/lib/wordpress/media");
+  const assets = await syncLatestWordPressMedia(50);
+
+  await createActionLog({
+    userId: context.access.id,
+    actionType: "sync",
+    targetType: "asset",
+    targetId: "wordpress",
+    summary: `AI synced ${assets.length} WordPress asset${assets.length === 1 ? "" : "s"}`,
+    afterData: { count: assets.length },
+    source: "ai",
+  });
+
+  return {
+    toolName: "sync_wordpress_assets",
+    summary: `Synced ${assets.length} WordPress asset${assets.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: assets.length,
+      items: assets.slice(0, 10).map((asset) => ({
+        id: asset.id,
+        title: asset.title,
+        fileUrl: asset.fileUrl,
+      })),
+    },
+  };
+}
+
+async function listBrandProfilesTool(args: Record<string, unknown>) {
+  const brandName = asOptionalString(args.brandName);
+
+  const items = await prisma.brandProfile.findMany({
+    where: brandName
+      ? {
+          brandName: {
+            contains: brandName,
+            mode: "insensitive",
+          },
+        }
+      : undefined,
+    orderBy: { brandName: "asc" },
+    take: 25,
+  });
+
+  return {
+    toolName: "list_brand_profiles",
+    summary: `Found ${items.length} brand profile${items.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: items.length,
+      items: items.map((item) => ({
+        id: item.id,
+        brandName: item.brandName,
+        defaultTone: item.defaultTone,
+        targetAudience: item.targetAudience,
+        preferredWebsites: item.preferredWebsites,
+        sports: item.sports,
+        regions: item.regions,
+        countries: item.countries,
+        bannedPhrases: item.bannedPhrases,
+        preferredCTAs: item.preferredCTAs,
+      })),
+    },
+  };
+}
+
+async function getBrandProfileTool(args: Record<string, unknown>) {
+  const id = asOptionalString(args.id);
+  const brandName = asOptionalString(args.brandName);
+
+  if (!id && !brandName) {
+    throw new Error("id or brandName is required.");
+  }
+
+  const profile = await prisma.brandProfile.findFirstOrThrow({
+    where: id
+      ? { id }
+      : {
+          brandName: {
+            equals: brandName ?? undefined,
+            mode: "insensitive",
+          },
+        },
+  });
+
+  return {
+    toolName: "get_brand_profile",
+    summary: `Loaded brand profile "${profile.brandName}".`,
+    payload: profile,
+  };
+}
+
+async function upsertBrandProfileTool(args: Record<string, unknown>, context: ToolContext) {
+  const brandName = asRequiredString(args.brandName, "brandName");
+  const before = await prisma.brandProfile.findUnique({
+    where: { brandName },
+  });
+
+  const profile = await prisma.brandProfile.upsert({
+    where: { brandName },
+    create: {
+      brandName,
+      description: asOptionalString(args.description),
+      defaultTone: asOptionalString(args.defaultTone),
+      targetAudience: asOptionalString(args.targetAudience),
+      preferredWebsites: asStringArray(args.preferredWebsites),
+      sports: asStringArray(args.sports),
+      regions: asStringArray(args.regions),
+      countries: asStringArray(args.countries),
+      bannedPhrases: asStringArray(args.bannedPhrases),
+      preferredCTAs: asStringArray(args.preferredCTAs),
+    },
+    update: {
+      description:
+        args.description !== undefined ? asOptionalString(args.description) : undefined,
+      defaultTone:
+        args.defaultTone !== undefined ? asOptionalString(args.defaultTone) : undefined,
+      targetAudience:
+        args.targetAudience !== undefined ? asOptionalString(args.targetAudience) : undefined,
+      preferredWebsites: Array.isArray(args.preferredWebsites)
+        ? asStringArray(args.preferredWebsites)
+        : undefined,
+      sports: Array.isArray(args.sports) ? asStringArray(args.sports) : undefined,
+      regions: Array.isArray(args.regions) ? asStringArray(args.regions) : undefined,
+      countries: Array.isArray(args.countries) ? asStringArray(args.countries) : undefined,
+      bannedPhrases: Array.isArray(args.bannedPhrases)
+        ? asStringArray(args.bannedPhrases)
+        : undefined,
+      preferredCTAs: Array.isArray(args.preferredCTAs)
+        ? asStringArray(args.preferredCTAs)
+        : undefined,
+    },
+  });
+
+  await createActionLog({
+    userId: context.access.id,
+    actionType: before ? "update" : "create",
+    targetType: "brand_profile",
+    targetId: profile.id,
+    summary: `AI ${before ? "updated" : "created"} brand profile "${profile.brandName}"`,
+    beforeData: before,
+    afterData: profile,
+    source: "ai",
+  });
+
+  return {
+    toolName: "upsert_brand_profile",
+    summary: `${before ? "Updated" : "Created"} brand profile "${profile.brandName}".`,
+    payload: profile,
+  };
+}
+
 async function listCampaignsTool(args: Record<string, unknown>) {
   const response = await listCampaigns({
     status: asOptionalString(args.status) as CampaignStatus | undefined,
@@ -654,6 +974,7 @@ async function getCampaignTool(args: Record<string, unknown>) {
 }
 
 async function upsertCampaignTool(args: Record<string, unknown>, context: ToolContext) {
+  const linkedAssetId = asOptionalString(args.linkedAssetId);
   const payload = {
     campaign_id: asOptionalString(args.campaign_id) ?? undefined,
     campaign_name: asRequiredString(args.campaign_name, "campaign_name"),
@@ -681,6 +1002,20 @@ async function upsertCampaignTool(args: Record<string, unknown>, context: ToolCo
   };
 
   const campaign = await upsertCampaign(payload);
+
+  await prisma.campaignAsset.deleteMany({
+    where: { campaignId: campaign.campaign_id },
+  });
+
+  if (linkedAssetId) {
+    await prisma.campaignAsset.create({
+      data: {
+        campaignId: campaign.campaign_id,
+        assetId: linkedAssetId,
+        role: "primary",
+      },
+    });
+  }
 
   await createActionLog({
     userId: context.access.id,
@@ -732,6 +1067,11 @@ const toolHandlers: Record<string, ToolHandler> = {
   create_schedule_entry: createScheduleEntryTool,
   update_schedule_entry: updateScheduleEntryTool,
   get_dashboard_summary: async () => getDashboardSummaryTool(),
+  list_assets: async (args) => listAssetsTool(args),
+  sync_wordpress_assets: async (_args, context) => syncWordPressAssetsTool(context),
+  list_brand_profiles: async (args) => listBrandProfilesTool(args),
+  get_brand_profile: async (args) => getBrandProfileTool(args),
+  upsert_brand_profile: upsertBrandProfileTool,
   list_campaigns: async (args) => listCampaignsTool(args),
   get_campaign: async (args) => getCampaignTool(args),
   upsert_campaign: upsertCampaignTool,
@@ -782,6 +1122,7 @@ export const contentOpsTools: ToolDefinition[] = [
           websites: { type: "array", items: { type: "string" } },
           assetImage: { type: "string" },
           assetCaption: { type: "string" },
+          primaryAssetId: { type: "string" },
           sourcePrompt: { type: "string" },
         },
         required: ["title"],
@@ -816,6 +1157,7 @@ export const contentOpsTools: ToolDefinition[] = [
           websites: { type: "array", items: { type: "string" } },
           assetImage: { type: "string" },
           assetCaption: { type: "string" },
+          primaryAssetId: { type: "string" },
           aiGenerated: { type: "boolean" },
           sourcePrompt: { type: "string" },
         },
@@ -853,6 +1195,7 @@ export const contentOpsTools: ToolDefinition[] = [
           authorName: { type: "string" },
           authorImage: { type: "string" },
           featureImage: { type: "string" },
+          featureAssetId: { type: "string" },
           text1: { type: "string" },
           image1: { type: "string" },
           image1Caption: { type: "string" },
@@ -879,6 +1222,7 @@ export const contentOpsTools: ToolDefinition[] = [
           image8Caption: { type: "string" },
           websites: { type: "array", items: { type: "string" } },
           category: { type: "string" },
+          brand: { type: "string" },
           tags: { type: "array", items: { type: "string" } },
           authorBio: { type: "string" },
           status: { type: "string", enum: Object.values(BlogStatus) },
@@ -907,6 +1251,7 @@ export const contentOpsTools: ToolDefinition[] = [
           authorName: { type: "string" },
           authorImage: { type: "string" },
           featureImage: { type: "string" },
+          featureAssetId: { type: "string" },
           text1: { type: "string" },
           image1: { type: "string" },
           image1Caption: { type: "string" },
@@ -933,6 +1278,7 @@ export const contentOpsTools: ToolDefinition[] = [
           image8Caption: { type: "string" },
           websites: { type: "array", items: { type: "string" } },
           category: { type: "string" },
+          brand: { type: "string" },
           tags: { type: "array", items: { type: "string" } },
           authorBio: { type: "string" },
           status: { type: "string", enum: Object.values(BlogStatus) },
@@ -1032,6 +1378,91 @@ export const contentOpsTools: ToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "list_assets",
+      description: "List synced media assets from the internal asset catalog with optional filters.",
+      parameters: {
+        type: "object",
+        properties: {
+          brand: { type: "string" },
+          campaignName: { type: "string" },
+          sport: { type: "string" },
+          region: { type: "string" },
+          country: { type: "string" },
+          search: { type: "string" },
+          limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sync_wordpress_assets",
+      description: "Sync the latest public WordPress media items into the internal asset catalog.",
+      parameters: {
+        type: "object",
+        properties: {},
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_brand_profiles",
+      description: "List saved brand profiles and editorial rules.",
+      parameters: {
+        type: "object",
+        properties: {
+          brandName: { type: "string" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_brand_profile",
+      description: "Get a specific brand profile by id or brand name.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          brandName: { type: "string" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "upsert_brand_profile",
+      description: "Create or update a brand profile used for editorial and AI guidance.",
+      parameters: {
+        type: "object",
+        properties: {
+          brandName: { type: "string" },
+          description: { type: "string" },
+          defaultTone: { type: "string" },
+          targetAudience: { type: "string" },
+          preferredWebsites: { type: "array", items: { type: "string" } },
+          sports: { type: "array", items: { type: "string" } },
+          regions: { type: "array", items: { type: "string" } },
+          countries: { type: "array", items: { type: "string" } },
+          bannedPhrases: { type: "array", items: { type: "string" } },
+          preferredCTAs: { type: "array", items: { type: "string" } },
+        },
+        required: ["brandName"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "list_campaigns",
       description: "List campaigns from the external TechSport campaigns API.",
       parameters: {
@@ -1083,6 +1514,7 @@ export const contentOpsTools: ToolDefinition[] = [
           region: { type: "string" },
           category: { type: "string" },
           partner_id: { type: "string" },
+          linkedAssetId: { type: "string" },
         },
         required: ["campaign_name"],
         additionalProperties: false,

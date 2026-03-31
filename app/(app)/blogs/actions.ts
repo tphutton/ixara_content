@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createActionLog } from "@/lib/actions/action-log";
 import { requireApprovedUserAccess } from "@/lib/auth/user-access";
+import { applyBrandRulesToBlog } from "@/lib/brand-profiles/rules";
 import {
   parseBoolean,
   parseNullableDate,
@@ -32,10 +33,12 @@ function getBlogInput(formData: FormData) {
 
   return {
     title: String(formData.get("title") ?? "").trim(),
+    brand: parseOptionalString(formData.get("brand")),
     postDate: parseNullableDate(formData.get("postDate")),
     authorName: parseOptionalString(formData.get("authorName")),
     authorImage: parseOptionalString(formData.get("authorImage")),
     featureImage: parseOptionalString(formData.get("featureImage")),
+    featureAssetId: parseOptionalString(formData.get("featureAssetId")),
     ...sections,
     websites: parseStringArray(formData.get("websites")),
     category: parseOptionalString(formData.get("category")),
@@ -53,11 +56,13 @@ function getBlogInput(formData: FormData) {
 
 export async function createBlogAction(formData: FormData) {
   const access = await requireApprovedUserAccess();
-  const data = getBlogInput(formData);
+  const prepared = getBlogInput(formData);
 
-  if (!data.title) {
+  if (!prepared.title) {
     throw new Error("Title is required.");
   }
+
+  const { data, profile, warnings } = await applyBrandRulesToBlog(prepared);
 
   const blog = await prisma.blog.create({
     data: {
@@ -72,8 +77,12 @@ export async function createBlogAction(formData: FormData) {
     actionType: "create",
     targetType: "blog",
     targetId: blog.id,
-    summary: `Created blog "${blog.title}"`,
-    afterData: blog,
+    summary: `Created blog "${blog.title}"${profile ? ` using ${profile.brandName} rules` : ""}${warnings.length > 0 ? ` with ${warnings.length} brand warning${warnings.length === 1 ? "" : "s"}` : ""}`,
+    afterData: {
+      ...blog,
+      brandProfileApplied: profile?.brandName ?? null,
+      brandWarnings: warnings,
+    },
     source: "manual",
   });
 
@@ -84,11 +93,13 @@ export async function createBlogAction(formData: FormData) {
 export async function updateBlogAction(id: string, formData: FormData) {
   const access = await requireApprovedUserAccess();
   const before = await prisma.blog.findUniqueOrThrow({ where: { id } });
-  const data = getBlogInput(formData);
+  const prepared = getBlogInput(formData);
 
-  if (!data.title) {
+  if (!prepared.title) {
     throw new Error("Title is required.");
   }
+
+  const { data, profile, warnings } = await applyBrandRulesToBlog(prepared);
 
   const blog = await prisma.blog.update({
     where: { id },
@@ -103,9 +114,13 @@ export async function updateBlogAction(id: string, formData: FormData) {
     actionType: "update",
     targetType: "blog",
     targetId: blog.id,
-    summary: `Updated blog "${blog.title}"`,
+    summary: `Updated blog "${blog.title}"${profile ? ` using ${profile.brandName} rules` : ""}${warnings.length > 0 ? ` with ${warnings.length} brand warning${warnings.length === 1 ? "" : "s"}` : ""}`,
     beforeData: before,
-    afterData: blog,
+    afterData: {
+      ...blog,
+      brandProfileApplied: profile?.brandName ?? null,
+      brandWarnings: warnings,
+    },
     source: "manual",
   });
 

@@ -33,6 +33,7 @@ export default async function BlogsPage() {
               <thead>
                 <tr>
                   <th>Title</th>
+                  <th>Brand</th>
                   <th>Category</th>
                   <th>Author</th>
                   <th>Sport</th>
@@ -46,6 +47,7 @@ export default async function BlogsPage() {
                     <td>
                       <Link href={`/blogs/${row.id}`}>{row.title}</Link>
                     </td>
+                    <td>{row.brand ?? "—"}</td>
                     <td>{row.category ?? "—"}</td>
                     <td>{row.authorName ?? "—"}</td>
                     <td>{row.sport ?? "—"}</td>

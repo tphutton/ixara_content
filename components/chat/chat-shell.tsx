@@ -209,7 +209,10 @@ export function ChatShell({
           {visibleMessages.length === 0 ? (
             <div className="empty-state">
               <h3>Start a content ops conversation</h3>
-              <p className="muted">Try “Create a draft social post for Masters weekend” or “List approved blogs for golf.”</p>
+              <p className="muted">
+                Try “Create a draft social post for Masters weekend”, “List approved blogs for
+                golf”, or “Sync WordPress assets and show me Phuket campaign images.”
+              </p>
             </div>
           ) : (
             visibleMessages.map((entry) => (
@@ -252,7 +255,10 @@ export function ChatShell({
 
         <div className="stack">
               {lastToolSummaries.length === 0 ? (
-                <p className="muted">Tool actions will appear here when the assistant reads or updates records.</p>
+                <p className="muted">
+                  Tool actions will appear here when the assistant reads or updates records,
+                  assets, campaigns, or brand profiles.
+                </p>
               ) : (
             lastToolSummaries.map((tool, index) => (
               <article className="card card--padded" key={`${tool.toolName}-${index}`}>

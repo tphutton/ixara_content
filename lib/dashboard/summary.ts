@@ -20,6 +20,11 @@ export async function getDashboardSummary() {
     contentCounts,
     blogCounts,
     scheduleThisWeek,
+    assetCount,
+    brandProfileCount,
+    contentNeedsAttention,
+    blogNeedsAttention,
+    readyScheduleCount,
     upcomingSchedule,
     recentActions,
     totalThreads,
@@ -42,6 +47,36 @@ export async function getDashboardSummary() {
         status: {
           notIn: [ScheduleStatus.cancelled, ScheduleStatus.missed],
         },
+      },
+    }),
+    prisma.asset.count(),
+    prisma.brandProfile.count(),
+    prisma.content.count({
+      where: {
+        OR: [
+          { brand: null },
+          { tone: null },
+          { targetAudience: null },
+          {
+            AND: [{ primaryAssetId: null }, { assetImage: null }],
+          },
+        ],
+      },
+    }),
+    prisma.blog.count({
+      where: {
+        OR: [
+          { brand: null },
+          {
+            AND: [{ featureAssetId: null }, { featureImage: null }],
+          },
+          { websites: { isEmpty: true } },
+        ],
+      },
+    }),
+    prisma.contentSchedule.count({
+      where: {
+        status: ScheduleStatus.ready,
       },
     }),
     prisma.contentSchedule.findMany({
@@ -101,6 +136,16 @@ export async function getDashboardSummary() {
           : "Campaign API unavailable",
       },
       {
+        label: "Synced Assets",
+        value: assetCount,
+        detail: "WordPress-backed media library",
+      },
+      {
+        label: "Brand Profiles",
+        value: brandProfileCount,
+        detail: "Shared AI and editorial guidance",
+      },
+      {
         label: "Active Chat Threads",
         value: totalThreads,
         detail: `${recentActions.filter((action) => action.source === "ai").length} recent AI actions`,
@@ -116,6 +161,23 @@ export async function getDashboardSummary() {
     })),
     upcomingSchedule,
     recentActions,
+    readiness: [
+      {
+        label: "Content needing metadata",
+        value: contentNeedsAttention,
+        detail: "Missing brand, targeting, or asset linkage",
+      },
+      {
+        label: "Blogs needing editorial setup",
+        value: blogNeedsAttention,
+        detail: "Missing brand, websites, or feature media",
+      },
+      {
+        label: "Schedule ready to publish",
+        value: readyScheduleCount,
+        detail: "Ready queue for future automation and publishing",
+      },
+    ],
     campaigns: {
       ok: campaignsResponse.ok,
       total: campaignsResponse.data.length,

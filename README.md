@@ -50,6 +50,16 @@ External campaigns integration is now in place:
 - Campaign visibility and mutation support in AI chat
 - External API key stays server-side via env vars
 
+Asset and brand operations are now in place:
+
+- WordPress media sync into a local `Asset` catalog
+- `/assets` workspace for syncing and browsing reusable media
+- Linked asset selection in content, blog, and campaign forms
+- Settings-based Brand Profile CRUD for shared editorial rules
+- AI access to synced assets and brand profiles during chat workflows
+- Brand-driven defaults for content and blogs so missing tone, audience, websites, geography, and CTA fields can inherit from saved profiles
+- Dashboard readiness visibility for records that still need metadata before automation or publishing
+
 ## Planned Stack
 
 - Next.js 16
@@ -74,6 +84,10 @@ Additional environment for campaigns:
 - `CAMPAIGNS_API_BASE_URL`
 - `CAMPAIGNS_API_KEY`
 
+Additional environment for assets:
+
+- `WORDPRESS_MEDIA_BASE_URL` defaulting to `https://media.ixara.tech/wp-json/wp/v2`
+
 ## Environment Checklist
 
 Local development:
@@ -89,6 +103,7 @@ Local development:
 - `INITIAL_ADMIN_EMAIL`
 - `CAMPAIGNS_API_BASE_URL=https://data.techsport.asia/api`
 - `CAMPAIGNS_API_KEY`
+- `WORDPRESS_MEDIA_BASE_URL=https://media.ixara.tech/wp-json/wp/v2`
 
 Railway deployment:
 
@@ -121,6 +136,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - `/pending-approval`
 - `/dashboard`
 - `/chat`
+- `/assets`
 - `/campaigns`
 - `/content`
 - `/blogs`
@@ -130,5 +146,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 
 ## Notes
 
-- Setup documentation, deployment polish, richer chat UX, and campaign API resilience are the next major milestones.
+- The assistant now has tool access to content, blogs, schedules, campaigns, synced assets, dashboard summaries, and brand profiles.
+- WordPress remains the media origin while the local `Asset` table handles cataloging, search, and record relationships.
+- Content and blog mutations now apply matching brand profile defaults server-side, and blogs now carry a dedicated `brand` field for consistent editorial grouping.
 - See `BUILD_PROGRESS.md` for milestone-by-milestone status.

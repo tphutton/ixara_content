@@ -6,13 +6,26 @@ import { SubmitButton } from "@/components/forms/submit-button";
 type BlogFormProps = {
   action: (formData: FormData) => void;
   blog?: Blog | null;
+  assets?: Array<{ id: string; title: string }>;
+  brandProfiles?: Array<{ id: string; brandName: string }>;
 };
 
 const sectionIndexes = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
-export function BlogForm({ action, blog }: BlogFormProps) {
+export function BlogForm({
+  action,
+  blog,
+  assets = [],
+  brandProfiles = [],
+}: BlogFormProps) {
   return (
     <form action={action} className="stack">
+      <datalist id="brand-profile-options">
+        {brandProfiles.map((profile) => (
+          <option key={profile.id} value={profile.brandName} />
+        ))}
+      </datalist>
+
       <div className="form-grid form-grid--2">
         <Field htmlFor="title" label="Title">
           <input defaultValue={blog?.title ?? ""} id="title" name="title" required />
@@ -41,6 +54,15 @@ export function BlogForm({ action, blog }: BlogFormProps) {
           <input defaultValue={blog?.category ?? ""} id="category" name="category" />
         </Field>
 
+        <Field htmlFor="brand" hint="Matches a saved brand profile when available" label="Brand">
+          <input
+            defaultValue={blog?.brand ?? ""}
+            id="brand"
+            list="brand-profile-options"
+            name="brand"
+          />
+        </Field>
+
         <Field htmlFor="authorName" label="Author name">
           <input defaultValue={blog?.authorName ?? ""} id="authorName" name="authorName" />
         </Field>
@@ -51,6 +73,17 @@ export function BlogForm({ action, blog }: BlogFormProps) {
 
         <Field htmlFor="featureImage" label="Feature image URL">
           <input defaultValue={blog?.featureImage ?? ""} id="featureImage" name="featureImage" />
+        </Field>
+
+        <Field htmlFor="featureAssetId" label="Linked feature asset">
+          <select defaultValue={blog?.featureAssetId ?? ""} id="featureAssetId" name="featureAssetId">
+            <option value="">No linked asset</option>
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.title}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field htmlFor="sport" label="Sport">

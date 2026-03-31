@@ -7,6 +7,7 @@ import { deleteCampaign, upsertCampaign } from "@/lib/campaigns/client";
 import { type CampaignStatus } from "@/lib/campaigns/types";
 import { requireApprovedUserAccess } from "@/lib/auth/user-access";
 import { parseOptionalString, parseStringArray } from "@/lib/forms/parsers";
+import { prisma } from "@/lib/prisma";
 
 function getCampaignInput(formData: FormData) {
   return {
@@ -29,12 +30,23 @@ function getCampaignInput(formData: FormData) {
 export async function createCampaignAction(formData: FormData) {
   const access = await requireApprovedUserAccess();
   const data = getCampaignInput(formData);
+  const linkedAssetId = parseOptionalString(formData.get("linkedAssetId"));
 
   if (!data.campaign_name) {
     throw new Error("Campaign name is required.");
   }
 
   const campaign = await upsertCampaign(data);
+
+  if (linkedAssetId) {
+    await prisma.campaignAsset.create({
+      data: {
+        campaignId: campaign.campaign_id,
+        assetId: linkedAssetId,
+        role: "primary",
+      },
+    });
+  }
 
   await createActionLog({
     userId: access.id,
@@ -53,6 +65,7 @@ export async function createCampaignAction(formData: FormData) {
 export async function updateCampaignAction(campaignId: string, formData: FormData) {
   const access = await requireApprovedUserAccess();
   const data = getCampaignInput(formData);
+  const linkedAssetId = parseOptionalString(formData.get("linkedAssetId"));
 
   if (!data.campaign_name) {
     throw new Error("Campaign name is required.");
@@ -62,6 +75,20 @@ export async function updateCampaignAction(campaignId: string, formData: FormDat
     ...data,
     campaign_id: campaignId,
   });
+
+  await prisma.campaignAsset.deleteMany({
+    where: { campaignId },
+  });
+
+  if (linkedAssetId) {
+    await prisma.campaignAsset.create({
+      data: {
+        campaignId,
+        assetId: linkedAssetId,
+        role: "primary",
+      },
+    });
+  }
 
   await createActionLog({
     userId: access.id,
@@ -81,6 +108,7 @@ export async function deleteCampaignAction(campaignId: string, campaignName: str
   const access = await requireApprovedUserAccess();
 
   await deleteCampaign(campaignId);
+  await prisma.campaignAsset.deleteMany({ where: { campaignId } });
 
   await createActionLog({
     userId: access.id,

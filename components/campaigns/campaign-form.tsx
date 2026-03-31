@@ -9,9 +9,11 @@ import {
 type CampaignFormProps = {
   action: (formData: FormData) => void;
   campaign?: Campaign | null;
+  linkedAssetId?: string | null;
+  assets?: Array<{ id: string; title: string }>;
 };
 
-export function CampaignForm({ action, campaign }: CampaignFormProps) {
+export function CampaignForm({ action, campaign, linkedAssetId, assets = [] }: CampaignFormProps) {
   return (
     <form action={action} className="stack">
       <div className="form-grid form-grid--2">
@@ -97,6 +99,17 @@ export function CampaignForm({ action, campaign }: CampaignFormProps) {
             id="featured_image_link"
             name="featured_image_link"
           />
+        </Field>
+
+        <Field htmlFor="linkedAssetId" label="Linked asset">
+          <select defaultValue={linkedAssetId ?? ""} id="linkedAssetId" name="linkedAssetId">
+            <option value="">No linked asset</option>
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.title}
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
 

@@ -123,6 +123,21 @@ export default async function DashboardPage() {
           </div>
         </section>
 
+        <section className="card card--padded content-block content-block--wide">
+          <h3>Publishing Readiness</h3>
+          <div className="dashboard-breakdown" style={{ marginTop: 18 }}>
+            {summary.readiness.map((item) => (
+              <article className="card card--padded metric-card" key={item.label}>
+                <h3>{item.label}</h3>
+                <strong>{item.value}</strong>
+                <p className="muted" style={{ margin: "10px 0 0" }}>
+                  {item.detail}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="card card--padded content-block content-block--narrow">
           <h3>Quick Links</h3>
           <div className="stack" style={{ marginTop: 18 }}>
@@ -144,10 +159,22 @@ export default async function DashboardPage() {
                 Use AI tools to list, create, update, and summarize records.
               </p>
             </Link>
+            <Link className="card card--padded" href="/assets">
+              <strong>Open assets</strong>
+              <p className="muted" style={{ margin: "8px 0 0" }}>
+                Sync WordPress media and attach reusable creative across content and campaigns.
+              </p>
+            </Link>
             <Link className="card card--padded" href="/campaigns">
               <strong>View campaigns</strong>
               <p className="muted" style={{ margin: "8px 0 0" }}>
                 Manage voucher sales and promotional campaigns from the main data API.
+              </p>
+            </Link>
+            <Link className="card card--padded" href="/settings">
+              <strong>Manage brand profiles</strong>
+              <p className="muted" style={{ margin: "8px 0 0" }}>
+                Store tone, audience, region, and CTA rules for the editorial workspace.
               </p>
             </Link>
           </div>

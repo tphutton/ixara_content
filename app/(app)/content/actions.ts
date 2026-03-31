@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createActionLog } from "@/lib/actions/action-log";
 import { requireApprovedUserAccess } from "@/lib/auth/user-access";
+import { applyBrandRulesToContent } from "@/lib/brand-profiles/rules";
 import { parseBoolean, parseOptionalString, parseStringArray } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
 
@@ -40,6 +41,7 @@ function getContentInput(formData: FormData) {
     websites: parseStringArray(formData.get("websites")),
     assetImage: parseOptionalString(formData.get("assetImage")),
     assetCaption: parseOptionalString(formData.get("assetCaption")),
+    primaryAssetId: parseOptionalString(formData.get("primaryAssetId")),
     aiGenerated: parseBoolean(formData.get("aiGenerated")),
     sourcePrompt: parseOptionalString(formData.get("sourcePrompt")),
   };
@@ -47,11 +49,13 @@ function getContentInput(formData: FormData) {
 
 export async function createContentAction(formData: FormData) {
   const access = await requireApprovedUserAccess();
-  const data = getContentInput(formData);
+  const prepared = getContentInput(formData);
 
-  if (!data.title) {
+  if (!prepared.title) {
     throw new Error("Title is required.");
   }
+
+  const { data, profile, warnings } = await applyBrandRulesToContent(prepared);
 
   const content = await prisma.content.create({
     data: {
@@ -66,8 +70,12 @@ export async function createContentAction(formData: FormData) {
     actionType: "create",
     targetType: "content",
     targetId: content.id,
-    summary: `Created content "${content.title}"`,
-    afterData: content,
+    summary: `Created content "${content.title}"${profile ? ` using ${profile.brandName} rules` : ""}${warnings.length > 0 ? ` with ${warnings.length} brand warning${warnings.length === 1 ? "" : "s"}` : ""}`,
+    afterData: {
+      ...content,
+      brandProfileApplied: profile?.brandName ?? null,
+      brandWarnings: warnings,
+    },
     source: "manual",
   });
 
@@ -78,11 +86,13 @@ export async function createContentAction(formData: FormData) {
 export async function updateContentAction(id: string, formData: FormData) {
   const access = await requireApprovedUserAccess();
   const before = await prisma.content.findUniqueOrThrow({ where: { id } });
-  const data = getContentInput(formData);
+  const prepared = getContentInput(formData);
 
-  if (!data.title) {
+  if (!prepared.title) {
     throw new Error("Title is required.");
   }
+
+  const { data, profile, warnings } = await applyBrandRulesToContent(prepared);
 
   const content = await prisma.content.update({
     where: { id },
@@ -97,9 +107,13 @@ export async function updateContentAction(id: string, formData: FormData) {
     actionType: "update",
     targetType: "content",
     targetId: content.id,
-    summary: `Updated content "${content.title}"`,
+    summary: `Updated content "${content.title}"${profile ? ` using ${profile.brandName} rules` : ""}${warnings.length > 0 ? ` with ${warnings.length} brand warning${warnings.length === 1 ? "" : "s"}` : ""}`,
     beforeData: before,
-    afterData: content,
+    afterData: {
+      ...content,
+      brandProfileApplied: profile?.brandName ?? null,
+      brandWarnings: warnings,
+    },
     source: "manual",
   });
 

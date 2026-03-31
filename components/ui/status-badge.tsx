@@ -1,6 +1,7 @@
 import clsx from "clsx";
 
 const toneByStatus: Record<string, string> = {
+  active: "rgba(15, 118, 110, 0.12)",
   approved: "rgba(15, 118, 110, 0.12)",
   draft: "rgba(21, 94, 239, 0.12)",
   idea: "rgba(71, 84, 103, 0.12)",
@@ -13,6 +14,7 @@ const toneByStatus: Record<string, string> = {
 };
 
 const textByStatus: Record<string, string> = {
+  active: "#0f766e",
   approved: "#0f766e",
   draft: "#155eef",
   idea: "#475467",

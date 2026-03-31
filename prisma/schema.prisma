@@ -63,6 +63,11 @@ enum ChatRole {
   system
 }
 
+enum AssetSource {
+  wordpress
+  manual
+}
+
 model UserAccess {
   id             String           @id @default(cuid())
   clerkUserId    String           @unique
@@ -77,6 +82,8 @@ model UserAccess {
   contentUpdated     Content[]          @relation("ContentUpdatedBy")
   blogsCreated       Blog[]             @relation("BlogCreatedBy")
   blogsUpdated       Blog[]             @relation("BlogUpdatedBy")
+  assetsCreated      Asset[]            @relation("AssetCreatedBy")
+  assetsUpdated      Asset[]            @relation("AssetUpdatedBy")
   schedulesCreated   ContentSchedule[]  @relation("ScheduleCreatedBy")
   schedulesApproved  ContentSchedule[]  @relation("ScheduleApprovedBy")
   chatThreads        ChatThread[]
@@ -105,6 +112,7 @@ model Content {
   websites       String[]
   assetImage     String?
   assetCaption   String?
+  primaryAssetId String?
   aiGenerated    Boolean       @default(false)
   sourcePrompt   String?
   createdById    String?
@@ -114,6 +122,8 @@ model Content {
 
   createdBy UserAccess?        @relation("ContentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy UserAccess?        @relation("ContentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  primaryAsset Asset?          @relation("ContentPrimaryAsset", fields: [primaryAssetId], references: [id], onDelete: SetNull)
+  assets     ContentAsset[]
   schedules ContentSchedule[]
 
   @@index([status, contentType])
@@ -123,10 +133,12 @@ model Content {
 model Blog {
   id             String      @id @default(cuid())
   title          String
+  brand          String?
   postDate       DateTime?
   authorName     String?
   authorImage    String?
   featureImage   String?
+  featureAssetId String?
   text1          String?
   image1         String?
   image1Caption  String?
@@ -169,10 +181,12 @@ model Blog {
 
   createdBy UserAccess?       @relation("BlogCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy UserAccess?       @relation("BlogUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  featureAsset Asset?         @relation("BlogFeatureAsset", fields: [featureAssetId], references: [id], onDelete: SetNull)
+  assets      BlogAsset[]
   schedules ContentSchedule[]
 
   @@index([status, postDate])
-  @@index([category, sport, region, country])
+  @@index([brand, category, sport, region, country])
 }
 
 model ContentSchedule {
@@ -264,4 +278,88 @@ model BrandProfile {
   preferredCTAs     String[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model Asset {
+  id               String       @id @default(cuid())
+  source           AssetSource
+  externalId       String?
+  title            String
+  slug             String?
+  fileUrl          String       @unique
+  thumbnailUrl     String?
+  mimeType         String?
+  mediaType        String?
+  width            Int?
+  height           Int?
+  fileSize         Int?
+  altText          String?
+  caption          String?
+  sourceCreatedAt  DateTime?
+  sourceUpdatedAt  DateTime?
+  metadata         Json?
+  tags             String[]
+  brand            String?
+  campaignName     String?
+  sport            String?
+  region           String?
+  country          String?
+  createdById      String?
+  updatedById      String?
+  syncedAt         DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  createdBy            UserAccess?       @relation("AssetCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy            UserAccess?       @relation("AssetUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  contentPrimaryFor    Content[]         @relation("ContentPrimaryAsset")
+  blogFeatureFor       Blog[]            @relation("BlogFeatureAsset")
+  contentLinks         ContentAsset[]
+  blogLinks            BlogAsset[]
+  campaignLinks        CampaignAsset[]
+
+  @@unique([source, externalId])
+  @@index([source, syncedAt])
+  @@index([brand, campaignName, sport, region, country])
+}
+
+model ContentAsset {
+  id         String   @id @default(cuid())
+  contentId  String
+  assetId    String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([contentId, assetId])
+  @@index([assetId])
+}
+
+model BlogAsset {
+  id         String   @id @default(cuid())
+  blogId     String
+  assetId    String
+  slot       String
+  createdAt  DateTime @default(now())
+
+  blog  Blog  @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, slot])
+  @@index([assetId])
+}
+
+model CampaignAsset {
+  id          String   @id @default(cuid())
+  campaignId  String
+  assetId     String
+  role        String?
+  createdAt   DateTime @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, assetId])
+  @@index([campaignId])
 }

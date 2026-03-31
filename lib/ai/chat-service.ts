@@ -13,6 +13,8 @@ Your job is to help approved internal users manage:
 - schedule entries
 - external campaign records
 - editorial dashboard summaries
+- synced media assets
+- brand profile rules
 
 Rules:
 - Use tools when database reads or writes are needed.
@@ -21,6 +23,8 @@ Rules:
 - Ask a brief clarifying question only if a required field is genuinely missing.
 - For blogs, preserve the structured text/image block model and do not collapse them into one generic body.
 - If a user asks for lists or summaries, prefer tool-driven results over guessing.
+- Use brand profile context whenever it is available so tone, audience, geography, CTA style, and banned phrases stay aligned.
+- Use asset tools when users need to find creative, verify available media, or attach WordPress-backed assets to records.
 `.trim();
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL ?? "gpt-5-mini";
@@ -37,9 +41,50 @@ function getThreadTitle(message: string) {
   return message.trim().slice(0, 80) || "New chat";
 }
 
-function toOpenAIMessages(messages: StoredChatMessage[]): ChatCompletionMessageParam[] {
+async function getBrandProfilePromptContext() {
+  const profiles = await prisma.brandProfile.findMany({
+    orderBy: { brandName: "asc" },
+    take: 12,
+  });
+
+  if (profiles.length === 0) {
+    return "No brand profiles are configured yet.";
+  }
+
+  return profiles
+    .map((profile) => {
+      const details = [
+        `Brand: ${profile.brandName}`,
+        profile.defaultTone ? `Tone: ${profile.defaultTone}` : null,
+        profile.targetAudience ? `Audience: ${profile.targetAudience}` : null,
+        profile.preferredWebsites.length > 0
+          ? `Websites: ${profile.preferredWebsites.join(", ")}`
+          : null,
+        profile.sports.length > 0 ? `Sports: ${profile.sports.join(", ")}` : null,
+        profile.regions.length > 0 ? `Regions: ${profile.regions.join(", ")}` : null,
+        profile.countries.length > 0 ? `Countries: ${profile.countries.join(", ")}` : null,
+        profile.preferredCTAs.length > 0
+          ? `Preferred CTAs: ${profile.preferredCTAs.join(", ")}`
+          : null,
+        profile.bannedPhrases.length > 0
+          ? `Banned phrases: ${profile.bannedPhrases.join(", ")}`
+          : null,
+      ].filter(Boolean);
+
+      return `- ${details.join(" | ")}`;
+    })
+    .join("\n");
+}
+
+function toOpenAIMessages(
+  messages: StoredChatMessage[],
+  brandProfileContext: string,
+): ChatCompletionMessageParam[] {
   return [
-    { role: "system", content: SYSTEM_PROMPT },
+    {
+      role: "system",
+      content: `${SYSTEM_PROMPT}\n\nCurrent brand profiles:\n${brandProfileContext}`,
+    },
     ...messages.map((message) => {
       if (message.role === "tool") {
         return {
@@ -122,6 +167,7 @@ export async function runContentOpsChat(input: {
     orderBy: { createdAt: "asc" },
     take: 40,
   });
+  const brandProfileContext = await getBrandProfilePromptContext();
 
   const conversation: ChatCompletionMessageParam[] = toOpenAIMessages(
     storedMessages.map((message) => ({
@@ -131,6 +177,7 @@ export async function runContentOpsChat(input: {
       toolName: message.toolName,
       toolPayload: message.toolPayload,
     })),
+    brandProfileContext,
   );
 
   const toolSummaries: Array<{ toolName: string; summary: string; payload: Record<string, unknown> }> = [];

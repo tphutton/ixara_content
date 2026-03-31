@@ -15,6 +15,9 @@ Production-ready internal web application for AI-assisted content operations, bu
 - The dashboard now uses live Prisma summaries and recent `ContentActionLog` activity instead of placeholder metrics.
 - External campaigns are integrated through the TechSport campaigns API and exposed in both the workspace UI and the AI tool layer.
 - Campaign API access now degrades gracefully in the dashboard, campaigns workspace, and chat tool flow when config or upstream availability fails.
+- WordPress media is now synced into a local `Asset` catalog so content, blogs, campaigns, and chat can reuse the same media records.
+- Brand profiles are now managed inside Settings and injected into the AI chat context to keep editorial output aligned with shared rules.
+- Brand profiles now actively shape content and blog workflows through server-side default inheritance, blog-level brand metadata, and readiness guidance in the editor UI and dashboard.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -37,12 +40,17 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Replaced dashboard placeholder cards and activity with live counts, schedule visibility, quick links, and action-log-driven recent activity.
 - [x] Integrated the external TechSport campaigns API with server-side auth, workspace CRUD, and AI access.
 - [x] Added production-readiness polish for campaign API resilience, chat tool feedback, and environment/setup documentation.
+- [x] Added a synced WordPress-backed asset library plus asset linking in content, blog, and campaign workflows.
+- [x] Replaced the placeholder Settings page with live Brand Profile CRUD for shared editorial guidance.
+- [x] Extended AI chat with asset sync/search tools and brand profile context/tool access.
+- [x] Added brand-aware defaults and warnings for content/blog creation, including a new `Blog.brand` field and dashboard publishing-readiness visibility.
 
 ## In Progress
-- [ ] Continue production polish, UX refinement, and new feature planning.
+- [ ] Continue production polish, UX refinement, and rollout preparation.
 
 ## Pending
-- [ ] Decide next product expansion areas after the production-ready baseline.
+- [ ] Add platform publishing workflows and social-channel delivery.
+- [ ] Expand asset relationships into section-level blog media slots and publishing-ready variants.
 
 ## Database Schema Summary
 - `UserAccess` for Clerk-linked internal roles and approval status.
@@ -52,6 +60,8 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `ChatThread` and `ChatMessage` for assistant conversations and tool traces.
 - `ContentActionLog` for mutation audit history.
 - `BrandProfile` for editorial guidance and AI consistency controls.
+- `Asset`, `ContentAsset`, `BlogAsset`, and `CampaignAsset` for reusable media management and relationship tracking.
+- `Blog.brand` now links blog records into the same brand-rule system used by content, campaigns, and schedule metadata.
 
 ## Pages / Routes
 - `/`
@@ -61,6 +71,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/api/chat`
 - `/dashboard`
 - `/chat`
+- `/assets`
 - `/campaigns`
 - `/campaigns/new`
 - `/campaigns/[id]`
@@ -84,10 +95,13 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Content, blogs, and schedule are now Prisma-backed and require live database connectivity at runtime.
 - Campaigns are served from the external TechSport campaigns API and require `CAMPAIGNS_API_KEY`.
 - Campaign create/update/delete still depend on the upstream API being reachable at request time, but list/dashboard/chat now fail more gracefully.
+- WordPress media sync uses the public REST API and defaults to `https://media.ixara.tech/wp-json/wp/v2` unless `WORDPRESS_MEDIA_BASE_URL` is set.
+- Content and blog actions now auto-fill missing metadata from matching brand profiles and record brand-rule warnings in the action log.
 - Prisma is pinned to `6.14.x` because the local Node runtime is `20.18.2`, while Prisma `7.x` requires Node `20.19+`.
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
 
 ## Next Steps
-- Improve chat UX with richer tool result rendering and better error surfacing.
-- Finalize deployment envs in Railway and Clerk.
-- Decide whether campaigns should also be mirrored into local Postgres for reporting or remain API-backed only.
+- Finalize deployment envs in Railway, Clerk, OpenAI, campaigns API, and WordPress sync.
+- Expand editorial oversight with richer filters, approval views, and more explicit “ready this week” workflow screens.
+- Lay the groundwork for future automation on top of the current content, schedule, asset, and brand-profile foundations.
+- Add social publishing architecture after automation is designed.

@@ -4,6 +4,7 @@ import { BlogForm } from "@/components/blogs/blog-form";
 import { BlogPreview } from "@/components/blogs/blog-preview";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
+import { BrandRuleGuide } from "@/components/settings/brand-rule-guide";
 import { prisma } from "@/lib/prisma";
 import { deleteBlogAction, updateBlogAction } from "../actions";
 
@@ -15,7 +16,29 @@ type BlogDetailPageProps = {
 
 export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
   const { id } = await params;
-  const blog = await prisma.blog.findUnique({ where: { id } });
+  const [blog, assets, brandProfiles] = await Promise.all([
+    prisma.blog.findUnique({ where: { id } }),
+    prisma.asset.findMany({
+      select: { id: true, title: true },
+      orderBy: { syncedAt: "desc" },
+      take: 100,
+    }),
+    prisma.brandProfile.findMany({
+      select: {
+        id: true,
+        brandName: true,
+        defaultTone: true,
+        targetAudience: true,
+        preferredWebsites: true,
+        sports: true,
+        regions: true,
+        countries: true,
+        bannedPhrases: true,
+        preferredCTAs: true,
+      },
+      orderBy: { brandName: "asc" },
+    }),
+  ]);
 
   if (!blog) {
     notFound();
@@ -31,13 +54,13 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
         description="Manage article metadata and the structured 8-block editorial body."
       />
 
-      <div className="grid" style={{ gridTemplateColumns: "1.25fr 0.85fr", alignItems: "start" }}>
+      <div className="grid" style={{ gridTemplateColumns: "1.2fr 0.8fr 0.8fr", alignItems: "start" }}>
         <div className="stack">
           <Link className="button button--secondary" href="/blogs">
             Back to blogs
           </Link>
           <div className="card card--padded">
-            <BlogForm action={updateAction} blog={blog} />
+            <BlogForm action={updateAction} assets={assets} blog={blog} brandProfiles={brandProfiles} />
           </div>
           <form action={deleteAction}>
             <SubmitButton label="Delete blog" pendingLabel="Deleting..." variant="secondary" />
@@ -45,6 +68,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
         </div>
 
         <BlogPreview blog={blog} />
+        <BrandRuleGuide profiles={brandProfiles} />
       </div>
     </section>
   );
