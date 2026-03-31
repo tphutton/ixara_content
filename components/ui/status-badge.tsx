@@ -9,6 +9,7 @@ const toneByStatus: Record<string, string> = {
   published: "rgba(2, 132, 199, 0.12)",
   review: "rgba(146, 64, 14, 0.12)",
   scheduled: "rgba(91, 33, 182, 0.12)",
+  warning: "rgba(181, 71, 8, 0.12)",
 };
 
 const textByStatus: Record<string, string> = {
@@ -20,6 +21,7 @@ const textByStatus: Record<string, string> = {
   published: "#027a9d",
   review: "#92400e",
   scheduled: "#5b21b6",
+  warning: "#b54708",
 };
 
 type StatusBadgeProps = {

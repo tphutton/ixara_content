@@ -6,6 +6,17 @@ import {
   type UserAccess,
 } from "@prisma/client";
 import { createActionLog } from "@/lib/actions/action-log";
+import {
+  deleteCampaign,
+  getCampaign,
+  listCampaigns,
+  upsertCampaign,
+} from "@/lib/campaigns/client";
+import {
+  campaignStatuses,
+  campaignTypes,
+  type CampaignStatus,
+} from "@/lib/campaigns/types";
 import { prisma } from "@/lib/prisma";
 
 type ToolDefinition = {
@@ -602,6 +613,114 @@ async function getDashboardSummaryTool() {
   };
 }
 
+async function listCampaignsTool(args: Record<string, unknown>) {
+  const response = await listCampaigns({
+    status: asOptionalString(args.status) as CampaignStatus | undefined,
+    startDate: asOptionalString(args.startDate) ?? undefined,
+    endDate: asOptionalString(args.endDate) ?? undefined,
+    page: typeof args.page === "number" ? args.page : undefined,
+    limit: typeof args.limit === "number" ? args.limit : 20,
+  });
+
+  return {
+    toolName: "list_campaigns",
+    summary: `Found ${response.data.length} campaign${response.data.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: response.data.length,
+      items: response.data.map((campaign) => ({
+        campaign_id: campaign.campaign_id,
+        campaign_name: campaign.campaign_name,
+        campaign_status: campaign.campaign_status,
+        campaign_type: campaign.campaign_type,
+        brand: campaign.brand,
+        country: campaign.country,
+        region: campaign.region,
+        start_date: campaign.start_date,
+        end_date: campaign.end_date,
+      })),
+    },
+  };
+}
+
+async function getCampaignTool(args: Record<string, unknown>) {
+  const campaignId = asRequiredString(args.campaign_id, "campaign_id");
+  const campaign = await getCampaign(campaignId);
+
+  return {
+    toolName: "get_campaign",
+    summary: `Loaded campaign "${campaign.campaign_name}".`,
+    payload: campaign,
+  };
+}
+
+async function upsertCampaignTool(args: Record<string, unknown>, context: ToolContext) {
+  const payload = {
+    campaign_id: asOptionalString(args.campaign_id) ?? undefined,
+    campaign_name: asRequiredString(args.campaign_name, "campaign_name"),
+    brand: asStringArray(args.brand),
+    start_date: asOptionalString(args.start_date),
+    end_date: asOptionalString(args.end_date),
+    campaign_description: asOptionalString(args.campaign_description),
+    featured_image_link: asOptionalString(args.featured_image_link),
+    campaign_status:
+      parseEnumValue(
+        args.campaign_status,
+        campaignStatuses,
+        "draft",
+      ) as CampaignStatus,
+    campaign_type:
+      parseEnumValue(
+        args.campaign_type,
+        campaignTypes,
+        campaignTypes[0],
+      ) ?? asOptionalString(args.campaign_type),
+    country: asOptionalString(args.country),
+    region: asOptionalString(args.region),
+    category: asOptionalString(args.category),
+    partner_id: asOptionalString(args.partner_id),
+  };
+
+  const campaign = await upsertCampaign(payload);
+
+  await createActionLog({
+    userId: context.access.id,
+    actionType: payload.campaign_id ? "update" : "create",
+    targetType: "campaign",
+    targetId: campaign.campaign_id,
+    summary: `AI ${payload.campaign_id ? "updated" : "created"} campaign "${campaign.campaign_name}"`,
+    afterData: campaign,
+    source: "ai",
+  });
+
+  return {
+    toolName: "upsert_campaign",
+    summary: `${payload.campaign_id ? "Updated" : "Created"} campaign "${campaign.campaign_name}".`,
+    payload: campaign,
+  };
+}
+
+async function deleteCampaignTool(args: Record<string, unknown>, context: ToolContext) {
+  const campaignId = asRequiredString(args.campaign_id, "campaign_id");
+  const campaign = await getCampaign(campaignId);
+  const result = await deleteCampaign(campaignId);
+
+  await createActionLog({
+    userId: context.access.id,
+    actionType: "delete",
+    targetType: "campaign",
+    targetId: campaignId,
+    summary: `AI deleted campaign "${campaign.campaign_name}"`,
+    afterData: result,
+    source: "ai",
+  });
+
+  return {
+    toolName: "delete_campaign",
+    summary: `Deleted campaign "${campaign.campaign_name}".`,
+    payload: result,
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -613,6 +732,10 @@ const toolHandlers: Record<string, ToolHandler> = {
   create_schedule_entry: createScheduleEntryTool,
   update_schedule_entry: updateScheduleEntryTool,
   get_dashboard_summary: async () => getDashboardSummaryTool(),
+  list_campaigns: async (args) => listCampaignsTool(args),
+  get_campaign: async (args) => getCampaignTool(args),
+  upsert_campaign: upsertCampaignTool,
+  delete_campaign: deleteCampaignTool,
 };
 
 export const contentOpsTools: ToolDefinition[] = [
@@ -902,6 +1025,81 @@ export const contentOpsTools: ToolDefinition[] = [
       parameters: {
         type: "object",
         properties: {},
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_campaigns",
+      description: "List campaigns from the external TechSport campaigns API.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: campaignStatuses },
+          startDate: { type: "string" },
+          endDate: { type: "string" },
+          page: { type: "number" },
+          limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_campaign",
+      description: "Get a specific campaign by campaign_id from the external campaigns API.",
+      parameters: {
+        type: "object",
+        properties: {
+          campaign_id: { type: "string" },
+        },
+        required: ["campaign_id"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "upsert_campaign",
+      description: "Create or update a campaign in the external campaigns API.",
+      parameters: {
+        type: "object",
+        properties: {
+          campaign_id: { type: "string" },
+          campaign_name: { type: "string" },
+          brand: { type: "array", items: { type: "string" } },
+          start_date: { type: "string" },
+          end_date: { type: "string" },
+          campaign_description: { type: "string" },
+          featured_image_link: { type: "string" },
+          campaign_status: { type: "string", enum: campaignStatuses },
+          campaign_type: { type: "string", enum: campaignTypes },
+          country: { type: "string" },
+          region: { type: "string" },
+          category: { type: "string" },
+          partner_id: { type: "string" },
+        },
+        required: ["campaign_name"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_campaign",
+      description: "Delete a campaign by campaign_id in the external campaigns API.",
+      parameters: {
+        type: "object",
+        properties: {
+          campaign_id: { type: "string" },
+        },
+        required: ["campaign_id"],
         additionalProperties: false,
       },
     },

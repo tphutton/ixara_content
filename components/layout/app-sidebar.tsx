@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  Megaphone,
   LayoutDashboard,
   MessageSquareText,
   Newspaper,
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/chat", label: "Chat", icon: MessageSquareText },
   { href: "/content", label: "Content", icon: Sparkles },
   { href: "/blogs", label: "Blogs", icon: Newspaper },
+  { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/admin/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/settings", label: "Settings", icon: Settings },

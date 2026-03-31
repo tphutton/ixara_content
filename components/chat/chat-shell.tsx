@@ -254,12 +254,21 @@ export function ChatShell({
               {lastToolSummaries.length === 0 ? (
                 <p className="muted">Tool actions will appear here when the assistant reads or updates records.</p>
               ) : (
-                lastToolSummaries.map((tool, index) => (
+            lastToolSummaries.map((tool, index) => (
               <article className="card card--padded" key={`${tool.toolName}-${index}`}>
                 <strong>{tool.toolName}</strong>
                 <p className="muted" style={{ margin: "8px 0 0" }}>
                   {tool.summary}
                 </p>
+                {getToolHighlights(tool.payload).length > 0 ? (
+                  <div className="stack" style={{ marginTop: 10 }}>
+                    {getToolHighlights(tool.payload).map((line) => (
+                      <span className="inline-chip" key={line}>
+                        {line}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </article>
             ))
           )}
@@ -268,3 +277,10 @@ export function ChatShell({
     </div>
   );
 }
+  function getToolHighlights(payload: Record<string, unknown>) {
+    const entries = Object.entries(payload)
+      .filter(([, value]) => typeof value === "string" || typeof value === "number")
+      .slice(0, 3);
+
+    return entries.map(([key, value]) => `${key}: ${String(value)}`);
+  }

@@ -43,6 +43,13 @@ Phase 5 dashboard visibility is now in place:
 - Recent activity fed by `ContentActionLog`
 - Quick links into the main editorial workflows
 
+External campaigns integration is now in place:
+
+- Server-side connection to the TechSport campaigns API
+- Campaigns list/create/edit/delete inside the workspace
+- Campaign visibility and mutation support in AI chat
+- External API key stays server-side via env vars
+
 ## Planned Stack
 
 - Next.js 16
@@ -62,6 +69,51 @@ Phase 5 dashboard visibility is now in place:
 6. Set `INITIAL_ADMIN_EMAIL` to the email that should become the first approved admin.
 7. Start the app with `npm run dev`.
 
+Additional environment for campaigns:
+
+- `CAMPAIGNS_API_BASE_URL`
+- `CAMPAIGNS_API_KEY`
+
+## Environment Checklist
+
+Local development:
+
+- `NEXT_PUBLIC_APP_URL=http://localhost:3000`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `CLERK_SIGN_IN_URL=/sign-in`
+- `CLERK_SIGN_UP_URL=/sign-up`
+- `DATABASE_URL`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL=gpt-5-mini`
+- `INITIAL_ADMIN_EMAIL`
+- `CAMPAIGNS_API_BASE_URL=https://data.techsport.asia/api`
+- `CAMPAIGNS_API_KEY`
+
+Railway deployment:
+
+- Add the same variables in the Railway service settings
+- Set `NEXT_PUBLIC_APP_URL` to the final Railway app URL
+- Keep `CAMPAIGNS_API_KEY`, `CLERK_SECRET_KEY`, `OPENAI_API_KEY`, and `DATABASE_URL` server-side only
+
+## Clerk Setup
+
+In Clerk, configure:
+
+- Allowed redirect / origin for `http://localhost:3000`
+- Allowed redirect / origin for the final Railway URL
+- Sign-in path: `/sign-in`
+- Sign-up path: `/sign-up`
+
+The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved as the initial admin.
+
+## Railway Notes
+
+- Provision PostgreSQL and set `DATABASE_URL`
+- Redeploy after adding env vars
+- Run Prisma migrations during setup or from your local environment against the Railway database
+- Ensure the deployed app URL is also added back into Clerk
+
 ## Route Overview
 
 - `/sign-in`
@@ -69,6 +121,7 @@ Phase 5 dashboard visibility is now in place:
 - `/pending-approval`
 - `/dashboard`
 - `/chat`
+- `/campaigns`
 - `/content`
 - `/blogs`
 - `/schedule`
@@ -77,5 +130,5 @@ Phase 5 dashboard visibility is now in place:
 
 ## Notes
 
-- Setup documentation, deployment polish, and richer chat UX are the next major milestones.
+- Setup documentation, deployment polish, richer chat UX, and campaign API resilience are the next major milestones.
 - See `BUILD_PROGRESS.md` for milestone-by-milestone status.

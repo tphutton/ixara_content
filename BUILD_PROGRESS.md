@@ -13,6 +13,8 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Prisma migrations are applied against PostgreSQL, and all database-backed workspace pages are marked dynamic to avoid build-time DB coupling.
 - The AI chat layer uses server-side OpenAI tool calling with persisted threads/messages and explicit database-safe tools.
 - The dashboard now uses live Prisma summaries and recent `ContentActionLog` activity instead of placeholder metrics.
+- External campaigns are integrated through the TechSport campaigns API and exposed in both the workspace UI and the AI tool layer.
+- Campaign API access now degrades gracefully in the dashboard, campaigns workspace, and chat tool flow when config or upstream availability fails.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -33,12 +35,14 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Implemented server-side OpenAI tool orchestration for listing and mutating content, blogs, schedules, and dashboard summaries.
 - [x] Added chat-side action summaries tied to actual tool results.
 - [x] Replaced dashboard placeholder cards and activity with live counts, schedule visibility, quick links, and action-log-driven recent activity.
+- [x] Integrated the external TechSport campaigns API with server-side auth, workspace CRUD, and AI access.
+- [x] Added production-readiness polish for campaign API resilience, chat tool feedback, and environment/setup documentation.
 
 ## In Progress
-- [ ] Begin Phase 6 cleanup, setup documentation, and deployment readiness polish.
+- [ ] Continue production polish, UX refinement, and new feature planning.
 
 ## Pending
-- [ ] Document setup, local development, and deployment flow.
+- [ ] Decide next product expansion areas after the production-ready baseline.
 
 ## Database Schema Summary
 - `UserAccess` for Clerk-linked internal roles and approval status.
@@ -57,6 +61,9 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/api/chat`
 - `/dashboard`
 - `/chat`
+- `/campaigns`
+- `/campaigns/new`
+- `/campaigns/[id]`
 - `/content`
 - `/content/new`
 - `/content/[id]`
@@ -75,10 +82,12 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Dashboard and chat are both now backed by live Prisma data and server-side actions.
 - Chat is now live with persisted threads and server-side tool execution.
 - Content, blogs, and schedule are now Prisma-backed and require live database connectivity at runtime.
+- Campaigns are served from the external TechSport campaigns API and require `CAMPAIGNS_API_KEY`.
+- Campaign create/update/delete still depend on the upstream API being reachable at request time, but list/dashboard/chat now fail more gracefully.
 - Prisma is pinned to `6.14.x` because the local Node runtime is `20.18.2`, while Prisma `7.x` requires Node `20.19+`.
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
 
 ## Next Steps
-- Replace dashboard placeholder metrics with Prisma summaries and recent action log data.
 - Improve chat UX with richer tool result rendering and better error surfacing.
-- Document production environment setup for Clerk, OpenAI, and Railway.
+- Finalize deployment envs in Railway and Clerk.
+- Decide whether campaigns should also be mirrored into local Postgres for reporting or remain API-backed only.

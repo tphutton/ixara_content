@@ -11,6 +11,7 @@ Your job is to help approved internal users manage:
 - short-form content records
 - structured blog/article records
 - schedule entries
+- external campaign records
 - editorial dashboard summaries
 
 Rules:
@@ -165,9 +166,21 @@ export async function runContentOpsChat(input: {
         }
 
         const args = JSON.parse(toolCall.function.arguments || "{}") as Record<string, unknown>;
-        const result = await executeContentOpsTool(toolCall.function.name, args, {
-          access: input.access,
-        });
+        let result;
+
+        try {
+          result = await executeContentOpsTool(toolCall.function.name, args, {
+            access: input.access,
+          });
+        } catch (error) {
+          result = {
+            toolName: toolCall.function.name,
+            summary: error instanceof Error ? error.message : "Tool execution failed.",
+            payload: {
+              error: error instanceof Error ? error.message : "Tool execution failed.",
+            },
+          };
+        }
 
         toolSummaries.push(result);
 

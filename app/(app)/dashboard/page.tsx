@@ -144,6 +144,31 @@ export default async function DashboardPage() {
                 Use AI tools to list, create, update, and summarize records.
               </p>
             </Link>
+            <Link className="card card--padded" href="/campaigns">
+              <strong>View campaigns</strong>
+              <p className="muted" style={{ margin: "8px 0 0" }}>
+                Manage voucher sales and promotional campaigns from the main data API.
+              </p>
+            </Link>
+          </div>
+        </section>
+
+        <section className="card card--padded content-block content-block--wide">
+          <h3>Campaign Service Status</h3>
+          <div className="stack" style={{ marginTop: 18 }}>
+            <div className="card card--padded">
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                <div>
+                  <strong>{summary.campaigns.ok ? "Campaign API connected" : "Campaign API needs attention"}</strong>
+                  <p className="muted" style={{ margin: "8px 0 0" }}>
+                    {summary.campaigns.ok
+                      ? `${summary.campaigns.active} active campaigns out of ${summary.campaigns.total} total campaign records.`
+                      : summary.campaigns.error ?? "Campaign API is unavailable."}
+                  </p>
+                </div>
+                <StatusBadge label={summary.campaigns.ok ? "active" : "warning"} />
+              </div>
+            </div>
           </div>
         </section>
       </div>

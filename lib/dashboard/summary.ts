@@ -1,4 +1,5 @@
 import { ContentStatus, BlogStatus, ScheduleStatus } from "@prisma/client";
+import { safeListCampaigns } from "@/lib/campaigns/client";
 import { prisma } from "@/lib/prisma";
 
 const thisWeekStart = new Date();
@@ -22,6 +23,7 @@ export async function getDashboardSummary() {
     upcomingSchedule,
     recentActions,
     totalThreads,
+    campaignsResponse,
   ] = await Promise.all([
     prisma.content.groupBy({
       by: ["status"],
@@ -67,7 +69,12 @@ export async function getDashboardSummary() {
       take: 8,
     }),
     prisma.chatThread.count(),
+    safeListCampaigns({ limit: 100 }),
   ]);
+
+  const activeCampaignCount = campaignsResponse.data.filter(
+    (campaign) => campaign.campaign_status === "active",
+  ).length;
 
   return {
     metrics: [
@@ -87,6 +94,13 @@ export async function getDashboardSummary() {
         detail: `${upcomingSchedule.filter((item) => item.status === ScheduleStatus.ready).length} ready`,
       },
       {
+        label: "Active Campaigns",
+        value: activeCampaignCount,
+        detail: campaignsResponse.ok
+          ? `${campaignsResponse.data.length} total campaigns`
+          : "Campaign API unavailable",
+      },
+      {
         label: "Active Chat Threads",
         value: totalThreads,
         detail: `${recentActions.filter((action) => action.source === "ai").length} recent AI actions`,
@@ -102,5 +116,11 @@ export async function getDashboardSummary() {
     })),
     upcomingSchedule,
     recentActions,
+    campaigns: {
+      ok: campaignsResponse.ok,
+      total: campaignsResponse.data.length,
+      active: activeCampaignCount,
+      error: campaignsResponse.error,
+    },
   };
 }
