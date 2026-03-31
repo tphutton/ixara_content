@@ -8,6 +8,11 @@ export const campaignStatuses = [
 export const campaignTypes = [
   "Flash Sale",
   "Price Promotion",
+  "Feature Promotion",
+  "Feature Launch",
+  "Product Update",
+  "Content Promotion",
+  "Event Promotion",
   "Giveaway",
   "Region Focus",
   "Category Focus",

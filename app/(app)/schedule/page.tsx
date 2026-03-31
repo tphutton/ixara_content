@@ -26,6 +26,7 @@ type SchedulePageProps = {
     view?: string;
     month?: string;
     week?: string;
+    brand?: string;
   }>;
 };
 
@@ -45,6 +46,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   const monthParam = resolvedSearchParams?.month ?? format(startOfMonth(new Date()), "yyyy-MM");
   const weekParam =
     resolvedSearchParams?.week ?? format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const brandFilter = resolvedSearchParams?.brand ?? "all";
   const now = new Date();
   const weekEnd = new Date(now);
   weekEnd.setDate(weekEnd.getDate() + 7);
@@ -107,7 +109,30 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     }),
   }));
 
-  const filteredRows = rowsWithReadiness.filter((row) => {
+  const normalizedBrandFilter = brandFilter.toLowerCase();
+  const allCampaigns = campaignsResponse.ok ? campaignsResponse.data : [];
+  const brandScopedRows = rowsWithReadiness.filter(
+    (row) =>
+      normalizedBrandFilter === "all" || (row.brand ?? "").toLowerCase() === normalizedBrandFilter,
+  );
+  const campaigns = allCampaigns.filter((campaign) => {
+    if (normalizedBrandFilter === "all") {
+      return true;
+    }
+
+    return campaign.brand.some((brand) => brand.toLowerCase() === normalizedBrandFilter);
+  });
+
+  const availableBrands = Array.from(
+    new Set(
+      [
+        ...rowsWithReadiness.map((row) => row.brand).filter(Boolean),
+        ...allCampaigns.flatMap((campaign) => campaign.brand ?? []),
+      ].map((brand) => brand?.trim()).filter(Boolean) as string[],
+    ),
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filteredRows = brandScopedRows.filter((row) => {
     if (queue === "ready") {
       return row.readiness.isReady;
     }
@@ -128,23 +153,29 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   });
 
   const queueSummary = {
-    all: rowsWithReadiness.length,
-    ready: rowsWithReadiness.filter((row) => row.readiness.isReady).length,
-    attention: rowsWithReadiness.filter((row) => !row.readiness.isReady).length,
-    approved: rowsWithReadiness.filter((row) => row.approvedById).length,
-    week: rowsWithReadiness.filter((row) => row.scheduledFor >= now && row.scheduledFor <= weekEnd)
+    all: brandScopedRows.length,
+    ready: brandScopedRows.filter((row) => row.readiness.isReady).length,
+    attention: brandScopedRows.filter((row) => !row.readiness.isReady).length,
+    approved: brandScopedRows.filter((row) => row.approvedById).length,
+    week: brandScopedRows.filter((row) => row.scheduledFor >= now && row.scheduledFor <= weekEnd)
       .length,
   };
-  const scheduledCount = rowsWithReadiness.filter((row) => row.status === "scheduled").length;
-  const campaigns = campaignsResponse.ok ? campaignsResponse.data : [];
+  const scheduledCount = brandScopedRows.filter((row) => row.status === "scheduled").length;
   const activeCampaigns = campaigns.filter((campaign) => campaign.campaign_status === "active").length;
 
-  function buildScheduleHref(next: { queue?: string; view?: string; month?: string; week?: string }) {
+  function buildScheduleHref(next: {
+    queue?: string;
+    view?: string;
+    month?: string;
+    week?: string;
+    brand?: string;
+  }) {
     const params = new URLSearchParams();
     const resolvedQueue = next.queue ?? queue;
     const resolvedView = next.view ?? view;
     const resolvedMonth = next.month ?? monthParam;
     const resolvedWeek = next.week ?? weekParam;
+    const resolvedBrand = next.brand ?? brandFilter;
 
     if (resolvedQueue !== "all") {
       params.set("queue", resolvedQueue);
@@ -156,6 +187,10 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
 
     params.set("month", resolvedMonth);
     params.set("week", resolvedWeek);
+
+    if (resolvedBrand !== "all") {
+      params.set("brand", resolvedBrand);
+    }
 
     return `/schedule?${params.toString()}`;
   }
@@ -237,6 +272,25 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
                 key={option.key}
               >
                 {option.label} ({queueSummary[option.key]})
+              </Link>
+            ))}
+          </div>
+          <div className="toolbar__group">
+            <Link
+              className="button button--secondary"
+              data-active={brandFilter === "all"}
+              href={buildScheduleHref({ brand: "all" })}
+            >
+              All brands
+            </Link>
+            {availableBrands.map((brand) => (
+              <Link
+                className="button button--secondary"
+                data-active={brandFilter === brand}
+                href={buildScheduleHref({ brand })}
+                key={brand}
+              >
+                {brand}
               </Link>
             ))}
           </div>

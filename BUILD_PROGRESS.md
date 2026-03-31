@@ -146,6 +146,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Automation types now include both `weekly_social_content` and `blog_post_generation`, with the prompt template acting as the per-workflow generation brief.
 - `/schedule` now supports both table and calendar views, with campaign windows layered into the same monthly planning surface as scheduled content and blog items.
 - `/schedule` now supports monthly and weekly planning views, with campaigns pinned as all-day blocks and scheduled items ordered by time within each day.
+- The weekly schedule planner now renders multi-day campaigns as single spanning bars, with shared brand filtering across both campaigns and timed posts in the calendar views.
 - Facebook and Instagram account records can now use the first Meta OAuth callback flow and manual sync action once `META_APP_ID`, `META_APP_SECRET`, `META_SCOPES`, and `SOCIAL_ACCOUNT_ENCRYPTION_KEY` are configured.
 - `npm run import:legacy:blogs` now fetches the deprecated TechSport blogs API and upserts into the current Prisma `Blog` model using preserved legacy identifiers.
 - Blog editing is now split into review and edit modes so editors can inspect article readiness, metadata, and section coverage before opening the update panel.

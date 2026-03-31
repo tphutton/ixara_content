@@ -42,6 +42,17 @@ type CalendarEvent = {
   startsAt?: Date;
 };
 
+type WeekCampaignBar = {
+  key: string;
+  title: string;
+  href: string;
+  status: string;
+  meta: string;
+  startColumn: number;
+  endColumn: number;
+  row: number;
+};
+
 function parseMonth(month: string) {
   const parsed = parse(month, "yyyy-MM", new Date());
 
@@ -120,6 +131,87 @@ function getScheduleEventsForDay(day: Date, scheduleItems: CalendarScheduleItem[
     }));
 }
 
+function buildWeekCampaignBars(
+  weekStart: Date,
+  campaigns: Campaign[],
+): { bars: WeekCampaignBar[]; rowCount: number } {
+  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+
+  const spans = campaigns
+    .filter((campaign) => {
+      if (!campaign.start_date) {
+        return false;
+      }
+
+      const start = new Date(campaign.start_date);
+      const end = campaign.end_date ? new Date(campaign.end_date) : start;
+
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        return false;
+      }
+
+      return start <= weekEnd && end >= weekStart;
+    })
+    .map((campaign) => {
+      const start = new Date(campaign.start_date as string);
+      const end = campaign.end_date ? new Date(campaign.end_date) : start;
+      const clippedStart = start < weekStart ? weekStart : start;
+      const clippedEnd = end > weekEnd ? weekEnd : end;
+      const startColumn = Math.max(
+        1,
+        Math.min(7, Math.floor((clippedStart.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24)) + 1),
+      );
+      const endColumn = Math.max(
+        startColumn + 1,
+        Math.min(
+          8,
+          Math.floor((clippedEnd.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24)) + 2,
+        ),
+      );
+
+      return {
+        key: `campaign-${campaign.campaign_id}`,
+        title: campaign.campaign_name,
+        href: `/campaigns/${campaign.campaign_id}`,
+        status: campaign.campaign_status,
+        meta:
+          campaign.brand.join(", ") ||
+          [campaign.country, campaign.region].filter(Boolean).join(" • ") ||
+          "Campaign",
+        startColumn,
+        endColumn,
+      };
+    })
+    .sort((a, b) => {
+      if (a.startColumn !== b.startColumn) {
+        return a.startColumn - b.startColumn;
+      }
+
+      return b.endColumn - a.endColumn;
+    });
+
+  const rowEndByIndex: number[] = [];
+  const bars: WeekCampaignBar[] = spans.map((span) => {
+    let row = 0;
+
+    while ((rowEndByIndex[row] ?? 0) > span.startColumn) {
+      row += 1;
+    }
+
+    rowEndByIndex[row] = span.endColumn;
+
+    return {
+      ...span,
+      row,
+    };
+  });
+
+  return {
+    bars,
+    rowCount: Math.max(1, rowEndByIndex.length),
+  };
+}
+
 function renderMonthView(currentMonth: Date, scheduleItems: CalendarScheduleItem[], campaigns: Campaign[]) {
   const calendarStart = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
   const calendarEnd = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
@@ -183,64 +275,111 @@ function renderMonthView(currentMonth: Date, scheduleItems: CalendarScheduleItem
 function renderWeekView(weekStart: Date, scheduleItems: CalendarScheduleItem[], campaigns: Campaign[]) {
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  const campaignBars = buildWeekCampaignBars(weekStart, campaigns);
 
   return (
-    <div className="week-view">
-      {days.map((day) => {
-        const dayCampaignEvents = getCampaignEventsForDay(day, campaigns);
-        const dayScheduleEvents = getScheduleEventsForDay(day, scheduleItems);
+    <div className="week-scroll">
+      <div className="week-shell">
+        <section className="week-board">
+          <div className="week-board__header">
+            <div>
+              <p className="kicker">All-day campaigns</p>
+              <h4>Live campaign window</h4>
+            </div>
+            <span className="inline-chip">{campaignBars.bars.length} campaigns</span>
+          </div>
 
-        return (
-          <section className="week-day-card" data-today={isToday(day)} key={day.toISOString()}>
-            <div className="week-day-card__header">
-              <div>
-                <p className="kicker">{format(day, "EEE")}</p>
-                <h3>{format(day, "d MMM")}</h3>
+          <div className="week-board__days">
+            {days.map((day) => (
+              <div className="week-board__day" data-today={isToday(day)} key={day.toISOString()}>
+                <span>{format(day, "EEE")}</span>
+                <strong>{format(day, "d MMM")}</strong>
               </div>
-              <span className="inline-chip">
-                {dayCampaignEvents.length + dayScheduleEvents.length} items
-              </span>
-            </div>
+            ))}
+          </div>
 
-            <div className="week-day-card__lane">
-              <div className="week-lane-label">All-day campaigns</div>
-              {dayCampaignEvents.length === 0 ? (
-                <div className="week-empty-slot">No campaigns</div>
-              ) : (
-                dayCampaignEvents.map((event) => (
-                  <Link className="week-event week-event--campaign" href={event.href} key={event.key}>
-                    <div className="week-event__top">
-                      <strong>{event.title}</strong>
-                      <StatusBadge label={event.status} />
-                    </div>
-                    <span className="muted">{event.meta}</span>
-                  </Link>
-                ))
-              )}
-            </div>
+          <div
+            className="week-campaign-board"
+            style={{ gridTemplateRows: `repeat(${campaignBars.rowCount}, minmax(74px, auto))` }}
+          >
+            {campaignBars.bars.length === 0 ? (
+              <div className="week-empty-slot week-empty-slot--board">No campaigns this week</div>
+            ) : (
+              campaignBars.bars.map((bar) => (
+                <Link
+                  className="week-campaign-bar"
+                  href={bar.href}
+                  key={bar.key}
+                  style={{
+                    gridColumn: `${bar.startColumn} / ${bar.endColumn}`,
+                    gridRow: `${bar.row + 1}`,
+                  }}
+                >
+                  <div className="week-event__top">
+                    <strong>{bar.title}</strong>
+                    <StatusBadge label={bar.status} />
+                  </div>
+                  <div className="week-event__bottom">
+                    <span className="muted">{bar.meta}</span>
+                    <span className="week-campaign-bar__duration">
+                      {bar.endColumn - bar.startColumn} day{bar.endColumn - bar.startColumn === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </section>
 
-            <div className="week-day-card__lane">
-              <div className="week-lane-label">Scheduled posts</div>
-              {dayScheduleEvents.length === 0 ? (
-                <div className="week-empty-slot">No scheduled posts</div>
-              ) : (
-                dayScheduleEvents.map((event) => (
-                  <Link className="week-event week-event--schedule" href={event.href} key={event.key}>
-                    <div className="week-event__top">
-                      <div className="week-event__time">{event.startsAt ? format(event.startsAt, "HH:mm") : "—"}</div>
-                      <strong>{event.title}</strong>
-                    </div>
-                    <div className="week-event__bottom">
-                      <span className="muted">{event.meta}</span>
-                      <StatusBadge label={event.status} />
-                    </div>
-                  </Link>
-                ))
-              )}
+        <section className="week-posts">
+          <div className="week-board__header">
+            <div>
+              <p className="kicker">Timed posts</p>
+              <h4>Scheduled content by day</h4>
             </div>
-          </section>
-        );
-      })}
+            <span className="inline-chip">{scheduleItems.length} posts</span>
+          </div>
+
+          <div className="week-view">
+            {days.map((day) => {
+              const dayScheduleEvents = getScheduleEventsForDay(day, scheduleItems);
+
+              return (
+                <section className="week-day-card" data-today={isToday(day)} key={day.toISOString()}>
+                  <div className="week-day-card__header">
+                    <div>
+                      <p className="kicker">{format(day, "EEE")}</p>
+                      <h3>{format(day, "d MMM")}</h3>
+                    </div>
+                    <span className="inline-chip">{dayScheduleEvents.length} posts</span>
+                  </div>
+
+                  {dayScheduleEvents.length === 0 ? (
+                    <div className="week-empty-slot">No scheduled posts</div>
+                  ) : (
+                    <div className="week-day-card__lane">
+                      {dayScheduleEvents.map((event) => (
+                        <Link className="week-event week-event--schedule" href={event.href} key={event.key}>
+                          <div className="week-event__top">
+                            <div className="week-event__time">
+                              {event.startsAt ? format(event.startsAt, "HH:mm") : "—"}
+                            </div>
+                            <strong>{event.title}</strong>
+                          </div>
+                          <div className="week-event__bottom">
+                            <span className="muted">{event.meta}</span>
+                            <StatusBadge label={event.status} />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
