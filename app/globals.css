@@ -1010,7 +1010,7 @@ textarea {
 .week-shell {
   display: grid;
   gap: 18px;
-  min-width: 1260px;
+  min-width: 1540px;
 }
 
 .week-board,
@@ -1034,7 +1034,7 @@ textarea {
 .week-board__days,
 .week-campaign-board,
 .week-view {
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(205px, 1fr));
 }
 
 .week-board__days {
@@ -1089,6 +1089,7 @@ textarea {
 .week-campaign-bar strong {
   font-size: 1rem;
   line-height: 1.3;
+  min-width: 0;
 }
 
 .week-campaign-bar__duration {
@@ -1101,13 +1102,14 @@ textarea {
 .week-view {
   display: grid;
   gap: 14px;
+  align-items: start;
 }
 
 .week-day-card {
   display: grid;
   gap: 14px;
-  min-width: 0;
-  min-height: 320px;
+  min-width: 205px;
+  min-height: 260px;
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -1135,6 +1137,7 @@ textarea {
 .week-day-card__lane {
   display: grid;
   gap: 10px;
+  align-content: start;
 }
 
 .week-lane-label {
@@ -1176,23 +1179,29 @@ textarea {
 }
 
 .week-event--schedule {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: 12px;
   background: linear-gradient(180deg, rgba(245, 249, 255, 0.98), rgba(255, 255, 255, 0.94));
   border-color: rgba(21, 94, 239, 0.12);
 }
 
 .week-event__top {
   display: flex;
+  justify-content: space-between;
   gap: 10px;
   align-items: flex-start;
+  min-width: 0;
 }
 
 .week-event__top strong {
   line-height: 1.35;
+  min-width: 0;
 }
 
 .week-event__time {
   flex: 0 0 auto;
-  min-width: 56px;
+  min-width: 58px;
   padding: 6px 8px;
   border-radius: 10px;
   background: rgba(21, 94, 239, 0.1);
@@ -1202,11 +1211,44 @@ textarea {
   text-align: center;
 }
 
+.week-event__content {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.week-event__headline {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.week-event__headline strong {
+  min-width: 0;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
 .week-event__bottom {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: center;
+  min-width: 0;
+}
+
+.week-event__bottom--campaign {
+  flex-wrap: nowrap;
+}
+
+.week-event__meta-line {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .status-row {

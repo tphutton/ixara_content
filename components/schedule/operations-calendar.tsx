@@ -319,8 +319,8 @@ function renderWeekView(weekStart: Date, scheduleItems: CalendarScheduleItem[], 
                     <strong>{bar.title}</strong>
                     <StatusBadge label={bar.status} />
                   </div>
-                  <div className="week-event__bottom">
-                    <span className="muted">{bar.meta}</span>
+                  <div className="week-event__bottom week-event__bottom--campaign">
+                    <span className="muted week-event__meta-line">{bar.meta}</span>
                     <span className="week-campaign-bar__duration">
                       {bar.endColumn - bar.startColumn} day{bar.endColumn - bar.startColumn === 1 ? "" : "s"}
                     </span>
@@ -360,15 +360,17 @@ function renderWeekView(weekStart: Date, scheduleItems: CalendarScheduleItem[], 
                     <div className="week-day-card__lane">
                       {dayScheduleEvents.map((event) => (
                         <Link className="week-event week-event--schedule" href={event.href} key={event.key}>
-                          <div className="week-event__top">
-                            <div className="week-event__time">
-                              {event.startsAt ? format(event.startsAt, "HH:mm") : "—"}
-                            </div>
-                            <strong>{event.title}</strong>
+                          <div className="week-event__time">
+                            {event.startsAt ? format(event.startsAt, "HH:mm") : "—"}
                           </div>
-                          <div className="week-event__bottom">
-                            <span className="muted">{event.meta}</span>
-                            <StatusBadge label={event.status} />
+                          <div className="week-event__content">
+                            <div className="week-event__headline">
+                              <strong>{event.title}</strong>
+                              <StatusBadge label={event.status} />
+                            </div>
+                            <div className="week-event__bottom">
+                              <span className="muted week-event__meta-line">{event.meta}</span>
+                            </div>
                           </div>
                         </Link>
                       ))}
