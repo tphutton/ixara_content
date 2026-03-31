@@ -340,6 +340,14 @@ textarea {
   border-bottom: 0;
 }
 
+.table tbody tr {
+  transition: background-color 150ms ease;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
 .muted {
   color: var(--muted);
 }
@@ -417,6 +425,12 @@ textarea {
   background: rgba(255, 255, 255, 0.86);
 }
 
+.button--secondary[data-active="true"] {
+  border-color: rgba(192, 28, 28, 0.22);
+  background: linear-gradient(180deg, rgba(255, 244, 244, 0.96), rgba(255, 255, 255, 0.92));
+  box-shadow: 0 12px 24px rgba(192, 28, 28, 0.1);
+}
+
 .section-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -439,6 +453,52 @@ textarea {
 
 .page-shell h3 {
   margin: 0 0 8px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.toolbar__group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.summary-tile {
+  min-height: 156px;
+}
+
+.summary-tile__label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-tile strong {
+  display: block;
+  margin-top: 16px;
+  font-size: 2rem;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
 }
 
 .empty-state {
@@ -594,6 +654,121 @@ textarea {
   margin-top: 18px;
 }
 
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 980px;
+}
+
+.calendar-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.calendar-grid__weekday {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.calendar-day {
+  min-height: 170px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+.calendar-day[data-current-month="false"] {
+  opacity: 0.55;
+}
+
+.calendar-day[data-today="true"] {
+  border-color: rgba(192, 28, 28, 0.26);
+  box-shadow: 0 18px 32px rgba(192, 28, 28, 0.1);
+}
+
+.calendar-day__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  font-weight: 700;
+}
+
+.calendar-day__count {
+  display: inline-flex;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.82rem;
+}
+
+.calendar-day__events {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.calendar-event {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.calendar-event[data-kind="campaign"] {
+  background: linear-gradient(180deg, rgba(255, 247, 247, 0.98), rgba(255, 255, 255, 0.94));
+  border-color: rgba(192, 28, 28, 0.16);
+}
+
+.calendar-event__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.calendar-event__top strong {
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.calendar-day__more {
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 4px 2px 0;
+}
+
 .status-row {
   display: flex;
   align-items: center;
@@ -634,6 +809,10 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .chat-workspace {
     grid-template-columns: 1fr;
     height: auto;
@@ -663,5 +842,15 @@ textarea {
 
   .dashboard-breakdown {
     grid-template-columns: 1fr;
+  }
+
+  .summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading,
+  .calendar-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

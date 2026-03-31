@@ -11,6 +11,11 @@ export async function WorkspaceHeader({
   description,
 }: WorkspaceHeaderProps) {
   const access = await getCurrentUserAccess();
+  const todayLabel = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date());
 
   return (
     <header className="workspace-header">
@@ -20,6 +25,7 @@ export async function WorkspaceHeader({
       </div>
 
       <div className="header-actions">
+        <span className="inline-chip">{todayLabel}</span>
         {access ? (
           <span className="user-chip">
             {access.role} • {access.approvalStatus}

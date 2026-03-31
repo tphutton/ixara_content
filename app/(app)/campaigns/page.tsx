@@ -1,6 +1,7 @@
 import { CampaignApiNotice } from "@/components/campaigns/campaign-api-notice";
 import Link from "next/link";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
+import { SummaryStats } from "@/components/ui/summary-stats";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { safeListCampaigns } from "@/lib/campaigns/client";
 
@@ -16,6 +17,17 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     status: status as never,
     limit: 100,
   });
+  const campaigns = response.ok ? response.data : [];
+  const activeCount = campaigns.filter((campaign) => campaign.campaign_status === "active").length;
+  const draftCount = campaigns.filter((campaign) => campaign.campaign_status === "draft").length;
+  const upcomingCount = campaigns.filter((campaign) => {
+    if (!campaign.start_date) {
+      return false;
+    }
+
+    const startDate = new Date(campaign.start_date);
+    return !Number.isNaN(startDate.getTime()) && startDate >= new Date();
+  }).length;
 
   return (
     <section className="page-shell">
@@ -27,22 +39,59 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
       <div className="stack">
         {!response.ok ? <CampaignApiNotice message={response.error ?? "Campaign API is unavailable."} /> : null}
 
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {response.ok ? (
+          <SummaryStats
+            items={[
+              {
+                label: "Total campaigns",
+                value: campaigns.length,
+                detail: "Synced live from the main TechSport campaign service",
+              },
+              {
+                label: "Active",
+                value: activeCount,
+                detail: "Campaigns currently running or visible to operators",
+              },
+              {
+                label: "Draft",
+                value: draftCount,
+                detail: "Campaigns still being shaped before launch",
+              },
+              {
+                label: "Upcoming",
+                value: upcomingCount,
+                detail: "Future campaigns with a known start date",
+              },
+            ]}
+          />
+        ) : null}
+
+        <div className="toolbar">
+          <div className="toolbar__group">
             <Link className="button button--secondary" href="/campaigns">
               All
             </Link>
-            <Link className="button button--secondary" href="/campaigns?status=active">
+            <Link
+              className="button button--secondary"
+              data-active={status === "active"}
+              href="/campaigns?status=active"
+            >
               Active
             </Link>
-            <Link className="button button--secondary" href="/campaigns?status=draft">
+            <Link
+              className="button button--secondary"
+              data-active={status === "draft"}
+              href="/campaigns?status=draft"
+            >
               Draft
             </Link>
           </div>
 
-          <Link className="button button--primary" href="/campaigns/new">
-            Create campaign
-          </Link>
+          <div className="toolbar__group">
+            <Link className="button button--primary" href="/campaigns/new">
+              Create campaign
+            </Link>
+          </div>
         </div>
 
         {response.ok && response.data.length === 0 ? (
@@ -57,6 +106,8 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
                 <tr>
                   <th>Name</th>
                   <th>Brand</th>
+                  <th>Start</th>
+                  <th>End</th>
                   <th>Country</th>
                   <th>Type</th>
                   <th>Status</th>
@@ -69,6 +120,8 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
                       <Link href={`/campaigns/${campaign.campaign_id}`}>{campaign.campaign_name}</Link>
                     </td>
                     <td>{campaign.brand.join(", ") || "—"}</td>
+                    <td>{campaign.start_date ? new Date(campaign.start_date).toLocaleDateString() : "—"}</td>
+                    <td>{campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : "—"}</td>
                     <td>{campaign.country ?? "—"}</td>
                     <td>{campaign.campaign_type ?? "—"}</td>
                     <td>

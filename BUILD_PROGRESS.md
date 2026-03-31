@@ -23,6 +23,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - The chat workspace has been redesigned into a more production-ready Quill operator console with a stronger split layout for conversation, threads, and tool activity.
 - A first automation foundation is now in place with controllable workflow records, manual execution, run history, and weekly social content generation into draft content records.
 - Automation health, due-run execution, and AI-side automation controls are now visible in the workspace so operators can monitor and trigger workflows safely before full background scheduling.
+- Core operational pages now include stronger summary surfaces, active filter states, and a schedule calendar that blends scheduled content with campaigns for real planning visibility.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -54,6 +55,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Refreshed the chat workspace UI with Quill branding, avatar support, and a cleaner split-panel layout.
 - [x] Added the first automation workspace with workflow CRUD, run history, activation controls, and weekly social draft generation.
 - [x] Added automation runner controls, health summaries, dashboard visibility, and safe automation tools for Quill.
+- [x] Polished core list pages with summary cards, clearer controls, and a shared planning calendar for schedule plus campaigns.
 
 ## In Progress
 - [ ] Continue production polish, UX refinement, and rollout preparation.
@@ -116,6 +118,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Schedule pages now expose queue-style filtering for all, ready, needs-attention, approved, and this-week views.
 - Content and blog pages now expose queue-style filtering for automation-ready and needs-attention views.
 - `/automations` now supports workflow setup, manual execution, activation/pausing, due-run checks, and run logs. Scheduling metadata and a protected runner endpoint are stored now; background execution wiring is the next phase.
+- `/schedule` now supports both table and calendar views, with campaign windows layered into the same monthly planning surface as scheduled content and blog items.
 - Prisma is pinned to `6.14.x` because the local Node runtime is `20.18.2`, while Prisma `7.x` requires Node `20.19+`.
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
 
@@ -123,4 +126,5 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Finalize deployment envs in Railway, Clerk, OpenAI, campaigns API, and WordPress sync.
 - Connect the protected automation runner to a real scheduled trigger in Railway or another job system.
 - Add the next automation layer: more workflow types beyond weekly social content, plus deeper safety controls and operator reporting.
+- Add bulk actions, notifications, and approval inbox patterns so operators can move faster once automation volume increases.
 - Add social publishing architecture after automation is designed.

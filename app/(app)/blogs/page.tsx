@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { SummaryStats } from "@/components/ui/summary-stats";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { prisma } from "@/lib/prisma";
 
@@ -63,6 +64,7 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
         .filter((brand): brand is string => Boolean(brand)),
     ),
   ).sort((a, b) => a.localeCompare(b));
+  const publishedCount = rowsWithReadiness.filter((row) => row.status === "published").length;
   const filteredRows = rowsWithReadiness.filter((row) => {
     if (queue === "ready" && !row.readiness.ready) return false;
     if (queue === "attention" && row.readiness.ready) return false;
@@ -79,40 +81,94 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
       />
 
       <div className="stack">
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <Link className="button button--primary" href="/blogs/new">
-            Create blog
-          </Link>
+        <SummaryStats
+          items={[
+            {
+              label: "Total articles",
+              value: queueCounts.all,
+              detail: `${availableBrands.length} brands represented in structured editorial records`,
+            },
+            {
+              label: "Automation ready",
+              value: queueCounts.ready,
+              detail: "Ready for scheduling and editorial packaging",
+            },
+            {
+              label: "Needs attention",
+              value: queueCounts.attention,
+              detail: "Missing feature media, websites, or brand setup",
+            },
+            {
+              label: "Published",
+              value: publishedCount,
+              detail: "Structured blog entries already marked live",
+            },
+          ]}
+        />
 
-          {queueOptions.map((option) => (
-            <Link
-              className="button button--secondary"
-              href={option.key === "all" ? "/blogs" : `/blogs?queue=${option.key}`}
-              key={option.key}
-            >
-              {option.label} ({queueCounts[option.key]})
+        <div className="toolbar">
+          <div className="toolbar__group">
+            <Link className="button button--primary" href="/blogs/new">
+              Create blog
             </Link>
-          ))}
+          </div>
+          <div className="toolbar__group">
+            {queueOptions.map((option) => (
+              <Link
+                className="button button--secondary"
+                data-active={queue === option.key}
+                href={option.key === "all" ? "/blogs" : `/blogs?queue=${option.key}`}
+                key={option.key}
+              >
+                {option.label} ({queueCounts[option.key]})
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {availableBrands.slice(0, 6).map((brand) => (
-            <Link
-              className="button button--secondary"
-              href={`/blogs?queue=${queue}&brand=${encodeURIComponent(brand)}`}
-              key={brand}
-            >
-              {brand}
-            </Link>
-          ))}
-          {brandFilter ? (
-            <Link
-              className="button button--secondary"
-              href={queue === "all" ? "/blogs" : `/blogs?queue=${queue}`}
-            >
-              Clear brand filter
-            </Link>
-          ) : null}
+        <div className="toolbar">
+          <div className="toolbar__group">
+            {availableBrands.slice(0, 6).map((brand) => (
+              <Link
+                className="button button--secondary"
+                data-active={brandFilter === brand.toLowerCase()}
+                href={`/blogs?queue=${queue}&brand=${encodeURIComponent(brand)}`}
+                key={brand}
+              >
+                {brand}
+              </Link>
+            ))}
+          </div>
+          <div className="toolbar__group">
+            {brandFilter ? (
+              <Link
+                className="button button--secondary"
+                href={queue === "all" ? "/blogs" : `/blogs?queue=${queue}`}
+              >
+                Clear brand filter
+              </Link>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="card card--padded">
+          <div className="section-heading">
+            <div>
+              <p className="kicker">Editorial queue</p>
+              <h3 style={{ marginTop: 0 }}>
+                {queue === "all"
+                  ? "All blogs"
+                  : queue === "ready"
+                    ? "Automation-ready blogs"
+                    : queue === "attention"
+                      ? "Blogs needing attention"
+                      : "Blogs in review"}
+              </h3>
+            </div>
+            <span className="inline-chip">
+              {filteredRows.length} visible record{filteredRows.length === 1 ? "" : "s"}
+            </span>
+          </div>
         </div>
 
         {filteredRows.length === 0 ? (
