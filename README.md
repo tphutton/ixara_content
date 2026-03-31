@@ -20,6 +20,29 @@ Phase 2 approvals is now in place:
 - `/admin/approvals` supports role assignment plus approve/reject actions
 - `INITIAL_ADMIN_EMAIL` bootstraps the first approved admin safely
 
+Phase 3 CRUD is now in place:
+
+- Prisma migration applied to PostgreSQL
+- Real Content list/create/edit/delete flow
+- Real Blog list/create/edit/delete flow
+- Structured 8-block blog editor with preview
+- Real Schedule list/create/edit/delete flow linked to Content and Blog records
+- Manual mutation logging into `ContentActionLog`
+
+Phase 4 assistant orchestration is now in place:
+
+- Persisted chat threads and messages
+- Server-side OpenAI tool calling
+- Safe AI tools for content, blogs, schedules, and dashboard summaries
+- Chat-side action summaries tied to real tool execution
+
+Phase 5 dashboard visibility is now in place:
+
+- Live content and blog status summaries
+- Upcoming schedule visibility from Prisma
+- Recent activity fed by `ContentActionLog`
+- Quick links into the main editorial workflows
+
 ## Planned Stack
 
 - Next.js 16
@@ -35,8 +58,9 @@ Phase 2 approvals is now in place:
 2. Fill in Clerk, PostgreSQL, and OpenAI credentials.
 3. Install dependencies with `npm install`.
 4. Generate the Prisma client with `npx prisma generate`.
-5. Set `INITIAL_ADMIN_EMAIL` to the email that should become the first approved admin.
-6. Start the app with `npm run dev`.
+5. Apply migrations with `npx prisma migrate dev`.
+6. Set `INITIAL_ADMIN_EMAIL` to the email that should become the first approved admin.
+7. Start the app with `npm run dev`.
 
 ## Route Overview
 
@@ -53,5 +77,5 @@ Phase 2 approvals is now in place:
 
 ## Notes
 
-- CRUD flows for content, blogs, and scheduling are the next major milestone.
+- Setup documentation, deployment polish, and richer chat UX are the next major milestones.
 - See `BUILD_PROGRESS.md` for milestone-by-milestone status.

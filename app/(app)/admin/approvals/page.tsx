@@ -5,6 +5,8 @@ import { requireAdminUserAccess } from "@/lib/auth/user-access";
 import { prisma } from "@/lib/prisma";
 import { updateUserAccessAction } from "./actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminApprovalsPage() {
   const currentAdmin = await requireAdminUserAccess();
   const users = await prisma.userAccess.findMany({

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ApprovalStatus } from "@prisma/client";
 import { getCurrentUserAccess } from "@/lib/auth/user-access";
-import { getOpenAIClient } from "@/lib/openai";
+import { runContentOpsChat } from "@/lib/ai/chat-service";
 
 export const runtime = "nodejs";
 
@@ -25,24 +25,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    getOpenAIClient();
-  } catch {
+    const result = await runContentOpsChat({
+      access,
+      message: body.message.trim(),
+      threadId: body.threadId,
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
     return NextResponse.json(
       {
-        error:
-          "Chat foundation is configured, but OPENAI_API_KEY is not set. Full assistant workflow arrives in Phase 4.",
+        error: error instanceof Error ? error.message : "The chat request failed.",
       },
       { status: 500 },
     );
   }
-
-  return NextResponse.json(
-    {
-      ok: false,
-      threadId: body.threadId ?? null,
-      message:
-        "Chat orchestration is scaffolded but not implemented yet. Phase 4 will add thread persistence, tool calling, and database-backed actions.",
-    },
-    { status: 501 },
-  );
 }

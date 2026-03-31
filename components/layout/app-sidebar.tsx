@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -28,6 +29,15 @@ export function AppSidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
+        <div className="sidebar__logo">
+          <Image
+            alt="Ixara logo"
+            height={74}
+            src="https://media.ixara.tech/wp-content/uploads/2025/12/Screenshot-2025-11-28-at-14.56.25.webp"
+            width={220}
+          />
+        </div>
+
         <h1>Content Ops AI</h1>
         <p>AI-operated editorial workspace for content planning, publishing, and oversight.</p>
       </div>

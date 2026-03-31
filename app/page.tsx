@@ -23,7 +23,7 @@ export default function HomePage() {
     <main className="hero">
       <section className="card card--padded hero__panel">
         <span className="hero__eyebrow">Internal Editorial Workspace</span>
-        <h1>Content Ops AI</h1>
+        <h1>Content operations with an Ixara control layer.</h1>
         <p>
           An AI-native content operations platform for teams managing social content,
           structured articles, editorial schedules, and approval-controlled workspace access.

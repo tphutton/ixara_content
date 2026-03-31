@@ -1,9 +1,15 @@
-import { DataTable } from "@/components/ui/data-table";
+import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
-import { blogRows } from "@/lib/data/placeholders";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 export default async function BlogsPage() {
+  const blogRows = await prisma.blog.findMany({
+    orderBy: { updatedAt: "desc" },
+  });
+
   return (
     <section className="page-shell">
       <WorkspaceHeader
@@ -11,17 +17,49 @@ export default async function BlogsPage() {
         description="Structured editorial records built around 8 managed text and image blocks."
       />
 
-      <DataTable
-        columns={[
-          { header: "Title", render: (row) => row.title },
-          { header: "Category", render: (row) => row.category },
-          { header: "Author", render: (row) => row.author },
-          { header: "Sport", render: (row) => row.sport },
-          { header: "Region", render: (row) => row.region },
-          { header: "Status", render: (row) => <StatusBadge label={row.status} /> },
-        ]}
-        rows={blogRows}
-      />
+      <div className="stack">
+        <Link className="button button--primary" href="/blogs/new">
+          Create blog
+        </Link>
+
+        {blogRows.length === 0 ? (
+          <div className="card card--padded empty-state">
+            <h3>No blog records yet</h3>
+            <p className="muted">Create your first structured article to start building the editorial library.</p>
+          </div>
+        ) : (
+          <div className="card table-shell">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Author</th>
+                  <th>Sport</th>
+                  <th>Region</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {blogRows.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <Link href={`/blogs/${row.id}`}>{row.title}</Link>
+                    </td>
+                    <td>{row.category ?? "—"}</td>
+                    <td>{row.authorName ?? "—"}</td>
+                    <td>{row.sport ?? "—"}</td>
+                    <td>{row.region ?? "—"}</td>
+                    <td>
+                      <StatusBadge label={row.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

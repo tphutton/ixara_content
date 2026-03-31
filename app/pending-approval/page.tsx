@@ -4,6 +4,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { syncUserAccessRecord } from "@/lib/auth/user-access";
 
+export const dynamic = "force-dynamic";
+
 const messages = {
   [ApprovalStatus.pending]: {
     eyebrow: "Approval Required",

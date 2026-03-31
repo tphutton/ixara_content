@@ -1,6 +1,38 @@
+import { ChatShell } from "@/components/chat/chat-shell";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
+import { requireApprovedUserAccess } from "@/lib/auth/user-access";
+import { prisma } from "@/lib/prisma";
 
-export default async function ChatPage() {
+export const dynamic = "force-dynamic";
+
+type ChatPageProps = {
+  searchParams: Promise<{ thread?: string }>;
+};
+
+export default async function ChatPage({ searchParams }: ChatPageProps) {
+  const access = await requireApprovedUserAccess();
+  const { thread: selectedThreadId } = await searchParams;
+
+  const threads = await prisma.chatThread.findMany({
+    where: {
+      userId: access.id,
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 20,
+  });
+
+  const activeThreadId =
+    selectedThreadId && threads.some((thread) => thread.id === selectedThreadId)
+      ? selectedThreadId
+      : threads[0]?.id ?? null;
+
+  const messages = activeThreadId
+    ? await prisma.chatMessage.findMany({
+        where: { threadId: activeThreadId },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
+
   return (
     <section className="page-shell">
       <WorkspaceHeader
@@ -8,27 +40,22 @@ export default async function ChatPage() {
         description="The assistant layer will execute structured content operations through safe server-side tools."
       />
 
-      <div className="grid" style={{ gridTemplateColumns: "2fr 1fr" }}>
-        <section className="card card--padded">
-          <p className="kicker">Phase 1 foundation</p>
-          <h3>Conversation workspace coming in Phase 4</h3>
-          <p className="muted">
-            This panel is reserved for persisted chat threads, assistant messages, and
-            tool-driven action summaries. The OpenAI tool-calling route and message store
-            will be added after CRUD foundations are in place.
-          </p>
-        </section>
-
-        <aside className="card card--padded">
-          <p className="kicker">Planned tool actions</p>
-          <div className="stack">
-            <span className="inline-chip">List content</span>
-            <span className="inline-chip">Create blog</span>
-            <span className="inline-chip">Update schedule</span>
-            <span className="inline-chip">Get dashboard summary</span>
-          </div>
-        </aside>
-      </div>
+      <ChatShell
+        initialMessages={messages.map((message) => ({
+          id: message.id,
+          role: message.role as "user" | "assistant" | "tool",
+          content: message.content,
+          toolName: message.toolName,
+          toolPayload: message.toolPayload,
+          createdAt: message.createdAt.toISOString(),
+        }))}
+        initialThreadId={activeThreadId}
+        initialThreads={threads.map((thread) => ({
+          id: thread.id,
+          title: thread.title,
+          updatedAt: thread.updatedAt.toISOString(),
+        }))}
+      />
     </section>
   );
 }
