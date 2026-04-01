@@ -1179,9 +1179,12 @@ textarea {
 }
 
 .week-event--schedule {
+  position: relative;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   column-gap: 12px;
+  min-height: 74px;
+  overflow: visible;
   background: linear-gradient(180deg, rgba(245, 249, 255, 0.98), rgba(255, 255, 255, 0.94));
   border-color: rgba(21, 94, 239, 0.12);
 }
@@ -1213,22 +1216,8 @@ textarea {
 
 .week-event__content {
   display: grid;
-  gap: 8px;
+  align-content: center;
   min-width: 0;
-}
-
-.week-event__headline {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: flex-start;
-  min-width: 0;
-}
-
-.week-event__headline strong {
-  min-width: 0;
-  font-size: 0.95rem;
-  line-height: 1.35;
 }
 
 .week-event__bottom {
@@ -1249,6 +1238,63 @@ textarea {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.week-event__platform {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #36537b;
+}
+
+.week-event__tooltip {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: calc(100% + 8px);
+  z-index: 8;
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(16, 32, 51, 0.96);
+  color: white;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.week-event__tooltip .muted {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.week-event__tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.week-event__tooltip-header strong {
+  min-width: 0;
+  font-size: 0.94rem;
+  line-height: 1.35;
+}
+
+.week-event--schedule:hover .week-event__tooltip,
+.week-event--schedule:focus-visible .week-event__tooltip,
+.week-event--schedule:focus-within .week-event__tooltip {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .status-row {

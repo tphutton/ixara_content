@@ -39,6 +39,8 @@ type CalendarEvent = {
   href: string;
   status: string;
   meta: string;
+  channel?: string;
+  brand?: string;
   startsAt?: Date;
 };
 
@@ -127,6 +129,8 @@ function getScheduleEventsForDay(day: Date, scheduleItems: CalendarScheduleItem[
       href: item.href,
       status: item.status,
       meta: [item.channel, item.brand].filter(Boolean).join(" • ") || "Scheduled item",
+      channel: item.channel ?? undefined,
+      brand: item.brand ?? undefined,
       startsAt: item.scheduledFor,
     }));
 }
@@ -364,12 +368,15 @@ function renderWeekView(weekStart: Date, scheduleItems: CalendarScheduleItem[], 
                             {event.startsAt ? format(event.startsAt, "HH:mm") : "—"}
                           </div>
                           <div className="week-event__content">
-                            <div className="week-event__headline">
-                              <strong>{event.title}</strong>
-                              <StatusBadge label={event.status} />
-                            </div>
-                            <div className="week-event__bottom">
-                              <span className="muted week-event__meta-line">{event.meta}</span>
+                            <span className="muted week-event__platform">
+                              {event.channel ?? event.brand ?? "Scheduled post"}
+                            </span>
+                            <div className="week-event__tooltip" role="presentation">
+                              <div className="week-event__tooltip-header">
+                                <strong>{event.title}</strong>
+                                <StatusBadge label={event.status} />
+                              </div>
+                              <span className="muted">{event.meta}</span>
                             </div>
                           </div>
                         </Link>
