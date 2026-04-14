@@ -12,11 +12,11 @@ import {
 import { CampaignApiNotice } from "@/components/campaigns/campaign-api-notice";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { OperationsCalendar } from "@/components/schedule/operations-calendar";
+import { BulkScheduleTable } from "@/components/schedule/bulk-schedule-table";
 import { prisma } from "@/lib/prisma";
 import { safeListCampaigns } from "@/lib/campaigns/client";
 import { getScheduleReadiness } from "@/lib/schedule/readiness";
 import { SummaryStats } from "@/components/ui/summary-stats";
-import { StatusBadge } from "@/components/ui/status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -372,44 +372,22 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
             </p>
           </div>
         ) : (
-          <div className="card table-shell">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Channel</th>
-                  <th>Scheduled For</th>
-                  <th>Brand</th>
-                  <th>Approval</th>
-                  <th>Readiness</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <Link href={`/schedule/${row.id}`}>{row.content?.title ?? row.blog?.title ?? "Untitled link"}</Link>
-                    </td>
-                    <td>{row.channel ?? "—"}</td>
-                    <td>{new Date(row.scheduledFor).toLocaleString()}</td>
-                    <td>{row.brand ?? "—"}</td>
-                    <td>
-                      {row.approvedBy
-                        ? row.approvedBy.fullName ?? row.approvedBy.email
-                        : "Unapproved"}
-                    </td>
-                    <td>
-                      <StatusBadge label={row.readiness.isReady ? "ready" : "warning"} />
-                    </td>
-                    <td>
-                      <StatusBadge label={row.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <BulkScheduleTable
+            availableBrands={availableBrands}
+            rows={filteredRows.map((row) => ({
+              id: row.id,
+              title: row.content?.title ?? row.blog?.title ?? "Untitled link",
+              channel: row.channel,
+              platformAccount: row.platformAccount,
+              scheduledFor: row.scheduledFor.toISOString(),
+              brand: row.brand,
+              approvalLabel: row.approvedBy
+                ? row.approvedBy.fullName ?? row.approvedBy.email
+                : "Unapproved",
+              isReady: row.readiness.isReady,
+              status: row.status,
+            }))}
+          />
         )}
       </div>
     </section>

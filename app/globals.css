@@ -352,6 +352,10 @@ textarea {
   background: rgba(255, 255, 255, 0.5);
 }
 
+.table tbody tr[data-selected="true"] {
+  background: rgba(192, 28, 28, 0.06);
+}
+
 .muted {
   color: var(--muted);
 }
@@ -519,6 +523,17 @@ textarea {
   font-weight: 700;
 }
 
+.field__label--checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.field__label--checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
 .field__hint {
   color: var(--muted);
   font-size: 0.9rem;
@@ -537,6 +552,47 @@ textarea {
 
 .field textarea {
   resize: vertical;
+}
+
+.bulk-editor {
+  display: grid;
+  gap: 18px;
+}
+
+.bulk-editor__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.bulk-editor__chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bulk-editor__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bulk-editor__message {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 600;
+}
+
+.bulk-editor__message--error {
+  background: rgba(180, 35, 24, 0.08);
+  color: var(--danger);
+}
+
+.bulk-editor__message--success {
+  background: rgba(22, 163, 74, 0.1);
+  color: #166534;
 }
 
 .form-grid {

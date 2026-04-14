@@ -13,6 +13,11 @@ import {
 } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
 
+type BulkScheduleActionState = {
+  error: string | null;
+  success: string | null;
+};
+
 function parseScheduleStatus(value: FormDataEntryValue | null) {
   return Object.values(ScheduleStatus).includes(value as ScheduleStatus)
     ? (value as ScheduleStatus)
@@ -42,6 +47,17 @@ function getScheduleInput(formData: FormData) {
     region: parseOptionalString(formData.get("region")),
     country: parseOptionalString(formData.get("country")),
   };
+}
+
+function parseBulkScheduleIds(formData: FormData) {
+  return formData
+    .getAll("scheduleIds")
+    .map((value) => parseOptionalString(value))
+    .filter((value): value is string => Boolean(value));
+}
+
+function parseBulkApprovalAction(value: FormDataEntryValue | null) {
+  return value === "approve" || value === "clear" ? value : "none";
 }
 
 export async function createScheduleAction(formData: FormData) {
@@ -202,4 +218,138 @@ export async function clearScheduleApprovalAction(id: string) {
 
   revalidatePath("/schedule");
   revalidatePath(`/schedule/${id}`);
+}
+
+export async function bulkUpdateScheduleAction(
+  _previousState: BulkScheduleActionState,
+  formData: FormData,
+): Promise<BulkScheduleActionState> {
+  const access = await requireEditorialUserAccess();
+  const scheduleIds = parseBulkScheduleIds(formData);
+
+  if (scheduleIds.length === 0) {
+    return {
+      error: "Select at least one schedule entry first.",
+      success: null,
+    };
+  }
+
+  const scheduledForInput = parseOptionalString(formData.get("scheduledFor"));
+  const statusInput = parseOptionalString(formData.get("status"));
+  const channel = parseOptionalString(formData.get("channel"));
+  const platformAccount = parseOptionalString(formData.get("platformAccount"));
+  const brand = parseOptionalString(formData.get("brand"));
+  const approvalAction = parseBulkApprovalAction(formData.get("approvalAction"));
+
+  const data: {
+    scheduledFor?: Date;
+    status?: ScheduleStatus;
+    channel?: string | null;
+    platformAccount?: string | null;
+    brand?: string | null;
+    approvedById?: string | null;
+  } = {};
+
+  if (formData.has("applyScheduledFor")) {
+    if (!scheduledForInput) {
+      return {
+        error: "Choose a scheduled date and time before applying it in bulk.",
+        success: null,
+      };
+    }
+
+    const parsed = new Date(scheduledForInput);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return {
+        error: "Enter a valid scheduled date and time.",
+        success: null,
+      };
+    }
+
+    data.scheduledFor = parsed;
+  }
+
+  if (formData.has("applyStatus")) {
+    if (!statusInput) {
+      return {
+        error: "Choose a status before applying it in bulk.",
+        success: null,
+      };
+    }
+
+    if (!Object.values(ScheduleStatus).includes(statusInput as ScheduleStatus)) {
+      return {
+        error: "Choose a valid status before applying the bulk update.",
+        success: null,
+      };
+    }
+
+    data.status = statusInput as ScheduleStatus;
+  }
+
+  if (formData.has("applyChannel")) {
+    data.channel = channel;
+  }
+
+  if (formData.has("applyPlatformAccount")) {
+    data.platformAccount = platformAccount;
+  }
+
+  if (formData.has("applyBrand")) {
+    data.brand = brand;
+  }
+
+  if (approvalAction === "approve") {
+    data.approvedById = access.id;
+
+    if (!data.status) {
+      data.status = ScheduleStatus.ready;
+    }
+  }
+
+  if (approvalAction === "clear") {
+    data.approvedById = null;
+  }
+
+  if (Object.keys(data).length === 0) {
+    return {
+      error: "Choose at least one field to update.",
+      success: null,
+    };
+  }
+
+  const beforeRows = await prisma.contentSchedule.findMany({
+    where: { id: { in: scheduleIds } },
+  });
+
+  await prisma.contentSchedule.updateMany({
+    where: { id: { in: scheduleIds } },
+    data,
+  });
+
+  await Promise.all(
+    beforeRows.map((beforeRow) =>
+      createActionLog({
+        userId: access.id,
+        actionType: "update",
+        targetType: "schedule",
+        targetId: beforeRow.id,
+        summary: `Bulk updated schedule entry (${scheduleIds.length} selected)`,
+        beforeData: beforeRow,
+        afterData: {
+          ...beforeRow,
+          ...data,
+        },
+        source: "manual",
+      }),
+    ),
+  );
+
+  revalidatePath("/schedule");
+
+  return {
+    error: null,
+    success: `Updated ${scheduleIds.length} schedule entr${scheduleIds.length === 1 ? "y" : "ies"}.`,
+  };
 }
