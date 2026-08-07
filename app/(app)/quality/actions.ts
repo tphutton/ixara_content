@@ -3,6 +3,7 @@
 import { QualityReviewTargetType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireApprovedUserAccess } from "@/lib/auth/user-access";
+import { applyContentQualityRecommendations } from "@/lib/quality/apply-recommendations";
 import { runQualityReview } from "@/lib/quality/editorial-review";
 
 export async function reviewContentQualityAction(id: string) {
@@ -13,6 +14,17 @@ export async function reviewContentQualityAction(id: string) {
     createdById: access.id,
     source: "manual",
   });
+  revalidatePath(`/content/${id}`);
+}
+
+export async function applyContentQualityRecommendationsAction(id: string) {
+  const access = await requireApprovedUserAccess();
+  await applyContentQualityRecommendations({
+    contentId: id,
+    userId: access.id,
+    source: "manual",
+  });
+  revalidatePath("/content");
   revalidatePath(`/content/${id}`);
 }
 

@@ -35,6 +35,7 @@ import {
   type CampaignStatus,
 } from "@/lib/campaigns/types";
 import { prisma } from "@/lib/prisma";
+import { applyContentQualityRecommendations } from "@/lib/quality/apply-recommendations";
 import { runQualityReview } from "@/lib/quality/editorial-review";
 
 type ToolDefinition = {
@@ -1635,6 +1636,28 @@ async function reviewQualityTool(args: Record<string, unknown>, context: ToolCon
   };
 }
 
+async function applyQualityRecommendationsTool(args: Record<string, unknown>, context: ToolContext) {
+  const contentId = asRequiredString(args.contentId, "contentId");
+  const content = await applyContentQualityRecommendations({
+    contentId,
+    userId: context.access.id,
+    source: "ai",
+  });
+
+  return {
+    toolName: "apply_quality_recommendations",
+    summary: `Applied latest quality recommendations to "${content.title}".`,
+    payload: {
+      id: content.id,
+      title: content.title,
+      hook: content.hook,
+      cta: content.cta,
+      status: content.status,
+      updatedAt: content.updatedAt.toISOString(),
+    },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -1665,6 +1688,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   create_content_plan: createContentPlanTool,
   add_content_plan_item: addContentPlanItemTool,
   review_quality: reviewQualityTool,
+  apply_quality_recommendations: applyQualityRecommendationsTool,
 };
 
 export const contentOpsTools: ToolDefinition[] = [
@@ -2311,6 +2335,21 @@ export const contentOpsTools: ToolDefinition[] = [
           targetId: { type: "string" },
         },
         required: ["targetType", "targetId"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "apply_quality_recommendations",
+      description: "Apply the latest saved quality review recommendations to a short-form content record.",
+      parameters: {
+        type: "object",
+        properties: {
+          contentId: { type: "string" },
+        },
+        required: ["contentId"],
         additionalProperties: false,
       },
     },

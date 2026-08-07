@@ -78,6 +78,7 @@ Content Command Platform expansion has started:
 - Quill and Atlas can list content plans, create plans, and add plan items through the controlled tool layer
 - AI quality reviews now score content, blogs, and plan items for brand fit, audience specificity, clarity, channel fit, conversion strength, and publishing risk
 - Content/blog detail pages and plan items now have saved quality review actions, and Quill/Atlas can call `review_quality`
+- Short-form content can apply saved quality recommendations through an audited AI rewrite, and schedule approvals now show quality warnings before queue approval
 - Sidebar navigation is grouped into Command, Creation, Operations, Intelligence, and Admin sections
 - Brand Profiles now support richer AI context: positioning, content pillars, personas, offers, proof points, SEO keywords, competitors, voice examples, visual guidance, channel rules, and readiness scoring
 - The UI simplification pass has started with the Plans workspace, quieter panels, flatter controls, and a narrower command sidebar

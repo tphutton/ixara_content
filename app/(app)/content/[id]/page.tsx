@@ -6,7 +6,10 @@ import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { QualityReviewPanel } from "@/components/quality/quality-review-panel";
 import { BrandRuleGuide } from "@/components/settings/brand-rule-guide";
 import { prisma } from "@/lib/prisma";
-import { reviewContentQualityAction } from "../../quality/actions";
+import {
+  applyContentQualityRecommendationsAction,
+  reviewContentQualityAction,
+} from "../../quality/actions";
 import { deleteContentAction, updateContentAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +56,7 @@ export default async function ContentDetailPage({ params }: ContentDetailPagePro
   const updateAction = updateContentAction.bind(null, id);
   const deleteAction = deleteContentAction.bind(null, id);
   const reviewAction = reviewContentQualityAction.bind(null, id);
+  const applyQualityAction = applyContentQualityRecommendationsAction.bind(null, id);
 
   return (
     <section className="page-shell">
@@ -82,7 +86,11 @@ export default async function ContentDetailPage({ params }: ContentDetailPagePro
         </div>
 
         <div className="stack">
-          <QualityReviewPanel action={reviewAction} reviews={content.qualityReviews} />
+          <QualityReviewPanel
+            action={reviewAction}
+            applyAction={applyQualityAction}
+            reviews={content.qualityReviews}
+          />
           <BrandRuleGuide profiles={brandProfiles} />
         </div>
       </div>

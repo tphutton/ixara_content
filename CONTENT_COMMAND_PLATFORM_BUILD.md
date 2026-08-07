@@ -68,6 +68,7 @@ Status: started
 - [x] Add a strict AI editorial quality reviewer with saved scores, verdicts, issues, recommendations, and suggested hook/CTA rewrites.
 - [x] Expose quality review to Quill and Atlas through the controlled tool layer.
 - [ ] Add guided “apply quality recommendations” actions that rewrite records while preserving operator review.
+- [x] Add guided “apply quality recommendations” for short-form content while preserving audit logs and brand-rule checks.
 
 ## Phase 3A: Quality System
 
@@ -79,8 +80,11 @@ Status: started
 - [x] Add plan-item quality review from the saved plan workspace.
 - [x] Add Quill/Atlas `review_quality` tool.
 - [ ] Block or warn before approving/scheduling items with low latest quality scores.
-- [ ] Add one-click rewrite actions from review recommendations.
+- [x] Warn before approving schedule entries with missing or low quality-review coverage.
+- [x] Add a hard approval block for major-revision or very low-score schedule items unless the operator explicitly overrides.
+- [x] Add one-click short-form content rewrite actions from review recommendations.
 - [ ] Add team-level quality dashboard and trend tracking.
+- [ ] Extend apply-recommendations to blogs and plan items.
 
 ## Phase 4: Asset Studio
 
@@ -142,7 +146,7 @@ Near-term integration targets:
 - The original Content Ops build is mostly complete for internal CRUD, chat tools, brand profiles, assets, automations, and planning visibility.
 - The new `/planner` route is additive and does not replace `/schedule`.
 - `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan creation -> plan-item approval -> content/blog/schedule creation.
-- Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> quality review -> apply recommendations -> approve/schedule/publish.
+- Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> quality review -> apply recommendations -> re-review -> approve/schedule/publish.
 - Social publishing is still the biggest missing capability before the product becomes end-to-end.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, but saved profile quality still depends on the operator filling the readiness gaps in Settings.
 - UI simplification has started with the plan workspace. The next pass should migrate Dashboard, Planner, Content, and Settings away from nested card-heavy layouts toward quiet lists and focused command strips.

@@ -40,6 +40,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Saved content plans are now part of the product model: `/plans` stores planning artifacts and ordered plan items, while Quill and Atlas can list plans, create plans, and add plan items.
 - The UI simplification pass has started with a quieter plan workspace, flatter buttons, narrower sidebar, and reusable quiet list/panel patterns for future page cleanup.
 - AI quality reviews are now persisted for content, blogs, and plan items, with scored editorial feedback available in the UI and through Quill/Atlas.
+- Short-form content can now apply the latest quality review recommendations through a controlled AI rewrite that preserves audit logs and brand-rule checks.
+- Schedule approval now surfaces quality warnings and records approval overrides when content is below the quality gate.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -90,13 +92,16 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added a saved AI quality gate with scores, verdicts, issues, recommendations, and suggested hook/CTA rewrites.
 - [x] Added quality review panels to content/blog detail pages and review actions to plan items.
 - [x] Added Quill/Atlas `review_quality` tool.
+- [x] Added short-form `apply_quality_recommendations` tool/action for controlled post-review rewrites.
+- [x] Added quality-aware schedule approval warnings and override logging.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
 - [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
 - [ ] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
 - [ ] Continue simplifying Dashboard, Planner, Content, and Settings around the new quiet-panel pattern.
-- [ ] Add quality-based approval/scheduling warnings and guided rewrite actions.
+- [ ] Extend quality recommendation application to blogs and plan items.
+- [ ] Add a quality dashboard for weak drafts, unrevised reviews, and score trends.
 - [ ] Seed or complete brand profiles until core brands reach strong AI-readiness scores.
 
 ## Pending
@@ -197,7 +202,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Expand the new planner cockpit with Atlas-generated weekly plans, drag-and-drop scheduling, and brand/channel coverage heatmaps.
 - Add plan-item promotion actions that create content records, blogs, and schedule entries from approved plan items.
 - Continue the UI simplification pass across high-density pages, starting with Dashboard and Planner.
-- Add quality-score warnings into approval and schedule flows, then add guided rewrite actions from saved recommendations.
+- Extend guided rewrite actions from saved recommendations into blogs and plan items, then add score trends.
 - Add bulk actions, notifications, and approval inbox patterns so operators can move faster once automation volume increases.
 - Build the first live OAuth connection flow, starting with Meta account authorization, token handling, and background analytics sync.
 - Expand the compatibility API layer only where older clients still need it, then retire legacy blog consumers once the new client paths are fully adopted.
@@ -233,3 +238,4 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `create_content_plan`: Create a saved content plan.
 - `add_content_plan_item`: Add a planned content, blog, schedule, asset request, or automation item to a plan.
 - `review_quality`: Run and save a strict editorial quality review for content, blogs, or plan items.
+- `apply_quality_recommendations`: Apply the latest saved quality recommendations to a short-form content record.

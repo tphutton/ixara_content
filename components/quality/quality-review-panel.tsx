@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 
 type QualityReviewPanelProps = {
   action: () => Promise<void>;
+  applyAction?: () => Promise<void>;
   reviews: QualityReview[];
 };
 
@@ -15,7 +16,7 @@ function scoreLabel(score: number) {
   return "weak";
 }
 
-export function QualityReviewPanel({ action, reviews }: QualityReviewPanelProps) {
+export function QualityReviewPanel({ action, applyAction, reviews }: QualityReviewPanelProps) {
   const latest = reviews[0] ?? null;
 
   return (
@@ -90,9 +91,20 @@ export function QualityReviewPanel({ action, reviews }: QualityReviewPanelProps)
         <p className="muted">Run a review before approving or scheduling. The AI checks brand fit, audience clarity, channel suitability, CTA strength, and publishing risk.</p>
       )}
 
-      <form action={action}>
-        <SubmitButton label="Run quality review" pendingLabel="Reviewing..." />
-      </form>
+      <div className="form-actions">
+        <form action={action}>
+          <SubmitButton label="Run quality review" pendingLabel="Reviewing..." />
+        </form>
+        {applyAction && latest ? (
+          <form action={applyAction}>
+            <SubmitButton
+              label="Apply recommendations"
+              pendingLabel="Improving draft..."
+              variant="secondary"
+            />
+          </form>
+        ) : null}
+      </div>
     </section>
   );
 }

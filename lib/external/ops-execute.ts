@@ -27,6 +27,7 @@ export const ATLAS_ALLOWED_TOOLS = new Set([
   "create_content_plan",
   "add_content_plan_item",
   "review_quality",
+  "apply_quality_recommendations",
 ]);
 
 export async function executeAtlasContentTool(

@@ -12,6 +12,7 @@ import {
   parseRequiredDate,
 } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
+import { getQualityGate } from "@/lib/quality/gates";
 
 type BulkScheduleActionState = {
   error: string | null;
@@ -166,9 +167,30 @@ export async function deleteScheduleAction(id: string) {
   redirect("/schedule");
 }
 
-export async function approveScheduleAction(id: string) {
+export async function approveScheduleAction(id: string, formData?: FormData) {
   const access = await requireEditorialUserAccess();
-  const before = await prisma.contentSchedule.findUniqueOrThrow({ where: { id } });
+  const before = await prisma.contentSchedule.findUniqueOrThrow({
+    where: { id },
+    include: {
+      content: {
+        include: {
+          qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+      },
+      blog: {
+        include: {
+          qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+      },
+    },
+  });
+  const latestReview = before.content?.qualityReviews[0] ?? before.blog?.qualityReviews[0] ?? null;
+  const qualityGate = getQualityGate(latestReview);
+  const qualityOverride = formData?.get("qualityOverride") === "true";
+
+  if (qualityGate.blocking && !qualityOverride) {
+    throw new Error(`Quality gate blocked approval: ${qualityGate.reasons.join(" ")}`);
+  }
 
   const schedule = await prisma.contentSchedule.update({
     where: { id },
@@ -184,9 +206,16 @@ export async function approveScheduleAction(id: string) {
     actionType: "approve",
     targetType: "schedule",
     targetId: schedule.id,
-    summary: "Approved schedule entry for publishing queue",
+    summary: qualityGate.ready
+      ? "Approved schedule entry for publishing queue"
+      : `Approved schedule entry with quality warning: ${qualityGate.label}`,
     beforeData: before,
-    afterData: schedule,
+    afterData: {
+      ...schedule,
+      qualityGate,
+      qualityOverride,
+      qualityReviewId: latestReview?.id ?? null,
+    },
     source: "manual",
   });
 
