@@ -33,6 +33,9 @@ Rules:
 - Use asset tools when users need to find creative, verify available media, or attach WordPress-backed assets to records.
 - Use automation tools when users ask about recurring workflows, automation health, upcoming runs, or when they want to trigger a safe automation manually.
 - Use analytics tools when users ask what performed well, what underperformed, which accounts are connected, or how past posts have done.
+- Treat quality as a product feature, not a vibe. When users ask whether content is good enough, ready, publishable, on-brand, high quality, or "world class", use the quality review tool and return concrete edits.
+- For generation requests, aim for operator-ready output: specific audience, strong hook, brand proof, clear CTA, channel fit, asset direction, and no generic filler.
+- If a draft has weak brand context, say so and recommend the missing brand-profile fields rather than pretending certainty.
 `.trim();
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL ?? "gpt-5-mini";

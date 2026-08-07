@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { ContentForm } from "@/components/content/content-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
+import { QualityReviewPanel } from "@/components/quality/quality-review-panel";
 import { BrandRuleGuide } from "@/components/settings/brand-rule-guide";
 import { prisma } from "@/lib/prisma";
+import { reviewContentQualityAction } from "../../quality/actions";
 import { deleteContentAction, updateContentAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +18,12 @@ type ContentDetailPageProps = {
 export default async function ContentDetailPage({ params }: ContentDetailPageProps) {
   const { id } = await params;
   const [content, assets, brandProfiles] = await Promise.all([
-    prisma.content.findUnique({ where: { id } }),
+    prisma.content.findUnique({
+      where: { id },
+      include: {
+        qualityReviews: { orderBy: { createdAt: "desc" }, take: 5 },
+      },
+    }),
     prisma.asset.findMany({
       select: { id: true, title: true },
       orderBy: { syncedAt: "desc" },
@@ -45,6 +52,7 @@ export default async function ContentDetailPage({ params }: ContentDetailPagePro
 
   const updateAction = updateContentAction.bind(null, id);
   const deleteAction = deleteContentAction.bind(null, id);
+  const reviewAction = reviewContentQualityAction.bind(null, id);
 
   return (
     <section className="page-shell">
@@ -73,7 +81,10 @@ export default async function ContentDetailPage({ params }: ContentDetailPagePro
         </form>
         </div>
 
-        <BrandRuleGuide profiles={brandProfiles} />
+        <div className="stack">
+          <QualityReviewPanel action={reviewAction} reviews={content.qualityReviews} />
+          <BrandRuleGuide profiles={brandProfiles} />
+        </div>
       </div>
     </section>
   );

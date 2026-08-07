@@ -9,6 +9,7 @@ import {
   ContentStatus,
   ContentType,
   PublishedPostStatus,
+  QualityReviewTargetType,
   ScheduleStatus,
   SocialPlatform,
   type UserAccess,
@@ -34,6 +35,7 @@ import {
   type CampaignStatus,
 } from "@/lib/campaigns/types";
 import { prisma } from "@/lib/prisma";
+import { runQualityReview } from "@/lib/quality/editorial-review";
 
 type ToolDefinition = {
   type: "function";
@@ -1593,6 +1595,46 @@ async function addContentPlanItemTool(args: Record<string, unknown>, context: To
   };
 }
 
+async function reviewQualityTool(args: Record<string, unknown>, context: ToolContext) {
+  const targetType = parseEnumValue(
+    args.targetType,
+    Object.values(QualityReviewTargetType),
+    QualityReviewTargetType.content,
+  );
+  const targetId = asRequiredString(args.targetId, "targetId");
+
+  const review = await runQualityReview({
+    targetType,
+    targetId,
+    createdById: context.access.id,
+    source: "ai",
+  });
+
+  return {
+    toolName: "review_quality",
+    summary: `Quality review scored ${review.overallScore}/100 with verdict ${review.verdict}.`,
+    payload: {
+      id: review.id,
+      targetType: review.targetType,
+      targetId,
+      overallScore: review.overallScore,
+      brandScore: review.brandScore,
+      audienceScore: review.audienceScore,
+      clarityScore: review.clarityScore,
+      channelScore: review.channelScore,
+      conversionScore: review.conversionScore,
+      riskScore: review.riskScore,
+      verdict: review.verdict,
+      summary: review.summary,
+      strengths: review.strengths,
+      issues: review.issues,
+      recommendations: review.recommendations,
+      rewrittenHook: review.rewrittenHook,
+      rewrittenCTA: review.rewrittenCTA,
+    },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -1622,6 +1664,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   list_content_plans: async (args) => listContentPlansTool(args),
   create_content_plan: createContentPlanTool,
   add_content_plan_item: addContentPlanItemTool,
+  review_quality: reviewQualityTool,
 };
 
 export const contentOpsTools: ToolDefinition[] = [
@@ -2252,6 +2295,22 @@ export const contentOpsTools: ToolDefinition[] = [
           assetRequest: { type: "string" },
         },
         required: ["planId", "title"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "review_quality",
+      description: "Run and save a strict AI editorial quality review for a content record, blog, or content plan item.",
+      parameters: {
+        type: "object",
+        properties: {
+          targetType: { type: "string", enum: Object.values(QualityReviewTargetType) },
+          targetId: { type: "string" },
+        },
+        required: ["targetType", "targetId"],
         additionalProperties: false,
       },
     },

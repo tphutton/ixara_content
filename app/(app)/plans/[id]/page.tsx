@@ -6,6 +6,7 @@ import { PlanForm } from "@/components/plans/plan-form";
 import { PlanItemForm } from "@/components/plans/plan-item-form";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { prisma } from "@/lib/prisma";
+import { reviewPlanItemQualityAction } from "../../quality/actions";
 import {
   addContentPlanItemAction,
   updateContentPlanAction,
@@ -34,6 +35,7 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
           content: { select: { id: true, title: true } },
           blog: { select: { id: true, title: true } },
           schedule: { select: { id: true, scheduledFor: true } },
+          qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
         },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       },
@@ -100,6 +102,8 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
               <div className="quiet-list">
                 {plan.items.map((item) => {
                   const updateStatus = updateContentPlanItemStatusAction.bind(null, plan.id, item.id);
+                  const reviewItem = reviewPlanItemQualityAction.bind(null, plan.id, item.id);
+                  const latestReview = item.qualityReviews[0] ?? null;
 
                   return (
                     <article className="quiet-row" key={item.id}>
@@ -119,20 +123,28 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
                           {item.content ? <Link href={`/content/${item.content.id}`}>Content: {item.content.title}</Link> : null}
                           {item.blog ? <Link href={`/blogs/${item.blog.id}`}>Blog: {item.blog.title}</Link> : null}
                           {item.schedule ? <Link href={`/schedule/${item.schedule.id}`}>Schedule entry</Link> : null}
+                          {latestReview ? <span>Quality {latestReview.overallScore}/100</span> : <span>Not reviewed</span>}
                         </div>
                       </div>
-                      <form action={updateStatus} className="status-control">
-                        <select name="status" defaultValue={item.status} aria-label={`Status for ${item.title}`}>
-                          {["planned", "approved", "created", "scheduled", "published", "blocked", "cancelled"].map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                        <button className="button button--secondary" type="submit">
-                          Save
-                        </button>
-                      </form>
+                      <div className="stack">
+                        <form action={updateStatus} className="status-control">
+                          <select name="status" defaultValue={item.status} aria-label={`Status for ${item.title}`}>
+                            {["planned", "approved", "created", "scheduled", "published", "blocked", "cancelled"].map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                          <button className="button button--secondary" type="submit">
+                            Save
+                          </button>
+                        </form>
+                        <form action={reviewItem} className="status-control">
+                          <button className="button button--secondary" type="submit">
+                            Review
+                          </button>
+                        </form>
+                      </div>
                     </article>
                   );
                 })}

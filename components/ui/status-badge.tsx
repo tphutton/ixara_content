@@ -10,12 +10,15 @@ const toneByStatus: Record<string, string> = {
   pending: "rgba(245, 158, 11, 0.16)",
   planned: "rgba(59, 130, 246, 0.16)",
   published: "rgba(14, 165, 233, 0.16)",
+  publish_ready: "rgba(20, 184, 166, 0.14)",
   ready: "rgba(20, 184, 166, 0.14)",
   review: "rgba(245, 158, 11, 0.16)",
   running: "rgba(59, 130, 246, 0.16)",
   scheduled: "rgba(168, 85, 247, 0.16)",
   succeeded: "rgba(20, 184, 166, 0.14)",
   warning: "rgba(245, 158, 11, 0.16)",
+  improve_before_publish: "rgba(245, 158, 11, 0.16)",
+  major_revision: "rgba(244, 63, 94, 0.16)",
 };
 
 const textByStatus: Record<string, string> = {
@@ -28,12 +31,15 @@ const textByStatus: Record<string, string> = {
   pending: "#fcd34d",
   planned: "#93c5fd",
   published: "#7dd3fc",
+  publish_ready: "#5eead4",
   ready: "#5eead4",
   review: "#fcd34d",
   running: "#93c5fd",
   scheduled: "#d8b4fe",
   succeeded: "#5eead4",
   warning: "#fcd34d",
+  improve_before_publish: "#fcd34d",
+  major_revision: "#fda4af",
 };
 
 type StatusBadgeProps = {

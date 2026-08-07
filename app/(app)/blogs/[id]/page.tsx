@@ -4,8 +4,10 @@ import { BlogForm } from "@/components/blogs/blog-form";
 import { BlogDetailOverview } from "@/components/blogs/blog-detail-overview";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
+import { QualityReviewPanel } from "@/components/quality/quality-review-panel";
 import { BrandRuleGuide } from "@/components/settings/brand-rule-guide";
 import { prisma } from "@/lib/prisma";
+import { reviewBlogQualityAction } from "../../quality/actions";
 import { deleteBlogAction, updateBlogAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +26,12 @@ export default async function BlogDetailPage({
   const isEditing = resolvedSearchParams?.edit === "1";
 
   const [blog, assets, brandProfiles] = await Promise.all([
-    prisma.blog.findUnique({ where: { id } }),
+    prisma.blog.findUnique({
+      where: { id },
+      include: {
+        qualityReviews: { orderBy: { createdAt: "desc" }, take: 5 },
+      },
+    }),
     prisma.asset.findMany({
       select: { id: true, title: true },
       orderBy: { syncedAt: "desc" },
@@ -53,6 +60,7 @@ export default async function BlogDetailPage({
 
   const updateAction = updateBlogAction.bind(null, id);
   const deleteAction = deleteBlogAction.bind(null, id);
+  const reviewAction = reviewBlogQualityAction.bind(null, id);
 
   return (
     <section className="page-shell">
@@ -73,6 +81,8 @@ export default async function BlogDetailPage({
       </div>
 
       <BlogDetailOverview blog={blog} />
+
+      <QualityReviewPanel action={reviewAction} reviews={blog.qualityReviews} />
 
       <div className="card card--padded">
         <div className="section-heading">

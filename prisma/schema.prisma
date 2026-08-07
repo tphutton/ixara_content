@@ -144,6 +144,12 @@ enum ContentPlanItemStatus {
   cancelled
 }
 
+enum QualityReviewTargetType {
+  content
+  blog
+  content_plan_item
+}
+
 model UserAccess {
   id             String           @id @default(cuid())
   clerkUserId    String           @unique
@@ -171,6 +177,7 @@ model UserAccess {
   publishedPostsUpdated    PublishedPost[]    @relation("PublishedPostUpdatedBy")
   contentPlansCreated      ContentPlan[]       @relation("ContentPlanCreatedBy")
   contentPlansUpdated      ContentPlan[]       @relation("ContentPlanUpdatedBy")
+  qualityReviewsCreated    QualityReview[]     @relation("QualityReviewCreatedBy")
   chatThreads        ChatThread[]
   actionLogs         ContentActionLog[]
 
@@ -212,6 +219,7 @@ model Content {
   schedules ContentSchedule[]
   publishedPosts PublishedPost[]
   planItems ContentPlanItem[]
+  qualityReviews QualityReview[]
 
   @@index([status, contentType])
   @@index([brand, sport, region, country])
@@ -276,6 +284,7 @@ model Blog {
   schedules ContentSchedule[]
   publishedPosts PublishedPost[]
   planItems ContentPlanItem[]
+  qualityReviews QualityReview[]
 
   @@index([status, postDate])
   @@index([brand, category, sport, region, country])
@@ -363,12 +372,48 @@ model ContentPlanItem {
   content  Content?         @relation(fields: [contentId], references: [id], onDelete: SetNull)
   blog     Blog?            @relation(fields: [blogId], references: [id], onDelete: SetNull)
   schedule ContentSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  qualityReviews QualityReview[]
 
   @@index([planId, sortOrder])
   @@index([status, scheduledFor])
   @@index([contentId])
   @@index([blogId])
   @@index([scheduleId])
+}
+
+model QualityReview {
+  id              String                  @id @default(cuid())
+  targetType      QualityReviewTargetType
+  contentId       String?
+  blogId          String?
+  planItemId      String?
+  overallScore    Int
+  brandScore      Int
+  audienceScore   Int
+  clarityScore    Int
+  channelScore    Int
+  conversionScore Int
+  riskScore       Int
+  verdict         String
+  summary         String
+  strengths       String[]                @default([])
+  issues          String[]                @default([])
+  recommendations String[]                @default([])
+  rewrittenHook   String?
+  rewrittenCTA    String?
+  model           String?
+  createdById     String?
+  createdAt       DateTime                @default(now())
+
+  content   Content?         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  blog      Blog?            @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  planItem  ContentPlanItem? @relation(fields: [planItemId], references: [id], onDelete: Cascade)
+  createdBy UserAccess?      @relation("QualityReviewCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([targetType, createdAt])
+  @@index([contentId, createdAt])
+  @@index([blogId, createdAt])
+  @@index([planItemId, createdAt])
 }
 
 model ChatThread {

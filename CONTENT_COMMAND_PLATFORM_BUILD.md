@@ -18,6 +18,7 @@ The app should move from record management to an editorial command system:
 - Social account connection, sync, publishing, and retry handling.
 - Performance feedback loops that improve future plans.
 - Collaboration, approvals, and auditability for AI-assisted publishing.
+- A strict content quality layer that reviews brand fit, audience specificity, clarity, channel fit, conversion strength, and publishing risk before work goes live.
 
 ## Phase 1: Planner Cockpit
 
@@ -44,6 +45,7 @@ Status: started
 
 - [x] Add first saved plan/item layer for briefs, schedule targets, asset requests, and automation work.
 - [x] Link plan items to generated short-form content, blogs, and schedule entries.
+- [x] Add saved AI quality reviews for content, blogs, and plan items.
 - [ ] Promote plan items into full first-class content briefs with owners, due dates, and approval stages.
 - [ ] Add channel-specific variants for Instagram, Facebook, LinkedIn, email, ads, and blog excerpts.
 - [ ] Add version history, diff review, and revert support.
@@ -63,6 +65,22 @@ Status: started
 - [ ] Add Atlas workflow: improve weak hooks, CTAs, metadata, and asset fit.
 - [ ] Feed sales, inventory, campaigns, finance constraints, and content performance into planning recommendations.
 - [x] Persist AI planning decisions as plan and plan-item artifacts for review.
+- [x] Add a strict AI editorial quality reviewer with saved scores, verdicts, issues, recommendations, and suggested hook/CTA rewrites.
+- [x] Expose quality review to Quill and Atlas through the controlled tool layer.
+- [ ] Add guided “apply quality recommendations” actions that rewrite records while preserving operator review.
+
+## Phase 3A: Quality System
+
+Status: started
+
+- [x] Add `QualityReview` persistence for content, blogs, and plan items.
+- [x] Score brand fit, audience fit, clarity, channel fit, conversion strength, and publishing risk.
+- [x] Add quality panels to content/blog detail pages.
+- [x] Add plan-item quality review from the saved plan workspace.
+- [x] Add Quill/Atlas `review_quality` tool.
+- [ ] Block or warn before approving/scheduling items with low latest quality scores.
+- [ ] Add one-click rewrite actions from review recommendations.
+- [ ] Add team-level quality dashboard and trend tracking.
 
 ## Phase 4: Asset Studio
 
@@ -124,6 +142,7 @@ Near-term integration targets:
 - The original Content Ops build is mostly complete for internal CRUD, chat tools, brand profiles, assets, automations, and planning visibility.
 - The new `/planner` route is additive and does not replace `/schedule`.
 - `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan creation -> plan-item approval -> content/blog/schedule creation.
+- Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> quality review -> apply recommendations -> approve/schedule/publish.
 - Social publishing is still the biggest missing capability before the product becomes end-to-end.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, but saved profile quality still depends on the operator filling the readiness gaps in Settings.
 - UI simplification has started with the plan workspace. The next pass should migrate Dashboard, Planner, Content, and Settings away from nested card-heavy layouts toward quiet lists and focused command strips.

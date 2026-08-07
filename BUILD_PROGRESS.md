@@ -39,6 +39,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Brand profiles now include deeper AI context fields for positioning, pillars, personas, offers, proof points, SEO, competitors, voice examples, visual guidance, and channel-specific rules, with readiness scoring in Settings and richer Quill/tool context.
 - Saved content plans are now part of the product model: `/plans` stores planning artifacts and ordered plan items, while Quill and Atlas can list plans, create plans, and add plan items.
 - The UI simplification pass has started with a quieter plan workspace, flatter buttons, narrower sidebar, and reusable quiet list/panel patterns for future page cleanup.
+- AI quality reviews are now persisted for content, blogs, and plan items, with scored editorial feedback available in the UI and through Quill/Atlas.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -86,12 +87,16 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added saved content plans with plan-item briefs for content, blogs, schedule work, asset requests, and automation work.
 - [x] Added Quill/Atlas content-plan tools and exposed Plans as a first-class Command page.
 - [x] Began reducing UI complexity with quieter global controls and a simpler Plans workflow.
+- [x] Added a saved AI quality gate with scores, verdicts, issues, recommendations, and suggested hook/CTA rewrites.
+- [x] Added quality review panels to content/blog detail pages and review actions to plan items.
+- [x] Added Quill/Atlas `review_quality` tool.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
 - [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
 - [ ] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
 - [ ] Continue simplifying Dashboard, Planner, Content, and Settings around the new quiet-panel pattern.
+- [ ] Add quality-based approval/scheduling warnings and guided rewrite actions.
 - [ ] Seed or complete brand profiles until core brands reach strong AI-readiness scores.
 
 ## Pending
@@ -114,6 +119,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `AutomationWorkflow` and `AutomationRun` now provide the basis for controlled recurring content generation and future scheduler execution.
 - `ConnectedAccount`, `PublishedPost`, and `PostAnalyticsSnapshot` now hold the future social connection, publishing history, and performance intelligence layer.
 - `ContentPlan` and `ContentPlanItem` now persist AI/manual planning decisions before they become content, blog, schedule, asset, or automation work.
+- `QualityReview` stores AI editorial scoring for content, blogs, and content plan items.
 - `Blog.legacyExternalId`, `Blog.legacyBlogId`, and `Blog.legacyZohoId` preserve deprecated blog system identifiers so compatibility APIs and imports remain stable during migration.
 
 ## Pages / Routes
@@ -164,6 +170,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Chat is now live with persisted threads and server-side tool execution.
 - `/planner` is now the recommended top-level operating view for content planning. `/schedule` remains the detailed calendar/table workspace.
 - `/plans` is now the durable planning workspace where Quill, Atlas, or operators can store campaign and weekly plans before creating records.
+- Content and blog detail pages now expose a quality gate that saves AI editorial reviews before publishing decisions.
 - Content, blogs, and schedule are now Prisma-backed and require live database connectivity at runtime.
 - Campaigns are served from the external TechSport campaigns API and require `CAMPAIGNS_API_KEY`.
 - Campaign create/update/delete still depend on the upstream API being reachable at request time, but list/dashboard/chat now fail more gracefully.
@@ -190,6 +197,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Expand the new planner cockpit with Atlas-generated weekly plans, drag-and-drop scheduling, and brand/channel coverage heatmaps.
 - Add plan-item promotion actions that create content records, blogs, and schedule entries from approved plan items.
 - Continue the UI simplification pass across high-density pages, starting with Dashboard and Planner.
+- Add quality-score warnings into approval and schedule flows, then add guided rewrite actions from saved recommendations.
 - Add bulk actions, notifications, and approval inbox patterns so operators can move faster once automation volume increases.
 - Build the first live OAuth connection flow, starting with Meta account authorization, token handling, and background analytics sync.
 - Expand the compatibility API layer only where older clients still need it, then retire legacy blog consumers once the new client paths are fully adopted.
@@ -224,3 +232,4 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `list_content_plans`: Read saved content plans and their first planned items.
 - `create_content_plan`: Create a saved content plan.
 - `add_content_plan_item`: Add a planned content, blog, schedule, asset request, or automation item to a plan.
+- `review_quality`: Run and save a strict editorial quality review for content, blogs, or plan items.

@@ -76,6 +76,8 @@ Content Command Platform expansion has started:
 - Planner action cards now load strategic prompts into Quill, and Atlas can read planner intelligence from `/api/external/planner/summary`
 - `/plans` now stores durable content plans and plan items so AI planning can move from idea to reviewable work
 - Quill and Atlas can list content plans, create plans, and add plan items through the controlled tool layer
+- AI quality reviews now score content, blogs, and plan items for brand fit, audience specificity, clarity, channel fit, conversion strength, and publishing risk
+- Content/blog detail pages and plan items now have saved quality review actions, and Quill/Atlas can call `review_quality`
 - Sidebar navigation is grouped into Command, Creation, Operations, Intelligence, and Admin sections
 - Brand Profiles now support richer AI context: positioning, content pillars, personas, offers, proof points, SEO keywords, competitors, voice examples, visual guidance, channel rules, and readiness scoring
 - The UI simplification pass has started with the Plans workspace, quieter panels, flatter controls, and a narrower command sidebar
