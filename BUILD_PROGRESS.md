@@ -37,6 +37,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Planner AI actions can now load strategic planning prompts directly into Quill, and `/api/external/planner/summary` exposes the planner intelligence to Atlas / Command Center through the existing external API key guard.
 - The sidebar is now grouped into Command, Creation, Operations, Intelligence, and Admin sections so the workspace reads as a command product rather than one long nav list.
 - Brand profiles now include deeper AI context fields for positioning, pillars, personas, offers, proof points, SEO, competitors, voice examples, visual guidance, and channel-specific rules, with readiness scoring in Settings and richer Quill/tool context.
+- Saved content plans are now part of the product model: `/plans` stores planning artifacts and ordered plan items, while Quill and Atlas can list plans, create plans, and add plan items.
+- The UI simplification pass has started with a quieter plan workspace, flatter buttons, narrower sidebar, and reusable quiet list/panel patterns for future page cleanup.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -81,10 +83,15 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added planner-to-Quill prompt handoff and an authenticated external planner summary endpoint for Atlas.
 - [x] Grouped the sidebar navigation into clearer workspace sections.
 - [x] Expanded Brand Profiles into a richer Brand Intelligence layer for AI-safe content generation.
+- [x] Added saved content plans with plan-item briefs for content, blogs, schedule work, asset requests, and automation work.
+- [x] Added Quill/Atlas content-plan tools and exposed Plans as a first-class Command page.
+- [x] Began reducing UI complexity with quieter global controls and a simpler Plans workflow.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
 - [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
+- [ ] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
+- [ ] Continue simplifying Dashboard, Planner, Content, and Settings around the new quiet-panel pattern.
 - [ ] Seed or complete brand profiles until core brands reach strong AI-readiness scores.
 
 ## Pending
@@ -106,6 +113,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `Blog.brand` now links blog records into the same brand-rule system used by content, campaigns, and schedule metadata.
 - `AutomationWorkflow` and `AutomationRun` now provide the basis for controlled recurring content generation and future scheduler execution.
 - `ConnectedAccount`, `PublishedPost`, and `PostAnalyticsSnapshot` now hold the future social connection, publishing history, and performance intelligence layer.
+- `ContentPlan` and `ContentPlanItem` now persist AI/manual planning decisions before they become content, blog, schedule, asset, or automation work.
 - `Blog.legacyExternalId`, `Blog.legacyBlogId`, and `Blog.legacyZohoId` preserve deprecated blog system identifiers so compatibility APIs and imports remain stable during migration.
 
 ## Pages / Routes
@@ -116,6 +124,9 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `/api/chat`
 - `/dashboard`
 - `/planner`
+- `/plans`
+- `/plans/new`
+- `/plans/[id]`
 - `/chat`
 - `/assets`
 - `/campaigns`
@@ -152,6 +163,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Dashboard and chat are both now backed by live Prisma data and server-side actions.
 - Chat is now live with persisted threads and server-side tool execution.
 - `/planner` is now the recommended top-level operating view for content planning. `/schedule` remains the detailed calendar/table workspace.
+- `/plans` is now the durable planning workspace where Quill, Atlas, or operators can store campaign and weekly plans before creating records.
 - Content, blogs, and schedule are now Prisma-backed and require live database connectivity at runtime.
 - Campaigns are served from the external TechSport campaigns API and require `CAMPAIGNS_API_KEY`.
 - Campaign create/update/delete still depend on the upstream API being reachable at request time, but list/dashboard/chat now fail more gracefully.
@@ -176,6 +188,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Connect the protected automation runner to a real scheduled trigger in Railway or another job system.
 - Add the next automation layer: more workflow types beyond weekly social content, plus deeper safety controls and operator reporting.
 - Expand the new planner cockpit with Atlas-generated weekly plans, drag-and-drop scheduling, and brand/channel coverage heatmaps.
+- Add plan-item promotion actions that create content records, blogs, and schedule entries from approved plan items.
+- Continue the UI simplification pass across high-density pages, starting with Dashboard and Planner.
 - Add bulk actions, notifications, and approval inbox patterns so operators can move faster once automation volume increases.
 - Build the first live OAuth connection flow, starting with Meta account authorization, token handling, and background analytics sync.
 - Expand the compatibility API layer only where older clients still need it, then retire legacy blog consumers once the new client paths are fully adopted.
@@ -207,3 +221,6 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `list_automations`: Read saved automation workflows with optional status/type filters.
 - `get_automation_health`: Read automation health counts including due runs and recent failures.
 - `run_automation`: Run a specific workflow by id or trigger all due workflows.
+- `list_content_plans`: Read saved content plans and their first planned items.
+- `create_content_plan`: Create a saved content plan.
+- `add_content_plan_item`: Add a planned content, blog, schedule, asset request, or automation item to a plan.

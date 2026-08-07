@@ -55,6 +55,9 @@ export default async function PlannerPage() {
             <Link className="button button--secondary" href="/chat">
               Open chat
             </Link>
+            <Link className="button button--primary" href="/plans/new">
+              Save a plan
+            </Link>
           </div>
 
           <div className="planner-action-grid">
@@ -149,9 +152,12 @@ export default async function PlannerPage() {
                 <p className="kicker">Brand coverage</p>
                 <h3>Next two-week operating load</h3>
               </div>
-              <Link className="button button--secondary" href="/schedule">
-                Tune schedule
-              </Link>
+            <Link className="button button--secondary" href="/schedule">
+              Tune schedule
+            </Link>
+            <Link className="button button--secondary" href="/plans">
+              Open plans
+            </Link>
             </div>
 
             <div className="planner-brand-table">

@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bot,
   CalendarDays,
+  Columns3,
   ClipboardList,
   Image as ImageIcon,
   Megaphone,
@@ -24,6 +25,7 @@ const navGroups = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/planner", label: "Planner", icon: ClipboardList },
+      { href: "/plans", label: "Plans", icon: Columns3 },
       { href: "/chat", label: "Quill Chat", icon: MessageSquareText },
     ],
   },

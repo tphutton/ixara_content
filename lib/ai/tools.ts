@@ -3,6 +3,9 @@ import {
   AutomationType,
   BlogStatus,
   ConnectedAccountStatus,
+  ContentPlanItemStatus,
+  ContentPlanItemType,
+  ContentPlanStatus,
   ContentStatus,
   ContentType,
   PublishedPostStatus,
@@ -1441,6 +1444,155 @@ async function runAutomationTool(args: Record<string, unknown>, context: ToolCon
   throw new Error("Unsupported automation type.");
 }
 
+async function listContentPlansTool(args: Record<string, unknown>) {
+  const status = asOptionalString(args.status);
+  const brand = asOptionalString(args.brand);
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 25) : 10;
+
+  const plans = await prisma.contentPlan.findMany({
+    where: {
+      status: status ? (status as ContentPlanStatus) : undefined,
+      brand: brand ?? undefined,
+    },
+    include: {
+      _count: { select: { items: true } },
+      items: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        take: 8,
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+  });
+
+  return {
+    toolName: "list_content_plans",
+    summary: `Found ${plans.length} content plan${plans.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: plans.length,
+      plans: plans.map((plan) => ({
+        id: plan.id,
+        title: plan.title,
+        goal: plan.goal,
+        status: plan.status,
+        brand: plan.brand,
+        campaignName: plan.campaignName,
+        startDate: plan.startDate?.toISOString() ?? null,
+        endDate: plan.endDate?.toISOString() ?? null,
+        itemCount: plan._count.items,
+        items: plan.items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          itemType: item.itemType,
+          status: item.status,
+          channel: item.channel,
+          scheduledFor: item.scheduledFor?.toISOString() ?? null,
+        })),
+      })),
+    },
+  };
+}
+
+async function createContentPlanTool(args: Record<string, unknown>, context: ToolContext) {
+  const plan = await prisma.contentPlan.create({
+    data: {
+      title: asRequiredString(args.title, "title"),
+      description: asOptionalString(args.description),
+      goal: asOptionalString(args.goal),
+      status: parseEnumValue(args.status, Object.values(ContentPlanStatus), ContentPlanStatus.draft),
+      startDate: asNullableDate(args.startDate),
+      endDate: asNullableDate(args.endDate),
+      brand: asOptionalString(args.brand),
+      campaignName: asOptionalString(args.campaignName),
+      sourcePrompt: asOptionalString(args.sourcePrompt),
+      createdById: context.access.id,
+      updatedById: context.access.id,
+    },
+  });
+
+  await createActionLog({
+    userId: context.access.id,
+    actionType: "create",
+    targetType: "content_plan",
+    targetId: plan.id,
+    summary: `AI created content plan "${plan.title}"`,
+    afterData: plan,
+    source: "ai",
+  });
+
+  return {
+    toolName: "create_content_plan",
+    summary: `Created content plan "${plan.title}" (${plan.id}).`,
+    payload: {
+      id: plan.id,
+      title: plan.title,
+      status: plan.status,
+      brand: plan.brand,
+      campaignName: plan.campaignName,
+    },
+  };
+}
+
+async function addContentPlanItemTool(args: Record<string, unknown>, context: ToolContext) {
+  const planId = asRequiredString(args.planId, "planId");
+  const plan = await prisma.contentPlan.findUniqueOrThrow({
+    where: { id: planId },
+    include: { _count: { select: { items: true } } },
+  });
+
+  const item = await prisma.contentPlanItem.create({
+    data: {
+      planId,
+      itemType: parseEnumValue(
+        args.itemType,
+        Object.values(ContentPlanItemType),
+        ContentPlanItemType.content,
+      ),
+      status: parseEnumValue(
+        args.status,
+        Object.values(ContentPlanItemStatus),
+        ContentPlanItemStatus.planned,
+      ),
+      title: asRequiredString(args.title, "title"),
+      brief: asOptionalString(args.brief),
+      channel: asOptionalString(args.channel),
+      scheduledFor: asNullableDate(args.scheduledFor),
+      brand: asOptionalString(args.brand) ?? plan.brand,
+      sport: asOptionalString(args.sport),
+      region: asOptionalString(args.region),
+      country: asOptionalString(args.country),
+      campaignName: asOptionalString(args.campaignName) ?? plan.campaignName,
+      contentId: asOptionalString(args.contentId),
+      blogId: asOptionalString(args.blogId),
+      scheduleId: asOptionalString(args.scheduleId),
+      assetRequest: asOptionalString(args.assetRequest),
+      sortOrder: plan._count.items,
+    },
+  });
+
+  await createActionLog({
+    userId: context.access.id,
+    actionType: "create",
+    targetType: "content_plan_item",
+    targetId: item.id,
+    summary: `AI added "${item.title}" to content plan "${plan.title}"`,
+    afterData: item,
+    source: "ai",
+  });
+
+  return {
+    toolName: "add_content_plan_item",
+    summary: `Added "${item.title}" to plan "${plan.title}".`,
+    payload: {
+      id: item.id,
+      planId: item.planId,
+      title: item.title,
+      itemType: item.itemType,
+      status: item.status,
+    },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -1467,6 +1619,9 @@ const toolHandlers: Record<string, ToolHandler> = {
   list_automations: async (args) => listAutomationsTool(args),
   get_automation_health: async () => getAutomationHealthTool(),
   run_automation: runAutomationTool,
+  list_content_plans: async (args) => listContentPlansTool(args),
+  create_content_plan: createContentPlanTool,
+  add_content_plan_item: addContentPlanItemTool,
 };
 
 export const contentOpsTools: ToolDefinition[] = [
@@ -2028,6 +2183,75 @@ export const contentOpsTools: ToolDefinition[] = [
           id: { type: "string" },
           runDue: { type: "boolean" },
         },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_content_plans",
+      description: "List saved content plans with their first planned items.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: Object.values(ContentPlanStatus) },
+          brand: { type: "string" },
+          limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_content_plan",
+      description: "Create a saved content plan that can hold briefs, schedule targets, asset requests, and automation work.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          goal: { type: "string" },
+          status: { type: "string", enum: Object.values(ContentPlanStatus) },
+          startDate: { type: "string" },
+          endDate: { type: "string" },
+          brand: { type: "string" },
+          campaignName: { type: "string" },
+          sourcePrompt: { type: "string" },
+        },
+        required: ["title"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_content_plan_item",
+      description: "Add one planned content, blog, schedule, asset request, or automation item to an existing content plan.",
+      parameters: {
+        type: "object",
+        properties: {
+          planId: { type: "string" },
+          itemType: { type: "string", enum: Object.values(ContentPlanItemType) },
+          status: { type: "string", enum: Object.values(ContentPlanItemStatus) },
+          title: { type: "string" },
+          brief: { type: "string" },
+          channel: { type: "string" },
+          scheduledFor: { type: "string" },
+          brand: { type: "string" },
+          sport: { type: "string" },
+          region: { type: "string" },
+          country: { type: "string" },
+          campaignName: { type: "string" },
+          contentId: { type: "string" },
+          blogId: { type: "string" },
+          scheduleId: { type: "string" },
+          assetRequest: { type: "string" },
+        },
+        required: ["planId", "title"],
         additionalProperties: false,
       },
     },

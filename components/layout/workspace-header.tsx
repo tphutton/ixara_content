@@ -1,14 +1,17 @@
 import { getCurrentUserAccess } from "@/lib/auth/user-access";
 import { UserButton } from "@clerk/nextjs";
+import type { ReactNode } from "react";
 
 type WorkspaceHeaderProps = {
   title: string;
   description: string;
+  actions?: ReactNode;
 };
 
 export async function WorkspaceHeader({
   title,
   description,
+  actions,
 }: WorkspaceHeaderProps) {
   const access = await getCurrentUserAccess();
   const todayLabel = new Intl.DateTimeFormat("en-US", {
@@ -25,6 +28,7 @@ export async function WorkspaceHeader({
       </div>
 
       <div className="header-actions">
+        {actions}
         <span className="inline-chip">{todayLabel}</span>
         {access ? (
           <span className="user-chip">

@@ -21,7 +21,7 @@ The app should move from record management to an editorial command system:
 
 ## Phase 1: Planner Cockpit
 
-Status: started
+Status: in progress
 
 - [x] Add `/planner` as the content command cockpit.
 - [x] Surface campaign windows, schedule readiness, draft queues, automation health, asset availability, and performance signals in one page.
@@ -29,18 +29,22 @@ Status: started
 - [x] Deep-link gaps into content, blog, schedule, automation, social, and analytics workspaces.
 - [x] Align the content app visual system with the dark Ixara Command Center shell, including the full Ixara PNG logo on black.
 - [x] Add AI planning action cards that load strategic prompts into Quill.
+- [x] Add saved `/plans` workspace so planning decisions become durable artifacts rather than chat-only prompts.
+- [x] Add Quill/Atlas tools to list plans, create plans, and add plan items.
 - [x] Add `/api/external/planner/summary` so Atlas and the Command Center can read planner intelligence directly.
 - [x] Restructure the sidebar into Command, Creation, Operations, Intelligence, and Admin groups.
-- [ ] Add AI plan-generation actions from the planner into Quill/Atlas.
+- [x] Begin simplifying the UI with quieter plan panels, shorter controls, and flatter command surfaces.
+- [ ] Add one-click AI plan generation from the planner that creates a plan plus suggested items in one guided flow.
 - [ ] Add drag-and-drop rescheduling and channel swimlanes to the planning surface.
 - [ ] Add gap heatmaps by brand, channel, sport, region, campaign, and week.
 
 ## Phase 2: Content Lifecycle Model
 
-Status: planned
+Status: started
 
-- [ ] Add first-class content briefs.
-- [ ] Link briefs to generated short-form content, blogs, campaigns, assets, and schedule entries.
+- [x] Add first saved plan/item layer for briefs, schedule targets, asset requests, and automation work.
+- [x] Link plan items to generated short-form content, blogs, and schedule entries.
+- [ ] Promote plan items into full first-class content briefs with owners, due dates, and approval stages.
 - [ ] Add channel-specific variants for Instagram, Facebook, LinkedIn, email, ads, and blog excerpts.
 - [ ] Add version history, diff review, and revert support.
 - [ ] Add owner, assignee, due date, priority, and editorial stage fields.
@@ -58,7 +62,7 @@ Status: started
 - [ ] Add Atlas workflow: generate multi-channel variants from one brief or blog.
 - [ ] Add Atlas workflow: improve weak hooks, CTAs, metadata, and asset fit.
 - [ ] Feed sales, inventory, campaigns, finance constraints, and content performance into planning recommendations.
-- [ ] Persist AI planning decisions as artifacts/actions for review.
+- [x] Persist AI planning decisions as plan and plan-item artifacts for review.
 
 ## Phase 4: Asset Studio
 
@@ -119,6 +123,8 @@ Near-term integration targets:
 
 - The original Content Ops build is mostly complete for internal CRUD, chat tools, brand profiles, assets, automations, and planning visibility.
 - The new `/planner` route is additive and does not replace `/schedule`.
+- `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan creation -> plan-item approval -> content/blog/schedule creation.
 - Social publishing is still the biggest missing capability before the product becomes end-to-end.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, but saved profile quality still depends on the operator filling the readiness gaps in Settings.
+- UI simplification has started with the plan workspace. The next pass should migrate Dashboard, Planner, Content, and Settings away from nested card-heavy layouts toward quiet lists and focused command strips.
 - `tsconfig.tsbuildinfo` is an untracked generated file and should not be committed unless intentionally needed.

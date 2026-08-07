@@ -74,10 +74,13 @@ Content Command Platform expansion has started:
 - `/planner` now acts as the command cockpit for campaign windows, schedule readiness, draft queues, asset availability, automation health, brand coverage, channel load, and performance signals
 - The UI shell now follows the dark Ixara Command Center style and uses the full Ixara PNG logo on black
 - Planner action cards now load strategic prompts into Quill, and Atlas can read planner intelligence from `/api/external/planner/summary`
+- `/plans` now stores durable content plans and plan items so AI planning can move from idea to reviewable work
+- Quill and Atlas can list content plans, create plans, and add plan items through the controlled tool layer
 - Sidebar navigation is grouped into Command, Creation, Operations, Intelligence, and Admin sections
 - Brand Profiles now support richer AI context: positioning, content pillars, personas, offers, proof points, SEO keywords, competitors, voice examples, visual guidance, channel rules, and readiness scoring
+- The UI simplification pass has started with the Plans workspace, quieter panels, flatter controls, and a narrower command sidebar
 - The extended build plan is tracked in `CONTENT_COMMAND_PLATFORM_BUILD.md`
-- The next planner layer is AI-assisted plan generation from Atlas/Quill plus richer channel swimlanes and gap heatmaps
+- The next planner layer is one-click AI plan generation, plan-item promotion into content/blog/schedule records, richer channel swimlanes, and gap heatmaps
 
 Social publishing and analytics foundations are now being added:
 
