@@ -331,12 +331,27 @@ model BrandProfile {
   id                String   @id @default(cuid())
   brandName         String   @unique
   description       String?
+  positioning       String?
   defaultTone       String?
   targetAudience    String?
   preferredWebsites String[]
   sports            String[]
   regions           String[]
   countries         String[]
+  contentPillars    String[] @default([])
+  audiencePersonas  String[] @default([])
+  keyOffers         String[] @default([])
+  proofPoints       String[] @default([])
+  seoKeywords       String[] @default([])
+  competitors       String[] @default([])
+  voiceExamples     String[] @default([])
+  visualGuidelines  String?
+  instagramGuidelines String?
+  facebookGuidelines  String?
+  linkedinGuidelines  String?
+  blogGuidelines      String?
+  emailGuidelines     String?
+  adGuidelines        String?
   bannedPhrases     String[]
   preferredCTAs     String[]
   createdAt         DateTime @default(now())

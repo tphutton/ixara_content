@@ -4,6 +4,7 @@ import {
 } from "openai/resources/chat/completions";
 import { prisma } from "@/lib/prisma";
 import { executeContentOpsTool, contentOpsTools } from "@/lib/ai/tools";
+import { compactBrandContext, getBrandProfileReadiness } from "@/lib/brand-profiles/intelligence";
 import { getOpenAIClient } from "@/lib/openai";
 import { type CurrentUserAccess } from "@/lib/auth/user-access";
 
@@ -64,25 +65,8 @@ async function getBrandProfilePromptContext() {
 
   return profiles
     .map((profile) => {
-      const details = [
-        `Brand: ${profile.brandName}`,
-        profile.defaultTone ? `Tone: ${profile.defaultTone}` : null,
-        profile.targetAudience ? `Audience: ${profile.targetAudience}` : null,
-        profile.preferredWebsites.length > 0
-          ? `Websites: ${profile.preferredWebsites.join(", ")}`
-          : null,
-        profile.sports.length > 0 ? `Sports: ${profile.sports.join(", ")}` : null,
-        profile.regions.length > 0 ? `Regions: ${profile.regions.join(", ")}` : null,
-        profile.countries.length > 0 ? `Countries: ${profile.countries.join(", ")}` : null,
-        profile.preferredCTAs.length > 0
-          ? `Preferred CTAs: ${profile.preferredCTAs.join(", ")}`
-          : null,
-        profile.bannedPhrases.length > 0
-          ? `Banned phrases: ${profile.bannedPhrases.join(", ")}`
-          : null,
-      ].filter(Boolean);
-
-      return `- ${details.join(" | ")}`;
+      const readiness = getBrandProfileReadiness(profile);
+      return `- ${compactBrandContext(profile)} | AI readiness: ${readiness.score}% (${readiness.status})`;
     })
     .join("\n");
 }

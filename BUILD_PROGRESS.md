@@ -3,6 +3,8 @@
 ## Project Overview
 Production-ready internal web application for AI-assisted content operations, built with Next.js App Router, Clerk authentication, PostgreSQL, Prisma, and the OpenAI SDK.
 
+The product direction is now expanding into a planner-first Content Command Platform. The extended plan lives in `CONTENT_COMMAND_PLATFORM_BUILD.md`.
+
 ## Architecture Decisions
 - Next.js App Router with route groups for public auth pages and protected workspace pages.
 - Clerk manages identity; PostgreSQL stores internal access and approval metadata through `UserAccess`.
@@ -30,6 +32,11 @@ Production-ready internal web application for AI-assisted content operations, bu
 - The blog workspace now uses a clearer editorial UX with card-based list views, review-first article detail pages, and a dedicated edit overlay instead of forcing every user straight into a long form.
 - The schedule workspace now includes both monthly and weekly planning views, with campaigns clearly treated as all-day planning blocks and scheduled posts shown as timed entries.
 - Chat history replay is now more resilient because assistant tool-call messages are persisted correctly and orphaned legacy tool messages are skipped.
+- The first Content Command Platform slice is now in place with a `/planner` cockpit that rolls campaign windows, schedule readiness, draft queues, asset availability, automation health, brand coverage, channel load, and performance signals into one planning surface.
+- The content app shell has been visually aligned with the dark Ixara Command Center style, including the full Ixara PNG logo in the sidebar and dark command surfaces across cards, forms, calendars, chat, planner, and editor overlays.
+- Planner AI actions can now load strategic planning prompts directly into Quill, and `/api/external/planner/summary` exposes the planner intelligence to Atlas / Command Center through the existing external API key guard.
+- The sidebar is now grouped into Command, Creation, Operations, Intelligence, and Admin sections so the workspace reads as a command product rather than one long nav list.
+- Brand profiles now include deeper AI context fields for positioning, pillars, personas, offers, proof points, SEO, competitors, voice examples, visual guidance, and channel-specific rules, with readiness scoring in Settings and richer Quill/tool context.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -69,9 +76,16 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Rebuilt the blog workspace UX with a more professional queue view, structured article overview, and focused update overlay.
 - [x] Upgraded the schedule calendar with a polished weekly view that separates all-day campaigns from timed publishing items.
 - [x] Fixed Quill thread replay so stored tool messages no longer break future chat requests.
+- [x] Added the first `/planner` command cockpit for world-class content planning foundations.
+- [x] Restyled the content workspace to match the Ixara Command Center dark shell and logo treatment.
+- [x] Added planner-to-Quill prompt handoff and an authenticated external planner summary endpoint for Atlas.
+- [x] Grouped the sidebar navigation into clearer workspace sections.
+- [x] Expanded Brand Profiles into a richer Brand Intelligence layer for AI-safe content generation.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
+- [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
+- [ ] Seed or complete brand profiles until core brands reach strong AI-readiness scores.
 
 ## Pending
 - [ ] Add OAuth-based live platform connections starting with Meta so registered social accounts can sync real publishing and analytics data.
@@ -101,6 +115,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/pending-approval`
 - `/api/chat`
 - `/dashboard`
+- `/planner`
 - `/chat`
 - `/assets`
 - `/campaigns`
@@ -128,6 +143,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/api/blogs/[id]`
 - `/api/social/meta/start`
 - `/api/social/meta/callback`
+- `/api/external/planner/summary`
 - `/blogs/[id]?edit=1`
 
 ## Known Issues / Notes
@@ -135,6 +151,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - The admin approvals page requires an approved admin account; set `INITIAL_ADMIN_EMAIL` before first sign-in to bootstrap the first admin safely.
 - Dashboard and chat are both now backed by live Prisma data and server-side actions.
 - Chat is now live with persisted threads and server-side tool execution.
+- `/planner` is now the recommended top-level operating view for content planning. `/schedule` remains the detailed calendar/table workspace.
 - Content, blogs, and schedule are now Prisma-backed and require live database connectivity at runtime.
 - Campaigns are served from the external TechSport campaigns API and require `CAMPAIGNS_API_KEY`.
 - Campaign create/update/delete still depend on the upstream API being reachable at request time, but list/dashboard/chat now fail more gracefully.
@@ -158,6 +175,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Finalize deployment envs in Railway, Clerk, OpenAI, campaigns API, and WordPress sync.
 - Connect the protected automation runner to a real scheduled trigger in Railway or another job system.
 - Add the next automation layer: more workflow types beyond weekly social content, plus deeper safety controls and operator reporting.
+- Expand the new planner cockpit with Atlas-generated weekly plans, drag-and-drop scheduling, and brand/channel coverage heatmaps.
 - Add bulk actions, notifications, and approval inbox patterns so operators can move faster once automation volume increases.
 - Build the first live OAuth connection flow, starting with Meta account authorization, token handling, and background analytics sync.
 - Expand the compatibility API layer only where older clients still need it, then retire legacy blog consumers once the new client paths are fully adopted.

@@ -1,5 +1,7 @@
 import { BrandProfileForm } from "@/components/settings/brand-profile-form";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { getBrandProfileReadiness } from "@/lib/brand-profiles/intelligence";
 import { prisma } from "@/lib/prisma";
 import {
   createBrandProfileAction,
@@ -77,6 +79,7 @@ export default async function SettingsPage() {
             {profiles.map((profile) => {
               const updateAction = updateBrandProfileAction.bind(null, profile.id);
               const deleteAction = deleteBrandProfileAction.bind(null, profile.id);
+              const readiness = getBrandProfileReadiness(profile);
 
               return (
                 <article className="card card--padded" key={profile.id}>
@@ -96,12 +99,32 @@ export default async function SettingsPage() {
                       </p>
                     </div>
 
-                    <form action={deleteAction}>
-                      <button className="button button--secondary" type="submit">
-                        Delete
-                      </button>
-                    </form>
+                    <div className="toolbar__group">
+                      <StatusBadge label={readiness.status} />
+                      <span className="inline-chip">{readiness.score}% AI-ready</span>
+                      <form action={deleteAction}>
+                        <button className="button button--secondary" type="submit">
+                          Delete
+                        </button>
+                      </form>
+                    </div>
                   </div>
+
+                  {readiness.missing.length > 0 ? (
+                    <div className="card card--padded" style={{ marginBottom: 20 }}>
+                      <p className="kicker">AI context gaps</p>
+                      <p className="muted" style={{ marginTop: 0 }}>
+                        Complete these fields before relying on heavy automation for this brand.
+                      </p>
+                      <div className="toolbar__group">
+                        {readiness.missing.slice(0, 8).map((item) => (
+                          <span className="inline-chip" key={item.key}>
+                            {item.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
 
                   <BrandProfileForm
                     action={updateAction}

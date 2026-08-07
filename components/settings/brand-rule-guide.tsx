@@ -8,6 +8,12 @@ type BrandRuleGuideProps = {
     sports: string[];
     regions: string[];
     countries: string[];
+    contentPillars?: string[];
+    audiencePersonas?: string[];
+    keyOffers?: string[];
+    proofPoints?: string[];
+    seoKeywords?: string[];
+    voiceExamples?: string[];
     bannedPhrases: string[];
     preferredCTAs: string[];
   }>;
@@ -58,6 +64,15 @@ export function BrandRuleGuide({ profiles }: BrandRuleGuideProps) {
               <span className="inline-chip">Sports: {renderList(profile.sports)}</span>
               <span className="inline-chip">Regions: {renderList(profile.regions)}</span>
               <span className="inline-chip">Countries: {renderList(profile.countries)}</span>
+              <span className="inline-chip">
+                Pillars: {renderList(profile.contentPillars ?? [])}
+              </span>
+              <span className="inline-chip">
+                Personas: {renderList(profile.audiencePersonas ?? [])}
+              </span>
+              <span className="inline-chip">Offers: {renderList(profile.keyOffers ?? [])}</span>
+              <span className="inline-chip">Proof: {renderList(profile.proofPoints ?? [])}</span>
+              <span className="inline-chip">SEO: {renderList(profile.seoKeywords ?? [])}</span>
               <span className="inline-chip">
                 Preferred CTAs: {renderList(profile.preferredCTAs)}
               </span>

@@ -69,6 +69,16 @@ Automation foundations are now in place:
 - Protected runner endpoint for due automations at `/api/automations/run-due`
 - Dashboard and Quill visibility into automation health and upcoming runs
 
+Content Command Platform expansion has started:
+
+- `/planner` now acts as the command cockpit for campaign windows, schedule readiness, draft queues, asset availability, automation health, brand coverage, channel load, and performance signals
+- The UI shell now follows the dark Ixara Command Center style and uses the full Ixara PNG logo on black
+- Planner action cards now load strategic prompts into Quill, and Atlas can read planner intelligence from `/api/external/planner/summary`
+- Sidebar navigation is grouped into Command, Creation, Operations, Intelligence, and Admin sections
+- Brand Profiles now support richer AI context: positioning, content pillars, personas, offers, proof points, SEO keywords, competitors, voice examples, visual guidance, channel rules, and readiness scoring
+- The extended build plan is tracked in `CONTENT_COMMAND_PLATFORM_BUILD.md`
+- The next planner layer is AI-assisted plan generation from Atlas/Quill plus richer channel swimlanes and gap heatmaps
+
 Social publishing and analytics foundations are now being added:
 
 - `/social-accounts` for registering future live publishing/analytics connections
@@ -170,6 +180,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - `/sign-up`
 - `/pending-approval`
 - `/dashboard`
+- `/planner`
 - `/chat`
 - `/assets`
 - `/automations`
@@ -179,6 +190,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - `/api/blogs`
 - `/api/blogs/by_brand`
 - `/api/blogs/[id]`
+- `/api/external/planner/summary`
 - `/content`
 - `/blogs`
 - `/schedule`

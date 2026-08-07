@@ -1,39 +1,39 @@
 import clsx from "clsx";
 
 const toneByStatus: Record<string, string> = {
-  active: "rgba(15, 118, 110, 0.12)",
-  approved: "rgba(15, 118, 110, 0.12)",
-  failed: "rgba(180, 35, 24, 0.12)",
-  draft: "rgba(21, 94, 239, 0.12)",
-  idea: "rgba(71, 84, 103, 0.12)",
-  paused: "rgba(181, 71, 8, 0.12)",
-  pending: "rgba(181, 71, 8, 0.12)",
-  planned: "rgba(21, 94, 239, 0.12)",
-  published: "rgba(2, 132, 199, 0.12)",
-  ready: "rgba(15, 118, 110, 0.12)",
-  review: "rgba(146, 64, 14, 0.12)",
-  running: "rgba(21, 94, 239, 0.12)",
-  scheduled: "rgba(91, 33, 182, 0.12)",
-  succeeded: "rgba(15, 118, 110, 0.12)",
-  warning: "rgba(181, 71, 8, 0.12)",
+  active: "rgba(20, 184, 166, 0.14)",
+  approved: "rgba(20, 184, 166, 0.14)",
+  failed: "rgba(244, 63, 94, 0.16)",
+  draft: "rgba(59, 130, 246, 0.16)",
+  idea: "rgba(148, 163, 184, 0.12)",
+  paused: "rgba(245, 158, 11, 0.16)",
+  pending: "rgba(245, 158, 11, 0.16)",
+  planned: "rgba(59, 130, 246, 0.16)",
+  published: "rgba(14, 165, 233, 0.16)",
+  ready: "rgba(20, 184, 166, 0.14)",
+  review: "rgba(245, 158, 11, 0.16)",
+  running: "rgba(59, 130, 246, 0.16)",
+  scheduled: "rgba(168, 85, 247, 0.16)",
+  succeeded: "rgba(20, 184, 166, 0.14)",
+  warning: "rgba(245, 158, 11, 0.16)",
 };
 
 const textByStatus: Record<string, string> = {
-  active: "#0f766e",
-  approved: "#0f766e",
-  failed: "#b42318",
-  draft: "#155eef",
-  idea: "#475467",
-  paused: "#b54708",
-  pending: "#b54708",
-  planned: "#155eef",
-  published: "#027a9d",
-  ready: "#0f766e",
-  review: "#92400e",
-  running: "#155eef",
-  scheduled: "#5b21b6",
-  succeeded: "#0f766e",
-  warning: "#b54708",
+  active: "#5eead4",
+  approved: "#5eead4",
+  failed: "#fda4af",
+  draft: "#93c5fd",
+  idea: "#cbd5e1",
+  paused: "#fcd34d",
+  pending: "#fcd34d",
+  planned: "#93c5fd",
+  published: "#7dd3fc",
+  ready: "#5eead4",
+  review: "#fcd34d",
+  running: "#93c5fd",
+  scheduled: "#d8b4fe",
+  succeeded: "#5eead4",
+  warning: "#fcd34d",
 };
 
 type StatusBadgeProps = {
@@ -47,9 +47,9 @@ export function StatusBadge({ label }: StatusBadgeProps) {
     <span
       className={clsx("badge")}
       style={{
-        background: toneByStatus[key] ?? "rgba(71, 84, 103, 0.12)",
-        color: textByStatus[key] ?? "#475467",
-        borderColor: "transparent",
+        background: toneByStatus[key] ?? "rgba(148, 163, 184, 0.12)",
+        color: textByStatus[key] ?? "#cbd5e1",
+        borderColor: "rgba(255, 255, 255, 0.08)",
       }}
     >
       {label}

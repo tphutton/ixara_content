@@ -18,6 +18,7 @@ import {
   applyBrandRulesToBlog,
   applyBrandRulesToContent,
 } from "@/lib/brand-profiles/rules";
+import { getBrandProfileReadiness } from "@/lib/brand-profiles/intelligence";
 import {
   deleteCampaign,
   getCampaign,
@@ -848,8 +849,25 @@ async function listBrandProfilesTool(args: Record<string, unknown>) {
         sports: item.sports,
         regions: item.regions,
         countries: item.countries,
+        contentPillars: item.contentPillars,
+        audiencePersonas: item.audiencePersonas,
+        keyOffers: item.keyOffers,
+        proofPoints: item.proofPoints,
+        seoKeywords: item.seoKeywords,
+        competitors: item.competitors,
+        voiceExamples: item.voiceExamples,
+        visualGuidelines: item.visualGuidelines,
+        channelGuidelines: {
+          instagram: item.instagramGuidelines,
+          facebook: item.facebookGuidelines,
+          linkedin: item.linkedinGuidelines,
+          blog: item.blogGuidelines,
+          email: item.emailGuidelines,
+          ads: item.adGuidelines,
+        },
         bannedPhrases: item.bannedPhrases,
         preferredCTAs: item.preferredCTAs,
+        readiness: getBrandProfileReadiness(item),
       })),
     },
   };
@@ -877,7 +895,10 @@ async function getBrandProfileTool(args: Record<string, unknown>) {
   return {
     toolName: "get_brand_profile",
     summary: `Loaded brand profile "${profile.brandName}".`,
-    payload: profile,
+    payload: {
+      ...profile,
+      readiness: getBrandProfileReadiness(profile),
+    },
   };
 }
 
@@ -892,18 +913,35 @@ async function upsertBrandProfileTool(args: Record<string, unknown>, context: To
     create: {
       brandName,
       description: asOptionalString(args.description),
+      positioning: asOptionalString(args.positioning),
       defaultTone: asOptionalString(args.defaultTone),
       targetAudience: asOptionalString(args.targetAudience),
       preferredWebsites: asStringArray(args.preferredWebsites),
       sports: asStringArray(args.sports),
       regions: asStringArray(args.regions),
       countries: asStringArray(args.countries),
+      contentPillars: asStringArray(args.contentPillars),
+      audiencePersonas: asStringArray(args.audiencePersonas),
+      keyOffers: asStringArray(args.keyOffers),
+      proofPoints: asStringArray(args.proofPoints),
+      seoKeywords: asStringArray(args.seoKeywords),
+      competitors: asStringArray(args.competitors),
+      voiceExamples: asStringArray(args.voiceExamples),
+      visualGuidelines: asOptionalString(args.visualGuidelines),
+      instagramGuidelines: asOptionalString(args.instagramGuidelines),
+      facebookGuidelines: asOptionalString(args.facebookGuidelines),
+      linkedinGuidelines: asOptionalString(args.linkedinGuidelines),
+      blogGuidelines: asOptionalString(args.blogGuidelines),
+      emailGuidelines: asOptionalString(args.emailGuidelines),
+      adGuidelines: asOptionalString(args.adGuidelines),
       bannedPhrases: asStringArray(args.bannedPhrases),
       preferredCTAs: asStringArray(args.preferredCTAs),
     },
     update: {
       description:
         args.description !== undefined ? asOptionalString(args.description) : undefined,
+      positioning:
+        args.positioning !== undefined ? asOptionalString(args.positioning) : undefined,
       defaultTone:
         args.defaultTone !== undefined ? asOptionalString(args.defaultTone) : undefined,
       targetAudience:
@@ -914,6 +952,31 @@ async function upsertBrandProfileTool(args: Record<string, unknown>, context: To
       sports: Array.isArray(args.sports) ? asStringArray(args.sports) : undefined,
       regions: Array.isArray(args.regions) ? asStringArray(args.regions) : undefined,
       countries: Array.isArray(args.countries) ? asStringArray(args.countries) : undefined,
+      contentPillars: Array.isArray(args.contentPillars)
+        ? asStringArray(args.contentPillars)
+        : undefined,
+      audiencePersonas: Array.isArray(args.audiencePersonas)
+        ? asStringArray(args.audiencePersonas)
+        : undefined,
+      keyOffers: Array.isArray(args.keyOffers) ? asStringArray(args.keyOffers) : undefined,
+      proofPoints: Array.isArray(args.proofPoints) ? asStringArray(args.proofPoints) : undefined,
+      seoKeywords: Array.isArray(args.seoKeywords) ? asStringArray(args.seoKeywords) : undefined,
+      competitors: Array.isArray(args.competitors) ? asStringArray(args.competitors) : undefined,
+      voiceExamples: Array.isArray(args.voiceExamples) ? asStringArray(args.voiceExamples) : undefined,
+      visualGuidelines:
+        args.visualGuidelines !== undefined ? asOptionalString(args.visualGuidelines) : undefined,
+      instagramGuidelines:
+        args.instagramGuidelines !== undefined ? asOptionalString(args.instagramGuidelines) : undefined,
+      facebookGuidelines:
+        args.facebookGuidelines !== undefined ? asOptionalString(args.facebookGuidelines) : undefined,
+      linkedinGuidelines:
+        args.linkedinGuidelines !== undefined ? asOptionalString(args.linkedinGuidelines) : undefined,
+      blogGuidelines:
+        args.blogGuidelines !== undefined ? asOptionalString(args.blogGuidelines) : undefined,
+      emailGuidelines:
+        args.emailGuidelines !== undefined ? asOptionalString(args.emailGuidelines) : undefined,
+      adGuidelines:
+        args.adGuidelines !== undefined ? asOptionalString(args.adGuidelines) : undefined,
       bannedPhrases: Array.isArray(args.bannedPhrases)
         ? asStringArray(args.bannedPhrases)
         : undefined,
@@ -937,7 +1000,10 @@ async function upsertBrandProfileTool(args: Record<string, unknown>, context: To
   return {
     toolName: "upsert_brand_profile",
     summary: `${before ? "Updated" : "Created"} brand profile "${profile.brandName}".`,
-    payload: profile,
+    payload: {
+      ...profile,
+      readiness: getBrandProfileReadiness(profile),
+    },
   };
 }
 
@@ -1771,12 +1837,27 @@ export const contentOpsTools: ToolDefinition[] = [
         properties: {
           brandName: { type: "string" },
           description: { type: "string" },
+          positioning: { type: "string" },
           defaultTone: { type: "string" },
           targetAudience: { type: "string" },
           preferredWebsites: { type: "array", items: { type: "string" } },
           sports: { type: "array", items: { type: "string" } },
           regions: { type: "array", items: { type: "string" } },
           countries: { type: "array", items: { type: "string" } },
+          contentPillars: { type: "array", items: { type: "string" } },
+          audiencePersonas: { type: "array", items: { type: "string" } },
+          keyOffers: { type: "array", items: { type: "string" } },
+          proofPoints: { type: "array", items: { type: "string" } },
+          seoKeywords: { type: "array", items: { type: "string" } },
+          competitors: { type: "array", items: { type: "string" } },
+          voiceExamples: { type: "array", items: { type: "string" } },
+          visualGuidelines: { type: "string" },
+          instagramGuidelines: { type: "string" },
+          facebookGuidelines: { type: "string" },
+          linkedinGuidelines: { type: "string" },
+          blogGuidelines: { type: "string" },
+          emailGuidelines: { type: "string" },
+          adGuidelines: { type: "string" },
           bannedPhrases: { type: "array", items: { type: "string" } },
           preferredCTAs: { type: "array", items: { type: "string" } },
         },

@@ -6,12 +6,12 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 type ChatPageProps = {
-  searchParams: Promise<{ thread?: string }>;
+  searchParams: Promise<{ thread?: string; prompt?: string }>;
 };
 
 export default async function ChatPage({ searchParams }: ChatPageProps) {
   const access = await requireApprovedUserAccess();
-  const { thread: selectedThreadId } = await searchParams;
+  const { thread: selectedThreadId, prompt } = await searchParams;
 
   const threads = await prisma.chatThread.findMany({
     where: {
@@ -49,6 +49,7 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
           toolPayload: message.toolPayload,
           createdAt: message.createdAt.toISOString(),
         }))}
+        initialPrompt={prompt ?? ""}
         initialThreadId={activeThreadId}
         initialThreads={threads.map((thread) => ({
           id: thread.id,
