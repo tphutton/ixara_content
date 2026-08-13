@@ -39,6 +39,7 @@ import { applyContentQualityRecommendations } from "@/lib/quality/apply-recommen
 import { runQualityReview } from "@/lib/quality/editorial-review";
 import { getQualityCommandSummary } from "@/lib/quality/summary";
 import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/promotion";
+import { generateAiContentPlan } from "@/lib/planner/ai-plan-builder";
 
 type ToolDefinition = {
   type: "function";
@@ -1720,6 +1721,30 @@ async function promoteContentPlanItemTool(args: Record<string, unknown>, context
   };
 }
 
+async function generateAiContentPlanTool(_args: Record<string, unknown>, context: ToolContext) {
+  const plan = await generateAiContentPlan(context.access);
+
+  return {
+    toolName: "generate_ai_content_plan",
+    summary: `Generated content plan "${plan.title}" with ${plan.items.length} item${plan.items.length === 1 ? "" : "s"}.`,
+    payload: {
+      id: plan.id,
+      title: plan.title,
+      status: plan.status,
+      itemCount: plan.items.length,
+      href: `/plans/${plan.id}`,
+      items: plan.items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        itemType: item.itemType,
+        status: item.status,
+        channel: item.channel,
+        scheduledFor: item.scheduledFor?.toISOString() ?? null,
+      })),
+    },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -1749,6 +1774,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   list_content_plans: async (args) => listContentPlansTool(args),
   create_content_plan: createContentPlanTool,
   add_content_plan_item: addContentPlanItemTool,
+  generate_ai_content_plan: generateAiContentPlanTool,
   get_quality_summary: async () => getQualitySummaryTool(),
   review_quality: reviewQualityTool,
   apply_quality_recommendations: applyQualityRecommendationsTool,
@@ -2383,6 +2409,18 @@ export const contentOpsTools: ToolDefinition[] = [
           assetRequest: { type: "string" },
         },
         required: ["planId", "title"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_ai_content_plan",
+      description: "Generate and save a 14-day AI content plan from current planner signals.",
+      parameters: {
+        type: "object",
+        properties: {},
         additionalProperties: false,
       },
     },

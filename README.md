@@ -82,6 +82,7 @@ Content Command Platform expansion has started:
 - Saved plan items can be promoted into content, blog, and schedule records from the UI or via Quill/Atlas
 - Content, schedule, plan, and settings pages now use cleaner review-first layouts with long forms opened in modal overlays
 - `/quality` now shows weak reviewed work, active items missing reviews, recent quality decisions, and is available to Quill/Atlas through `get_quality_summary`
+- `/planner` can now generate a saved AI content plan and plan items directly from current campaign, calendar, readiness, and performance signals
 - Sidebar navigation is grouped into Command, Creation, Operations, Intelligence, and Admin sections
 - Brand Profiles now support richer AI context: positioning, content pillars, personas, offers, proof points, SEO keywords, competitors, voice examples, visual guidance, channel rules, and readiness scoring
 - The UI simplification pass has started with the Plans workspace, quieter panels, flatter controls, and a narrower command sidebar

@@ -3,7 +3,9 @@ import { format } from "date-fns";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SummaryStats } from "@/components/ui/summary-stats";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
+import { SubmitButton } from "@/components/forms/submit-button";
 import { getContentCommandCenter } from "@/lib/planner/content-command-center";
+import { generateAiContentPlanAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -52,12 +54,17 @@ export default async function PlannerPage() {
               <p className="kicker">AI planning actions</p>
               <h3>Use Quill as the creative operator</h3>
             </div>
-            <Link className="button button--secondary" href="/chat">
-              Open chat
-            </Link>
-            <Link className="button button--primary" href="/plans/new">
-              Save a plan
-            </Link>
+            <div className="header-actions">
+              <form action={generateAiContentPlanAction}>
+                <SubmitButton label="Generate AI plan" pendingLabel="Building plan..." />
+              </form>
+              <Link className="button button--secondary" href="/chat">
+                Open chat
+              </Link>
+              <Link className="button button--secondary" href="/plans/new">
+                Save manually
+              </Link>
+            </div>
           </div>
 
           <div className="planner-action-grid">

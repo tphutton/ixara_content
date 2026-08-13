@@ -36,7 +36,7 @@ Status: in progress
 - [x] Restructure the sidebar into Command, Creation, Operations, Intelligence, and Admin groups.
 - [x] Begin simplifying the UI with quieter plan panels, shorter controls, and flatter command surfaces.
 - [x] Move high-friction inline forms on content, schedule, plan, and settings pages into modal overlays.
-- [ ] Add one-click AI plan generation from the planner that creates a plan plus suggested items in one guided flow.
+- [x] Add one-click AI plan generation from the planner that creates a plan plus suggested items in one guided flow.
 - [ ] Add drag-and-drop rescheduling and channel swimlanes to the planning surface.
 - [ ] Add gap heatmaps by brand, channel, sport, region, campaign, and week.
 
@@ -62,6 +62,7 @@ Status: started
 - [x] Add brand-profile AI readiness scoring in Settings.
 - [x] Feed richer brand intelligence into Quill and brand-profile tools.
 - [ ] Add Atlas workflow: build next week’s content plan from business signals.
+- [x] Add Quill/Atlas `generate_ai_content_plan` tool to create saved plans from current planner signals.
 - [ ] Add Atlas workflow: turn a campaign into a launch calendar.
 - [ ] Add Atlas workflow: generate multi-channel variants from one brief or blog.
 - [ ] Add Atlas workflow: improve weak hooks, CTAs, metadata, and asset fit.

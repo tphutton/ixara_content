@@ -45,6 +45,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Plan items can now be promoted into content, blog, or schedule records from the UI and Quill/Atlas tool layer.
 - Content, schedule, plan, and settings detail pages now use review-first layouts with long forms moved into modal overlays.
 - `/quality` now gives operators and Atlas a command view of weak reviewed work, missing reviews, and recent quality decisions.
+- `/planner` can now generate a saved 14-day AI content plan and plan items from current command signals.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -101,12 +102,14 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added Quill/Atlas `promote_content_plan_item` tool.
 - [x] Replaced the busiest inline forms on content, schedule, plan, and settings pages with modal editing flows.
 - [x] Added the `/quality` command page and Quill/Atlas `get_quality_summary` tool.
+- [x] Added one-click AI plan generation from Planner plus Quill/Atlas `generate_ai_content_plan`.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
 - [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
 - [x] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
 - [ ] Add guided promotion from plan item into channel variants and approvals.
+- [ ] Add plan preview/edit step before saving AI-generated plans.
 - [ ] Continue modal cleanup for remaining creation, automation, social, analytics, and campaign forms.
 - [ ] Continue simplifying Dashboard, Planner, Content, and Settings around the new quiet-panel pattern.
 - [ ] Extend quality recommendation application to blogs and plan items.
@@ -250,3 +253,4 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `apply_quality_recommendations`: Apply the latest saved quality recommendations to a short-form content record.
 - `promote_content_plan_item`: Promote a saved plan item into content, blog, or schedule records.
 - `get_quality_summary`: Read the quality command summary for weak work and active items missing reviews.
+- `generate_ai_content_plan`: Generate and save a 14-day AI content plan from current planner signals.
