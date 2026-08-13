@@ -775,6 +775,46 @@ textarea {
   background: rgba(20, 184, 166, 0.06);
 }
 
+.content-preview {
+  display: grid;
+  gap: 12px;
+}
+
+.content-preview p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metadata-grid > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.32);
+}
+
+.metadata-grid span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.metadata-grid strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .field {
   display: grid;
   gap: 8px;
@@ -1964,7 +2004,8 @@ textarea {
   }
 
   .quality-score-grid,
-  .quality-columns {
+  .quality-columns,
+  .metadata-grid {
     grid-template-columns: 1fr;
   }
 

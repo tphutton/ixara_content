@@ -18,10 +18,13 @@ export const dynamic = "force-dynamic";
 
 type ScheduleDetailPageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ edit?: string }>;
 };
 
-export default async function ScheduleDetailPage({ params }: ScheduleDetailPageProps) {
+export default async function ScheduleDetailPage({ params, searchParams }: ScheduleDetailPageProps) {
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const isEditing = resolvedSearchParams?.edit === "1";
   const [schedule, contents, blogs] = await Promise.all([
     prisma.contentSchedule.findUnique({
       where: { id },
@@ -91,20 +94,39 @@ export default async function ScheduleDetailPage({ params }: ScheduleDetailPageP
     <section className="page-shell">
       <WorkspaceHeader
         title="Schedule Entry"
-        description="Update scheduling metadata, linked records, publishing status, and operational notes."
+        description="Review schedule readiness and approval state before opening the editor."
+        actions={
+          <div className="header-actions">
+            <Link className="button button--secondary" href="/schedule">
+              Back
+            </Link>
+            <Link className="button button--primary" href={`/schedule/${id}?edit=1`}>
+              Edit schedule
+            </Link>
+          </div>
+        }
       />
 
       <div className="grid" style={{ gridTemplateColumns: "1.2fr 0.8fr", alignItems: "start" }}>
         <div className="stack">
-          <Link className="button button--secondary" href="/schedule">
-            Back to schedule
-          </Link>
-          <div className="card card--padded">
-            <ScheduleForm action={updateAction} blogs={blogs} contents={contents} schedule={schedule} />
-          </div>
-          <form action={deleteAction}>
-            <SubmitButton label="Delete schedule entry" pendingLabel="Deleting..." variant="secondary" />
-          </form>
+          <section className="quiet-panel">
+            <div className="section-heading">
+              <div>
+                <p className="kicker">Scheduled work</p>
+                <h3>{schedule.content?.title ?? schedule.blog?.title ?? "Untitled scheduled item"}</h3>
+              </div>
+              <span className="inline-chip">{schedule.status}</span>
+            </div>
+            <div className="metadata-grid">
+              <div><span>Scheduled for</span><strong>{new Date(schedule.scheduledFor).toLocaleString()}</strong></div>
+              <div><span>Channel</span><strong>{schedule.channel ?? "Not set"}</strong></div>
+              <div><span>Account</span><strong>{schedule.platformAccount ?? "Not set"}</strong></div>
+              <div><span>Brand</span><strong>{schedule.brand ?? "Not set"}</strong></div>
+              <div><span>Campaign</span><strong>{schedule.campaignName ?? "Not set"}</strong></div>
+              <div><span>Priority</span><strong>{schedule.priority ?? "Not set"}</strong></div>
+            </div>
+            {schedule.notes ? <p className="muted">{schedule.notes}</p> : null}
+          </section>
         </div>
 
         <div className="stack">
@@ -168,6 +190,34 @@ export default async function ScheduleDetailPage({ params }: ScheduleDetailPageP
           </article>
         </div>
       </div>
+
+      {isEditing ? (
+        <div className="editor-overlay">
+          <div className="editor-overlay__backdrop">
+            <Link aria-label="Close editor" href={`/schedule/${id}`} />
+          </div>
+          <div className="editor-overlay__panel">
+            <div className="editor-overlay__header">
+              <div>
+                <p className="kicker">Editing</p>
+                <h3>Schedule entry</h3>
+                <p className="muted">Update timing, links, metadata, and operational notes.</p>
+              </div>
+              <Link className="button button--secondary" href={`/schedule/${id}`}>
+                Close
+              </Link>
+            </div>
+            <div className="editor-overlay__content">
+              <ScheduleForm action={updateAction} blogs={blogs} contents={contents} schedule={schedule} />
+            </div>
+            <div className="editor-overlay__footer">
+              <form action={deleteAction}>
+                <SubmitButton label="Delete schedule entry" pendingLabel="Deleting..." variant="secondary" />
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

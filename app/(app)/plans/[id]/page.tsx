@@ -16,6 +16,7 @@ import {
 
 type PlanDetailPageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ add?: string; edit?: string }>;
 };
 
 function formatDate(date: Date | null) {
@@ -26,8 +27,11 @@ function formatScheduled(date: Date | null) {
   return date ? format(date, "MMM d, p") : "Unscheduled";
 }
 
-export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
+export default async function PlanDetailPage({ params, searchParams }: PlanDetailPageProps) {
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const isAddingItem = resolvedSearchParams?.add === "1";
+  const isEditingPlan = resolvedSearchParams?.edit === "1";
   const plan = await prisma.contentPlan.findUnique({
     where: { id },
     include: {
@@ -60,6 +64,12 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
             <Link className="button button--secondary" href="/plans">
               All plans
             </Link>
+            <Link className="button button--secondary" href={`/plans/${plan.id}?edit=1`}>
+              Edit plan
+            </Link>
+            <Link className="button button--primary" href={`/plans/${plan.id}?add=1`}>
+              Add item
+            </Link>
             <Link className="button button--primary" href={`/chat?prompt=${encodeURIComponent(`Review this content plan and suggest the next best items to create. Plan id: ${plan.id}`)}`}>
               Ask Quill
             </Link>
@@ -67,8 +77,7 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
         }
       />
 
-      <div className="plan-layout">
-        <main className="stack">
+      <div className="stack">
           <section className="quiet-panel">
             <div className="plan-brief">
               <div>
@@ -171,30 +180,53 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
               </div>
             )}
           </section>
-        </main>
+      </div>
 
-        <aside className="stack">
-          <section className="quiet-panel">
-            <div className="section-heading">
+      {isAddingItem ? (
+        <div className="editor-overlay">
+          <div className="editor-overlay__backdrop">
+            <Link aria-label="Close add item" href={`/plans/${plan.id}`} />
+          </div>
+          <div className="editor-overlay__panel">
+            <div className="editor-overlay__header">
               <div>
-                <p className="kicker">Add item</p>
-                <h3>Next unit</h3>
+                <p className="kicker">Planning</p>
+                <h3>Add plan item</h3>
+                <p className="muted">Create one planned unit for content, blog, schedule, asset, or automation work.</p>
               </div>
+              <Link className="button button--secondary" href={`/plans/${plan.id}`}>
+                Close
+              </Link>
             </div>
-            <PlanItemForm action={addItem} plan={plan} />
-          </section>
+            <div className="editor-overlay__content">
+              <PlanItemForm action={addItem} plan={plan} />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
-          <section className="quiet-panel">
-            <div className="section-heading">
+      {isEditingPlan ? (
+        <div className="editor-overlay">
+          <div className="editor-overlay__backdrop">
+            <Link aria-label="Close plan editor" href={`/plans/${plan.id}`} />
+          </div>
+          <div className="editor-overlay__panel">
+            <div className="editor-overlay__header">
               <div>
                 <p className="kicker">Plan settings</p>
                 <h3>Edit brief</h3>
+                <p className="muted">Update the plan goal, window, brand, campaign, and source prompt.</p>
               </div>
+              <Link className="button button--secondary" href={`/plans/${plan.id}`}>
+                Close
+              </Link>
             </div>
-            <PlanForm action={updatePlan} plan={plan} submitLabel="Save plan" />
-          </section>
-        </aside>
-      </div>
+            <div className="editor-overlay__content">
+              <PlanForm action={updatePlan} plan={plan} submitLabel="Save plan" />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

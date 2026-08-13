@@ -35,6 +35,7 @@ Status: in progress
 - [x] Add `/api/external/planner/summary` so Atlas and the Command Center can read planner intelligence directly.
 - [x] Restructure the sidebar into Command, Creation, Operations, Intelligence, and Admin groups.
 - [x] Begin simplifying the UI with quieter plan panels, shorter controls, and flatter command surfaces.
+- [x] Move high-friction inline forms on content, schedule, plan, and settings pages into modal overlays.
 - [ ] Add one-click AI plan generation from the planner that creates a plan plus suggested items in one guided flow.
 - [ ] Add drag-and-drop rescheduling and channel swimlanes to the planning surface.
 - [ ] Add gap heatmaps by brand, channel, sport, region, campaign, and week.
@@ -151,5 +152,5 @@ Near-term integration targets:
 - Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> quality review -> apply recommendations -> re-review -> approve/schedule/publish.
 - Social publishing is still the biggest missing capability before the product becomes end-to-end.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, but saved profile quality still depends on the operator filling the readiness gaps in Settings.
-- UI simplification has started with the plan workspace. The next pass should migrate Dashboard, Planner, Content, and Settings away from nested card-heavy layouts toward quiet lists and focused command strips.
+- UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages. The next pass should migrate Dashboard, Planner, and remaining creation/admin pages away from nested card-heavy layouts toward quiet lists and focused command strips.
 - `tsconfig.tsbuildinfo` is an untracked generated file and should not be committed unless intentionally needed.

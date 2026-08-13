@@ -43,6 +43,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Short-form content can now apply the latest quality review recommendations through a controlled AI rewrite that preserves audit logs and brand-rule checks.
 - Schedule approval now surfaces quality warnings and records approval overrides when content is below the quality gate.
 - Plan items can now be promoted into content, blog, or schedule records from the UI and Quill/Atlas tool layer.
+- Content, schedule, plan, and settings detail pages now use review-first layouts with long forms moved into modal overlays.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -97,12 +98,14 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added quality-aware schedule approval warnings and override logging.
 - [x] Added plan-item promotion into content, blog, and schedule records.
 - [x] Added Quill/Atlas `promote_content_plan_item` tool.
+- [x] Replaced the busiest inline forms on content, schedule, plan, and settings pages with modal editing flows.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
 - [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
 - [x] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
 - [ ] Add guided promotion from plan item into channel variants and approvals.
+- [ ] Continue modal cleanup for remaining creation, automation, social, analytics, and campaign forms.
 - [ ] Continue simplifying Dashboard, Planner, Content, and Settings around the new quiet-panel pattern.
 - [ ] Extend quality recommendation application to blogs and plan items.
 - [ ] Add a quality dashboard for weak drafts, unrevised reviews, and score trends.
