@@ -1,0 +1,16 @@
+ALTER TABLE "BrandProfile"
+  ADD COLUMN "positioning" TEXT,
+  ADD COLUMN "contentPillars" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "audiencePersonas" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "keyOffers" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "proofPoints" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "seoKeywords" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "competitors" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "voiceExamples" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "visualGuidelines" TEXT,
+  ADD COLUMN "instagramGuidelines" TEXT,
+  ADD COLUMN "facebookGuidelines" TEXT,
+  ADD COLUMN "linkedinGuidelines" TEXT,
+  ADD COLUMN "blogGuidelines" TEXT,
+  ADD COLUMN "emailGuidelines" TEXT,
+  ADD COLUMN "adGuidelines" TEXT;

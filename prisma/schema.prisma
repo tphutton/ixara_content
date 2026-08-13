@@ -117,6 +117,39 @@ enum PublishedPostStatus {
   imported
 }
 
+enum ContentPlanStatus {
+  draft
+  review
+  approved
+  active
+  completed
+  archived
+}
+
+enum ContentPlanItemType {
+  content
+  blog
+  schedule
+  asset_request
+  automation
+}
+
+enum ContentPlanItemStatus {
+  planned
+  approved
+  created
+  scheduled
+  published
+  blocked
+  cancelled
+}
+
+enum QualityReviewTargetType {
+  content
+  blog
+  content_plan_item
+}
+
 model UserAccess {
   id             String           @id @default(cuid())
   clerkUserId    String           @unique
@@ -142,6 +175,9 @@ model UserAccess {
   connectedAccountsUpdated ConnectedAccount[] @relation("ConnectedAccountUpdatedBy")
   publishedPostsCreated    PublishedPost[]    @relation("PublishedPostCreatedBy")
   publishedPostsUpdated    PublishedPost[]    @relation("PublishedPostUpdatedBy")
+  contentPlansCreated      ContentPlan[]       @relation("ContentPlanCreatedBy")
+  contentPlansUpdated      ContentPlan[]       @relation("ContentPlanUpdatedBy")
+  qualityReviewsCreated    QualityReview[]     @relation("QualityReviewCreatedBy")
   chatThreads        ChatThread[]
   actionLogs         ContentActionLog[]
 
@@ -182,6 +218,8 @@ model Content {
   assets     ContentAsset[]
   schedules ContentSchedule[]
   publishedPosts PublishedPost[]
+  planItems ContentPlanItem[]
+  qualityReviews QualityReview[]
 
   @@index([status, contentType])
   @@index([brand, sport, region, country])
@@ -245,6 +283,8 @@ model Blog {
   assets      BlogAsset[]
   schedules ContentSchedule[]
   publishedPosts PublishedPost[]
+  planItems ContentPlanItem[]
+  qualityReviews QualityReview[]
 
   @@index([status, postDate])
   @@index([brand, category, sport, region, country])
@@ -276,9 +316,104 @@ model ContentSchedule {
   approvedBy UserAccess? @relation("ScheduleApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
   createdBy  UserAccess? @relation("ScheduleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   publishedPosts PublishedPost[]
+  planItems ContentPlanItem[]
 
   @@index([scheduledFor, status])
   @@index([brand, sport, region, country])
+}
+
+model ContentPlan {
+  id           String            @id @default(cuid())
+  title        String
+  description  String?
+  goal         String?
+  status       ContentPlanStatus @default(draft)
+  startDate    DateTime?
+  endDate      DateTime?
+  brand        String?
+  campaignName String?
+  sourcePrompt String?
+  createdById  String?
+  updatedById  String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  createdBy UserAccess?       @relation("ContentPlanCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy UserAccess?       @relation("ContentPlanUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  items     ContentPlanItem[]
+
+  @@index([status, startDate])
+  @@index([brand, campaignName])
+}
+
+model ContentPlanItem {
+  id           String                @id @default(cuid())
+  planId       String
+  itemType     ContentPlanItemType
+  status       ContentPlanItemStatus @default(planned)
+  title        String
+  brief        String?
+  channel      String?
+  scheduledFor DateTime?
+  brand        String?
+  sport        String?
+  region       String?
+  country      String?
+  campaignName String?
+  contentId    String?
+  blogId       String?
+  scheduleId   String?
+  assetRequest String?
+  sortOrder    Int                   @default(0)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  plan     ContentPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  content  Content?         @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  blog     Blog?            @relation(fields: [blogId], references: [id], onDelete: SetNull)
+  schedule ContentSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  qualityReviews QualityReview[]
+
+  @@index([planId, sortOrder])
+  @@index([status, scheduledFor])
+  @@index([contentId])
+  @@index([blogId])
+  @@index([scheduleId])
+}
+
+model QualityReview {
+  id              String                  @id @default(cuid())
+  targetType      QualityReviewTargetType
+  contentId       String?
+  blogId          String?
+  planItemId      String?
+  overallScore    Int
+  brandScore      Int
+  audienceScore   Int
+  clarityScore    Int
+  channelScore    Int
+  conversionScore Int
+  riskScore       Int
+  verdict         String
+  summary         String
+  strengths       String[]                @default([])
+  issues          String[]                @default([])
+  recommendations String[]                @default([])
+  rewrittenHook   String?
+  rewrittenCTA    String?
+  model           String?
+  createdById     String?
+  createdAt       DateTime                @default(now())
+
+  content   Content?         @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  blog      Blog?            @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  planItem  ContentPlanItem? @relation(fields: [planItemId], references: [id], onDelete: Cascade)
+  createdBy UserAccess?      @relation("QualityReviewCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([targetType, createdAt])
+  @@index([contentId, createdAt])
+  @@index([blogId, createdAt])
+  @@index([planItemId, createdAt])
 }
 
 model ChatThread {
@@ -331,12 +466,27 @@ model BrandProfile {
   id                String   @id @default(cuid())
   brandName         String   @unique
   description       String?
+  positioning       String?
   defaultTone       String?
   targetAudience    String?
   preferredWebsites String[]
   sports            String[]
   regions           String[]
   countries         String[]
+  contentPillars    String[] @default([])
+  audiencePersonas  String[] @default([])
+  keyOffers         String[] @default([])
+  proofPoints       String[] @default([])
+  seoKeywords       String[] @default([])
+  competitors       String[] @default([])
+  voiceExamples     String[] @default([])
+  visualGuidelines  String?
+  instagramGuidelines String?
+  facebookGuidelines  String?
+  linkedinGuidelines  String?
+  blogGuidelines      String?
+  emailGuidelines     String?
+  adGuidelines        String?
   bannedPhrases     String[]
   preferredCTAs     String[]
   createdAt         DateTime @default(now())

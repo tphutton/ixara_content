@@ -29,18 +29,20 @@ type ChatShellProps = {
   initialThreadId: string | null;
   initialThreads: ChatThread[];
   initialMessages: ChatMessage[];
+  initialPrompt?: string;
 };
 
 export function ChatShell({
   initialThreadId,
   initialThreads,
   initialMessages,
+  initialPrompt = "",
 }: ChatShellProps) {
   const router = useRouter();
   const [threads, setThreads] = useState(initialThreads);
   const [messages, setMessages] = useState(initialMessages);
   const [threadId, setThreadId] = useState<string | null>(initialThreadId);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialPrompt);
   const [isPending, startTransition] = useTransition();
   const [lastToolSummaries, setLastToolSummaries] = useState<ToolSummary[]>(
     initialMessages
@@ -243,7 +245,9 @@ export function ChatShell({
               alignItems: "center",
             }}
           >
-            <span className="muted">Database actions run only through server-side tools.</span>
+            <span className="muted">
+              {initialPrompt ? "Planner prompt loaded. Edit it or send when ready." : "Database actions run only through server-side tools."}
+            </span>
             <button className="button button--primary" disabled={isPending} type="submit">
               {isPending ? "Working..." : "Send"}
             </button>

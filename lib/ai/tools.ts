@@ -3,9 +3,13 @@ import {
   AutomationType,
   BlogStatus,
   ConnectedAccountStatus,
+  ContentPlanItemStatus,
+  ContentPlanItemType,
+  ContentPlanStatus,
   ContentStatus,
   ContentType,
   PublishedPostStatus,
+  QualityReviewTargetType,
   ScheduleStatus,
   SocialPlatform,
   type UserAccess,
@@ -18,6 +22,7 @@ import {
   applyBrandRulesToBlog,
   applyBrandRulesToContent,
 } from "@/lib/brand-profiles/rules";
+import { getBrandProfileReadiness } from "@/lib/brand-profiles/intelligence";
 import {
   deleteCampaign,
   getCampaign,
@@ -30,6 +35,9 @@ import {
   type CampaignStatus,
 } from "@/lib/campaigns/types";
 import { prisma } from "@/lib/prisma";
+import { applyContentQualityRecommendations } from "@/lib/quality/apply-recommendations";
+import { runQualityReview } from "@/lib/quality/editorial-review";
+import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/promotion";
 
 type ToolDefinition = {
   type: "function";
@@ -848,8 +856,25 @@ async function listBrandProfilesTool(args: Record<string, unknown>) {
         sports: item.sports,
         regions: item.regions,
         countries: item.countries,
+        contentPillars: item.contentPillars,
+        audiencePersonas: item.audiencePersonas,
+        keyOffers: item.keyOffers,
+        proofPoints: item.proofPoints,
+        seoKeywords: item.seoKeywords,
+        competitors: item.competitors,
+        voiceExamples: item.voiceExamples,
+        visualGuidelines: item.visualGuidelines,
+        channelGuidelines: {
+          instagram: item.instagramGuidelines,
+          facebook: item.facebookGuidelines,
+          linkedin: item.linkedinGuidelines,
+          blog: item.blogGuidelines,
+          email: item.emailGuidelines,
+          ads: item.adGuidelines,
+        },
         bannedPhrases: item.bannedPhrases,
         preferredCTAs: item.preferredCTAs,
+        readiness: getBrandProfileReadiness(item),
       })),
     },
   };
@@ -877,7 +902,10 @@ async function getBrandProfileTool(args: Record<string, unknown>) {
   return {
     toolName: "get_brand_profile",
     summary: `Loaded brand profile "${profile.brandName}".`,
-    payload: profile,
+    payload: {
+      ...profile,
+      readiness: getBrandProfileReadiness(profile),
+    },
   };
 }
 
@@ -892,18 +920,35 @@ async function upsertBrandProfileTool(args: Record<string, unknown>, context: To
     create: {
       brandName,
       description: asOptionalString(args.description),
+      positioning: asOptionalString(args.positioning),
       defaultTone: asOptionalString(args.defaultTone),
       targetAudience: asOptionalString(args.targetAudience),
       preferredWebsites: asStringArray(args.preferredWebsites),
       sports: asStringArray(args.sports),
       regions: asStringArray(args.regions),
       countries: asStringArray(args.countries),
+      contentPillars: asStringArray(args.contentPillars),
+      audiencePersonas: asStringArray(args.audiencePersonas),
+      keyOffers: asStringArray(args.keyOffers),
+      proofPoints: asStringArray(args.proofPoints),
+      seoKeywords: asStringArray(args.seoKeywords),
+      competitors: asStringArray(args.competitors),
+      voiceExamples: asStringArray(args.voiceExamples),
+      visualGuidelines: asOptionalString(args.visualGuidelines),
+      instagramGuidelines: asOptionalString(args.instagramGuidelines),
+      facebookGuidelines: asOptionalString(args.facebookGuidelines),
+      linkedinGuidelines: asOptionalString(args.linkedinGuidelines),
+      blogGuidelines: asOptionalString(args.blogGuidelines),
+      emailGuidelines: asOptionalString(args.emailGuidelines),
+      adGuidelines: asOptionalString(args.adGuidelines),
       bannedPhrases: asStringArray(args.bannedPhrases),
       preferredCTAs: asStringArray(args.preferredCTAs),
     },
     update: {
       description:
         args.description !== undefined ? asOptionalString(args.description) : undefined,
+      positioning:
+        args.positioning !== undefined ? asOptionalString(args.positioning) : undefined,
       defaultTone:
         args.defaultTone !== undefined ? asOptionalString(args.defaultTone) : undefined,
       targetAudience:
@@ -914,6 +959,31 @@ async function upsertBrandProfileTool(args: Record<string, unknown>, context: To
       sports: Array.isArray(args.sports) ? asStringArray(args.sports) : undefined,
       regions: Array.isArray(args.regions) ? asStringArray(args.regions) : undefined,
       countries: Array.isArray(args.countries) ? asStringArray(args.countries) : undefined,
+      contentPillars: Array.isArray(args.contentPillars)
+        ? asStringArray(args.contentPillars)
+        : undefined,
+      audiencePersonas: Array.isArray(args.audiencePersonas)
+        ? asStringArray(args.audiencePersonas)
+        : undefined,
+      keyOffers: Array.isArray(args.keyOffers) ? asStringArray(args.keyOffers) : undefined,
+      proofPoints: Array.isArray(args.proofPoints) ? asStringArray(args.proofPoints) : undefined,
+      seoKeywords: Array.isArray(args.seoKeywords) ? asStringArray(args.seoKeywords) : undefined,
+      competitors: Array.isArray(args.competitors) ? asStringArray(args.competitors) : undefined,
+      voiceExamples: Array.isArray(args.voiceExamples) ? asStringArray(args.voiceExamples) : undefined,
+      visualGuidelines:
+        args.visualGuidelines !== undefined ? asOptionalString(args.visualGuidelines) : undefined,
+      instagramGuidelines:
+        args.instagramGuidelines !== undefined ? asOptionalString(args.instagramGuidelines) : undefined,
+      facebookGuidelines:
+        args.facebookGuidelines !== undefined ? asOptionalString(args.facebookGuidelines) : undefined,
+      linkedinGuidelines:
+        args.linkedinGuidelines !== undefined ? asOptionalString(args.linkedinGuidelines) : undefined,
+      blogGuidelines:
+        args.blogGuidelines !== undefined ? asOptionalString(args.blogGuidelines) : undefined,
+      emailGuidelines:
+        args.emailGuidelines !== undefined ? asOptionalString(args.emailGuidelines) : undefined,
+      adGuidelines:
+        args.adGuidelines !== undefined ? asOptionalString(args.adGuidelines) : undefined,
       bannedPhrases: Array.isArray(args.bannedPhrases)
         ? asStringArray(args.bannedPhrases)
         : undefined,
@@ -937,7 +1007,10 @@ async function upsertBrandProfileTool(args: Record<string, unknown>, context: To
   return {
     toolName: "upsert_brand_profile",
     summary: `${before ? "Updated" : "Created"} brand profile "${profile.brandName}".`,
-    payload: profile,
+    payload: {
+      ...profile,
+      readiness: getBrandProfileReadiness(profile),
+    },
   };
 }
 
@@ -1375,6 +1448,244 @@ async function runAutomationTool(args: Record<string, unknown>, context: ToolCon
   throw new Error("Unsupported automation type.");
 }
 
+async function listContentPlansTool(args: Record<string, unknown>) {
+  const status = asOptionalString(args.status);
+  const brand = asOptionalString(args.brand);
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 25) : 10;
+
+  const plans = await prisma.contentPlan.findMany({
+    where: {
+      status: status ? (status as ContentPlanStatus) : undefined,
+      brand: brand ?? undefined,
+    },
+    include: {
+      _count: { select: { items: true } },
+      items: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        take: 8,
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+  });
+
+  return {
+    toolName: "list_content_plans",
+    summary: `Found ${plans.length} content plan${plans.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: plans.length,
+      plans: plans.map((plan) => ({
+        id: plan.id,
+        title: plan.title,
+        goal: plan.goal,
+        status: plan.status,
+        brand: plan.brand,
+        campaignName: plan.campaignName,
+        startDate: plan.startDate?.toISOString() ?? null,
+        endDate: plan.endDate?.toISOString() ?? null,
+        itemCount: plan._count.items,
+        items: plan.items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          itemType: item.itemType,
+          status: item.status,
+          channel: item.channel,
+          scheduledFor: item.scheduledFor?.toISOString() ?? null,
+        })),
+      })),
+    },
+  };
+}
+
+async function createContentPlanTool(args: Record<string, unknown>, context: ToolContext) {
+  const plan = await prisma.contentPlan.create({
+    data: {
+      title: asRequiredString(args.title, "title"),
+      description: asOptionalString(args.description),
+      goal: asOptionalString(args.goal),
+      status: parseEnumValue(args.status, Object.values(ContentPlanStatus), ContentPlanStatus.draft),
+      startDate: asNullableDate(args.startDate),
+      endDate: asNullableDate(args.endDate),
+      brand: asOptionalString(args.brand),
+      campaignName: asOptionalString(args.campaignName),
+      sourcePrompt: asOptionalString(args.sourcePrompt),
+      createdById: context.access.id,
+      updatedById: context.access.id,
+    },
+  });
+
+  await createActionLog({
+    userId: context.access.id,
+    actionType: "create",
+    targetType: "content_plan",
+    targetId: plan.id,
+    summary: `AI created content plan "${plan.title}"`,
+    afterData: plan,
+    source: "ai",
+  });
+
+  return {
+    toolName: "create_content_plan",
+    summary: `Created content plan "${plan.title}" (${plan.id}).`,
+    payload: {
+      id: plan.id,
+      title: plan.title,
+      status: plan.status,
+      brand: plan.brand,
+      campaignName: plan.campaignName,
+    },
+  };
+}
+
+async function addContentPlanItemTool(args: Record<string, unknown>, context: ToolContext) {
+  const planId = asRequiredString(args.planId, "planId");
+  const plan = await prisma.contentPlan.findUniqueOrThrow({
+    where: { id: planId },
+    include: { _count: { select: { items: true } } },
+  });
+
+  const item = await prisma.contentPlanItem.create({
+    data: {
+      planId,
+      itemType: parseEnumValue(
+        args.itemType,
+        Object.values(ContentPlanItemType),
+        ContentPlanItemType.content,
+      ),
+      status: parseEnumValue(
+        args.status,
+        Object.values(ContentPlanItemStatus),
+        ContentPlanItemStatus.planned,
+      ),
+      title: asRequiredString(args.title, "title"),
+      brief: asOptionalString(args.brief),
+      channel: asOptionalString(args.channel),
+      scheduledFor: asNullableDate(args.scheduledFor),
+      brand: asOptionalString(args.brand) ?? plan.brand,
+      sport: asOptionalString(args.sport),
+      region: asOptionalString(args.region),
+      country: asOptionalString(args.country),
+      campaignName: asOptionalString(args.campaignName) ?? plan.campaignName,
+      contentId: asOptionalString(args.contentId),
+      blogId: asOptionalString(args.blogId),
+      scheduleId: asOptionalString(args.scheduleId),
+      assetRequest: asOptionalString(args.assetRequest),
+      sortOrder: plan._count.items,
+    },
+  });
+
+  await createActionLog({
+    userId: context.access.id,
+    actionType: "create",
+    targetType: "content_plan_item",
+    targetId: item.id,
+    summary: `AI added "${item.title}" to content plan "${plan.title}"`,
+    afterData: item,
+    source: "ai",
+  });
+
+  return {
+    toolName: "add_content_plan_item",
+    summary: `Added "${item.title}" to plan "${plan.title}".`,
+    payload: {
+      id: item.id,
+      planId: item.planId,
+      title: item.title,
+      itemType: item.itemType,
+      status: item.status,
+    },
+  };
+}
+
+async function reviewQualityTool(args: Record<string, unknown>, context: ToolContext) {
+  const targetType = parseEnumValue(
+    args.targetType,
+    Object.values(QualityReviewTargetType),
+    QualityReviewTargetType.content,
+  );
+  const targetId = asRequiredString(args.targetId, "targetId");
+
+  const review = await runQualityReview({
+    targetType,
+    targetId,
+    createdById: context.access.id,
+    source: "ai",
+  });
+
+  return {
+    toolName: "review_quality",
+    summary: `Quality review scored ${review.overallScore}/100 with verdict ${review.verdict}.`,
+    payload: {
+      id: review.id,
+      targetType: review.targetType,
+      targetId,
+      overallScore: review.overallScore,
+      brandScore: review.brandScore,
+      audienceScore: review.audienceScore,
+      clarityScore: review.clarityScore,
+      channelScore: review.channelScore,
+      conversionScore: review.conversionScore,
+      riskScore: review.riskScore,
+      verdict: review.verdict,
+      summary: review.summary,
+      strengths: review.strengths,
+      issues: review.issues,
+      recommendations: review.recommendations,
+      rewrittenHook: review.rewrittenHook,
+      rewrittenCTA: review.rewrittenCTA,
+    },
+  };
+}
+
+async function applyQualityRecommendationsTool(args: Record<string, unknown>, context: ToolContext) {
+  const contentId = asRequiredString(args.contentId, "contentId");
+  const content = await applyContentQualityRecommendations({
+    contentId,
+    userId: context.access.id,
+    source: "ai",
+  });
+
+  return {
+    toolName: "apply_quality_recommendations",
+    summary: `Applied latest quality recommendations to "${content.title}".`,
+    payload: {
+      id: content.id,
+      title: content.title,
+      hook: content.hook,
+      cta: content.cta,
+      status: content.status,
+      updatedAt: content.updatedAt.toISOString(),
+    },
+  };
+}
+
+async function promoteContentPlanItemTool(args: Record<string, unknown>, context: ToolContext) {
+  const planItemId = asRequiredString(args.planItemId, "planItemId");
+  const targetInput = asOptionalString(args.target);
+  const target: PlanPromotionTarget =
+    targetInput === "blog" || targetInput === "schedule" ? targetInput : "content";
+
+  const result = await promoteContentPlanItem({
+    planItemId,
+    target,
+    access: context.access,
+    source: "ai",
+  });
+
+  return {
+    toolName: "promote_content_plan_item",
+    summary: `Promoted plan item "${result.item.title}" to ${target}.`,
+    payload: {
+      itemId: result.item.id,
+      itemStatus: result.item.status,
+      contentId: result.content?.id ?? null,
+      blogId: result.blog?.id ?? null,
+      scheduleId: result.schedule?.id ?? null,
+      target,
+    },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -1401,6 +1712,12 @@ const toolHandlers: Record<string, ToolHandler> = {
   list_automations: async (args) => listAutomationsTool(args),
   get_automation_health: async () => getAutomationHealthTool(),
   run_automation: runAutomationTool,
+  list_content_plans: async (args) => listContentPlansTool(args),
+  create_content_plan: createContentPlanTool,
+  add_content_plan_item: addContentPlanItemTool,
+  review_quality: reviewQualityTool,
+  apply_quality_recommendations: applyQualityRecommendationsTool,
+  promote_content_plan_item: promoteContentPlanItemTool,
 };
 
 export const contentOpsTools: ToolDefinition[] = [
@@ -1771,12 +2088,27 @@ export const contentOpsTools: ToolDefinition[] = [
         properties: {
           brandName: { type: "string" },
           description: { type: "string" },
+          positioning: { type: "string" },
           defaultTone: { type: "string" },
           targetAudience: { type: "string" },
           preferredWebsites: { type: "array", items: { type: "string" } },
           sports: { type: "array", items: { type: "string" } },
           regions: { type: "array", items: { type: "string" } },
           countries: { type: "array", items: { type: "string" } },
+          contentPillars: { type: "array", items: { type: "string" } },
+          audiencePersonas: { type: "array", items: { type: "string" } },
+          keyOffers: { type: "array", items: { type: "string" } },
+          proofPoints: { type: "array", items: { type: "string" } },
+          seoKeywords: { type: "array", items: { type: "string" } },
+          competitors: { type: "array", items: { type: "string" } },
+          voiceExamples: { type: "array", items: { type: "string" } },
+          visualGuidelines: { type: "string" },
+          instagramGuidelines: { type: "string" },
+          facebookGuidelines: { type: "string" },
+          linkedinGuidelines: { type: "string" },
+          blogGuidelines: { type: "string" },
+          emailGuidelines: { type: "string" },
+          adGuidelines: { type: "string" },
           bannedPhrases: { type: "array", items: { type: "string" } },
           preferredCTAs: { type: "array", items: { type: "string" } },
         },
@@ -1947,6 +2279,122 @@ export const contentOpsTools: ToolDefinition[] = [
           id: { type: "string" },
           runDue: { type: "boolean" },
         },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_content_plans",
+      description: "List saved content plans with their first planned items.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: Object.values(ContentPlanStatus) },
+          brand: { type: "string" },
+          limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_content_plan",
+      description: "Create a saved content plan that can hold briefs, schedule targets, asset requests, and automation work.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          goal: { type: "string" },
+          status: { type: "string", enum: Object.values(ContentPlanStatus) },
+          startDate: { type: "string" },
+          endDate: { type: "string" },
+          brand: { type: "string" },
+          campaignName: { type: "string" },
+          sourcePrompt: { type: "string" },
+        },
+        required: ["title"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_content_plan_item",
+      description: "Add one planned content, blog, schedule, asset request, or automation item to an existing content plan.",
+      parameters: {
+        type: "object",
+        properties: {
+          planId: { type: "string" },
+          itemType: { type: "string", enum: Object.values(ContentPlanItemType) },
+          status: { type: "string", enum: Object.values(ContentPlanItemStatus) },
+          title: { type: "string" },
+          brief: { type: "string" },
+          channel: { type: "string" },
+          scheduledFor: { type: "string" },
+          brand: { type: "string" },
+          sport: { type: "string" },
+          region: { type: "string" },
+          country: { type: "string" },
+          campaignName: { type: "string" },
+          contentId: { type: "string" },
+          blogId: { type: "string" },
+          scheduleId: { type: "string" },
+          assetRequest: { type: "string" },
+        },
+        required: ["planId", "title"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "review_quality",
+      description: "Run and save a strict AI editorial quality review for a content record, blog, or content plan item.",
+      parameters: {
+        type: "object",
+        properties: {
+          targetType: { type: "string", enum: Object.values(QualityReviewTargetType) },
+          targetId: { type: "string" },
+        },
+        required: ["targetType", "targetId"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "apply_quality_recommendations",
+      description: "Apply the latest saved quality review recommendations to a short-form content record.",
+      parameters: {
+        type: "object",
+        properties: {
+          contentId: { type: "string" },
+        },
+        required: ["contentId"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "promote_content_plan_item",
+      description: "Promote a saved content plan item into a content record, blog record, or schedule entry.",
+      parameters: {
+        type: "object",
+        properties: {
+          planItemId: { type: "string" },
+          target: { type: "string", enum: ["content", "blog", "schedule"] },
+        },
+        required: ["planItemId", "target"],
         additionalProperties: false,
       },
     },

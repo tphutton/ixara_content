@@ -4,6 +4,7 @@ import {
 } from "openai/resources/chat/completions";
 import { prisma } from "@/lib/prisma";
 import { executeContentOpsTool, contentOpsTools } from "@/lib/ai/tools";
+import { compactBrandContext, getBrandProfileReadiness } from "@/lib/brand-profiles/intelligence";
 import { getOpenAIClient } from "@/lib/openai";
 import { type CurrentUserAccess } from "@/lib/auth/user-access";
 
@@ -32,6 +33,11 @@ Rules:
 - Use asset tools when users need to find creative, verify available media, or attach WordPress-backed assets to records.
 - Use automation tools when users ask about recurring workflows, automation health, upcoming runs, or when they want to trigger a safe automation manually.
 - Use analytics tools when users ask what performed well, what underperformed, which accounts are connected, or how past posts have done.
+- Treat quality as a product feature, not a vibe. When users ask whether content is good enough, ready, publishable, on-brand, high quality, or "world class", use the quality review tool and return concrete edits.
+- When the user asks you to improve an existing short-form content record after a quality review, use the apply quality recommendations tool instead of manually rewriting in chat.
+- When the user asks to turn a saved plan item into production work, use the promote content plan item tool so the plan remains linked to created content, blogs, or schedule entries.
+- For generation requests, aim for operator-ready output: specific audience, strong hook, brand proof, clear CTA, channel fit, asset direction, and no generic filler.
+- If a draft has weak brand context, say so and recommend the missing brand-profile fields rather than pretending certainty.
 `.trim();
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL ?? "gpt-5-mini";
@@ -64,25 +70,8 @@ async function getBrandProfilePromptContext() {
 
   return profiles
     .map((profile) => {
-      const details = [
-        `Brand: ${profile.brandName}`,
-        profile.defaultTone ? `Tone: ${profile.defaultTone}` : null,
-        profile.targetAudience ? `Audience: ${profile.targetAudience}` : null,
-        profile.preferredWebsites.length > 0
-          ? `Websites: ${profile.preferredWebsites.join(", ")}`
-          : null,
-        profile.sports.length > 0 ? `Sports: ${profile.sports.join(", ")}` : null,
-        profile.regions.length > 0 ? `Regions: ${profile.regions.join(", ")}` : null,
-        profile.countries.length > 0 ? `Countries: ${profile.countries.join(", ")}` : null,
-        profile.preferredCTAs.length > 0
-          ? `Preferred CTAs: ${profile.preferredCTAs.join(", ")}`
-          : null,
-        profile.bannedPhrases.length > 0
-          ? `Banned phrases: ${profile.bannedPhrases.join(", ")}`
-          : null,
-      ].filter(Boolean);
-
-      return `- ${details.join(" | ")}`;
+      const readiness = getBrandProfileReadiness(profile);
+      return `- ${compactBrandContext(profile)} | AI readiness: ${readiness.score}% (${readiness.status})`;
     })
     .join("\n");
 }

@@ -80,6 +80,145 @@ export function BrandProfileForm({
         />
       </Field>
 
+      <Field htmlFor="positioning" label="Positioning">
+        <textarea
+          defaultValue={profile?.positioning ?? ""}
+          id="positioning"
+          name="positioning"
+          rows={3}
+        />
+      </Field>
+
+      <div className="form-grid form-grid--2">
+        <Field htmlFor="contentPillars" hint="Comma separated" label="Content pillars">
+          <textarea
+            defaultValue={formatArray(profile?.contentPillars ?? [])}
+            id="contentPillars"
+            name="contentPillars"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="audiencePersonas" hint="Comma separated" label="Audience personas">
+          <textarea
+            defaultValue={formatArray(profile?.audiencePersonas ?? [])}
+            id="audiencePersonas"
+            name="audiencePersonas"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="keyOffers" hint="Comma separated" label="Key offers">
+          <textarea
+            defaultValue={formatArray(profile?.keyOffers ?? [])}
+            id="keyOffers"
+            name="keyOffers"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="proofPoints" hint="Comma separated" label="Proof points">
+          <textarea
+            defaultValue={formatArray(profile?.proofPoints ?? [])}
+            id="proofPoints"
+            name="proofPoints"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="seoKeywords" hint="Comma separated" label="SEO keywords">
+          <textarea
+            defaultValue={formatArray(profile?.seoKeywords ?? [])}
+            id="seoKeywords"
+            name="seoKeywords"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="competitors" hint="Comma separated" label="Competitors / references">
+          <textarea
+            defaultValue={formatArray(profile?.competitors ?? [])}
+            id="competitors"
+            name="competitors"
+            rows={3}
+          />
+        </Field>
+      </div>
+
+      <Field htmlFor="voiceExamples" hint="Comma separated examples of on-brand copy" label="Voice examples">
+        <textarea
+          defaultValue={formatArray(profile?.voiceExamples ?? [])}
+          id="voiceExamples"
+          name="voiceExamples"
+          rows={4}
+        />
+      </Field>
+
+      <Field htmlFor="visualGuidelines" label="Visual guidelines">
+        <textarea
+          defaultValue={profile?.visualGuidelines ?? ""}
+          id="visualGuidelines"
+          name="visualGuidelines"
+          rows={3}
+        />
+      </Field>
+
+      <div className="form-grid form-grid--2">
+        <Field htmlFor="instagramGuidelines" label="Instagram guidelines">
+          <textarea
+            defaultValue={profile?.instagramGuidelines ?? ""}
+            id="instagramGuidelines"
+            name="instagramGuidelines"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="facebookGuidelines" label="Facebook guidelines">
+          <textarea
+            defaultValue={profile?.facebookGuidelines ?? ""}
+            id="facebookGuidelines"
+            name="facebookGuidelines"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="linkedinGuidelines" label="LinkedIn guidelines">
+          <textarea
+            defaultValue={profile?.linkedinGuidelines ?? ""}
+            id="linkedinGuidelines"
+            name="linkedinGuidelines"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="blogGuidelines" label="Blog guidelines">
+          <textarea
+            defaultValue={profile?.blogGuidelines ?? ""}
+            id="blogGuidelines"
+            name="blogGuidelines"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="emailGuidelines" label="Email guidelines">
+          <textarea
+            defaultValue={profile?.emailGuidelines ?? ""}
+            id="emailGuidelines"
+            name="emailGuidelines"
+            rows={3}
+          />
+        </Field>
+
+        <Field htmlFor="adGuidelines" label="Ad guidelines">
+          <textarea
+            defaultValue={profile?.adGuidelines ?? ""}
+            id="adGuidelines"
+            name="adGuidelines"
+            rows={3}
+          />
+        </Field>
+      </div>
+
       <Field htmlFor="bannedPhrases" hint="Comma separated" label="Banned phrases">
         <textarea
           defaultValue={formatArray(profile?.bannedPhrases ?? [])}

@@ -23,6 +23,12 @@ export const ATLAS_ALLOWED_TOOLS = new Set([
   "get_top_performing_posts",
   "list_automations",
   "get_automation_health",
+  "list_content_plans",
+  "create_content_plan",
+  "add_content_plan_item",
+  "review_quality",
+  "apply_quality_recommendations",
+  "promote_content_plan_item",
 ]);
 
 export async function executeAtlasContentTool(

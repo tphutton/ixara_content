@@ -3,6 +3,8 @@
 ## Project Overview
 Production-ready internal web application for AI-assisted content operations, built with Next.js App Router, Clerk authentication, PostgreSQL, Prisma, and the OpenAI SDK.
 
+The product direction is now expanding into a planner-first Content Command Platform. The extended plan lives in `CONTENT_COMMAND_PLATFORM_BUILD.md`.
+
 ## Architecture Decisions
 - Next.js App Router with route groups for public auth pages and protected workspace pages.
 - Clerk manages identity; PostgreSQL stores internal access and approval metadata through `UserAccess`.
@@ -30,6 +32,17 @@ Production-ready internal web application for AI-assisted content operations, bu
 - The blog workspace now uses a clearer editorial UX with card-based list views, review-first article detail pages, and a dedicated edit overlay instead of forcing every user straight into a long form.
 - The schedule workspace now includes both monthly and weekly planning views, with campaigns clearly treated as all-day planning blocks and scheduled posts shown as timed entries.
 - Chat history replay is now more resilient because assistant tool-call messages are persisted correctly and orphaned legacy tool messages are skipped.
+- The first Content Command Platform slice is now in place with a `/planner` cockpit that rolls campaign windows, schedule readiness, draft queues, asset availability, automation health, brand coverage, channel load, and performance signals into one planning surface.
+- The content app shell has been visually aligned with the dark Ixara Command Center style, including the full Ixara PNG logo in the sidebar and dark command surfaces across cards, forms, calendars, chat, planner, and editor overlays.
+- Planner AI actions can now load strategic planning prompts directly into Quill, and `/api/external/planner/summary` exposes the planner intelligence to Atlas / Command Center through the existing external API key guard.
+- The sidebar is now grouped into Command, Creation, Operations, Intelligence, and Admin sections so the workspace reads as a command product rather than one long nav list.
+- Brand profiles now include deeper AI context fields for positioning, pillars, personas, offers, proof points, SEO, competitors, voice examples, visual guidance, and channel-specific rules, with readiness scoring in Settings and richer Quill/tool context.
+- Saved content plans are now part of the product model: `/plans` stores planning artifacts and ordered plan items, while Quill and Atlas can list plans, create plans, and add plan items.
+- The UI simplification pass has started with a quieter plan workspace, flatter buttons, narrower sidebar, and reusable quiet list/panel patterns for future page cleanup.
+- AI quality reviews are now persisted for content, blogs, and plan items, with scored editorial feedback available in the UI and through Quill/Atlas.
+- Short-form content can now apply the latest quality review recommendations through a controlled AI rewrite that preserves audit logs and brand-rule checks.
+- Schedule approval now surfaces quality warnings and records approval overrides when content is below the quality gate.
+- Plan items can now be promoted into content, blog, or schedule records from the UI and Quill/Atlas tool layer.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -69,9 +82,31 @@ Production-ready internal web application for AI-assisted content operations, bu
 - [x] Rebuilt the blog workspace UX with a more professional queue view, structured article overview, and focused update overlay.
 - [x] Upgraded the schedule calendar with a polished weekly view that separates all-day campaigns from timed publishing items.
 - [x] Fixed Quill thread replay so stored tool messages no longer break future chat requests.
+- [x] Added the first `/planner` command cockpit for world-class content planning foundations.
+- [x] Restyled the content workspace to match the Ixara Command Center dark shell and logo treatment.
+- [x] Added planner-to-Quill prompt handoff and an authenticated external planner summary endpoint for Atlas.
+- [x] Grouped the sidebar navigation into clearer workspace sections.
+- [x] Expanded Brand Profiles into a richer Brand Intelligence layer for AI-safe content generation.
+- [x] Added saved content plans with plan-item briefs for content, blogs, schedule work, asset requests, and automation work.
+- [x] Added Quill/Atlas content-plan tools and exposed Plans as a first-class Command page.
+- [x] Began reducing UI complexity with quieter global controls and a simpler Plans workflow.
+- [x] Added a saved AI quality gate with scores, verdicts, issues, recommendations, and suggested hook/CTA rewrites.
+- [x] Added quality review panels to content/blog detail pages and review actions to plan items.
+- [x] Added Quill/Atlas `review_quality` tool.
+- [x] Added short-form `apply_quality_recommendations` tool/action for controlled post-review rewrites.
+- [x] Added quality-aware schedule approval warnings and override logging.
+- [x] Added plan-item promotion into content, blog, and schedule records.
+- [x] Added Quill/Atlas `promote_content_plan_item` tool.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
+- [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
+- [x] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
+- [ ] Add guided promotion from plan item into channel variants and approvals.
+- [ ] Continue simplifying Dashboard, Planner, Content, and Settings around the new quiet-panel pattern.
+- [ ] Extend quality recommendation application to blogs and plan items.
+- [ ] Add a quality dashboard for weak drafts, unrevised reviews, and score trends.
+- [ ] Seed or complete brand profiles until core brands reach strong AI-readiness scores.
 
 ## Pending
 - [ ] Add OAuth-based live platform connections starting with Meta so registered social accounts can sync real publishing and analytics data.
@@ -92,6 +127,8 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `Blog.brand` now links blog records into the same brand-rule system used by content, campaigns, and schedule metadata.
 - `AutomationWorkflow` and `AutomationRun` now provide the basis for controlled recurring content generation and future scheduler execution.
 - `ConnectedAccount`, `PublishedPost`, and `PostAnalyticsSnapshot` now hold the future social connection, publishing history, and performance intelligence layer.
+- `ContentPlan` and `ContentPlanItem` now persist AI/manual planning decisions before they become content, blog, schedule, asset, or automation work.
+- `QualityReview` stores AI editorial scoring for content, blogs, and content plan items.
 - `Blog.legacyExternalId`, `Blog.legacyBlogId`, and `Blog.legacyZohoId` preserve deprecated blog system identifiers so compatibility APIs and imports remain stable during migration.
 
 ## Pages / Routes
@@ -101,6 +138,10 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/pending-approval`
 - `/api/chat`
 - `/dashboard`
+- `/planner`
+- `/plans`
+- `/plans/new`
+- `/plans/[id]`
 - `/chat`
 - `/assets`
 - `/campaigns`
@@ -128,6 +169,7 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `/api/blogs/[id]`
 - `/api/social/meta/start`
 - `/api/social/meta/callback`
+- `/api/external/planner/summary`
 - `/blogs/[id]?edit=1`
 
 ## Known Issues / Notes
@@ -135,6 +177,9 @@ Production-ready internal web application for AI-assisted content operations, bu
 - The admin approvals page requires an approved admin account; set `INITIAL_ADMIN_EMAIL` before first sign-in to bootstrap the first admin safely.
 - Dashboard and chat are both now backed by live Prisma data and server-side actions.
 - Chat is now live with persisted threads and server-side tool execution.
+- `/planner` is now the recommended top-level operating view for content planning. `/schedule` remains the detailed calendar/table workspace.
+- `/plans` is now the durable planning workspace where Quill, Atlas, or operators can store campaign and weekly plans before creating records.
+- Content and blog detail pages now expose a quality gate that saves AI editorial reviews before publishing decisions.
 - Content, blogs, and schedule are now Prisma-backed and require live database connectivity at runtime.
 - Campaigns are served from the external TechSport campaigns API and require `CAMPAIGNS_API_KEY`.
 - Campaign create/update/delete still depend on the upstream API being reachable at request time, but list/dashboard/chat now fail more gracefully.
@@ -158,6 +203,10 @@ Production-ready internal web application for AI-assisted content operations, bu
 - Finalize deployment envs in Railway, Clerk, OpenAI, campaigns API, and WordPress sync.
 - Connect the protected automation runner to a real scheduled trigger in Railway or another job system.
 - Add the next automation layer: more workflow types beyond weekly social content, plus deeper safety controls and operator reporting.
+- Expand the new planner cockpit with Atlas-generated weekly plans, drag-and-drop scheduling, and brand/channel coverage heatmaps.
+- Add plan-item promotion actions that create content records, blogs, and schedule entries from approved plan items.
+- Continue the UI simplification pass across high-density pages, starting with Dashboard and Planner.
+- Extend guided rewrite actions from saved recommendations into blogs and plan items, then add score trends.
 - Add bulk actions, notifications, and approval inbox patterns so operators can move faster once automation volume increases.
 - Build the first live OAuth connection flow, starting with Meta account authorization, token handling, and background analytics sync.
 - Expand the compatibility API layer only where older clients still need it, then retire legacy blog consumers once the new client paths are fully adopted.
@@ -189,3 +238,9 @@ Production-ready internal web application for AI-assisted content operations, bu
 - `list_automations`: Read saved automation workflows with optional status/type filters.
 - `get_automation_health`: Read automation health counts including due runs and recent failures.
 - `run_automation`: Run a specific workflow by id or trigger all due workflows.
+- `list_content_plans`: Read saved content plans and their first planned items.
+- `create_content_plan`: Create a saved content plan.
+- `add_content_plan_item`: Add a planned content, blog, schedule, asset request, or automation item to a plan.
+- `review_quality`: Run and save a strict editorial quality review for content, blogs, or plan items.
+- `apply_quality_recommendations`: Apply the latest saved quality recommendations to a short-form content record.
+- `promote_content_plan_item`: Promote a saved plan item into content, blog, or schedule records.

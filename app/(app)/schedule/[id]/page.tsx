@@ -6,6 +6,7 @@ import { ScheduleForm } from "@/components/schedule/schedule-form";
 import { prisma } from "@/lib/prisma";
 import { ReadinessPanel } from "@/components/schedule/readiness-panel";
 import { getScheduleReadiness } from "@/lib/schedule/readiness";
+import { getQualityGate } from "@/lib/quality/gates";
 import {
   approveScheduleAction,
   clearScheduleApprovalAction,
@@ -33,6 +34,7 @@ export default async function ScheduleDetailPage({ params }: ScheduleDetailPageP
             targetAudience: true,
             primaryAssetId: true,
             assetImage: true,
+            qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
           },
         },
         blog: {
@@ -42,6 +44,7 @@ export default async function ScheduleDetailPage({ params }: ScheduleDetailPageP
             websites: true,
             featureAssetId: true,
             featureImage: true,
+            qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
           },
         },
         approvedBy: {
@@ -80,6 +83,9 @@ export default async function ScheduleDetailPage({ params }: ScheduleDetailPageP
     content: schedule.content,
     blog: schedule.blog,
   });
+  const latestQualityReview =
+    schedule.content?.qualityReviews[0] ?? schedule.blog?.qualityReviews[0] ?? null;
+  const qualityGate = getQualityGate(latestQualityReview);
 
   return (
     <section className="page-shell">
@@ -115,6 +121,28 @@ export default async function ScheduleDetailPage({ params }: ScheduleDetailPageP
               Use approval to mark which schedule entries are safe for later automation and
               publishing queues.
             </p>
+            <div className="quality-approval-warning" data-ready={qualityGate.ready}>
+              <strong>{qualityGate.ready ? "Quality gate passed" : "Quality gate warning"}</strong>
+              <p className="muted">
+                {qualityGate.ready
+                  ? qualityGate.label
+                  : qualityGate.reasons.join(" ")}
+              </p>
+              {latestQualityReview ? (
+                <Link
+                  className="button button--secondary"
+                  href={
+                    schedule.contentId
+                      ? `/content/${schedule.contentId}`
+                      : schedule.blogId
+                        ? `/blogs/${schedule.blogId}`
+                        : "/schedule"
+                  }
+                >
+                  Open quality review
+                </Link>
+              ) : null}
+            </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
               {schedule.approvedById ? (
@@ -127,8 +155,11 @@ export default async function ScheduleDetailPage({ params }: ScheduleDetailPageP
                 </form>
               ) : (
                 <form action={approveAction}>
+                  {!qualityGate.ready ? (
+                    <input name="qualityOverride" type="hidden" value="true" />
+                  ) : null}
                   <SubmitButton
-                    label="Approve for queue"
+                    label={qualityGate.ready ? "Approve for queue" : "Approve with warning"}
                     pendingLabel="Approving..."
                   />
                 </form>
