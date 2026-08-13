@@ -37,6 +37,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { applyContentQualityRecommendations } from "@/lib/quality/apply-recommendations";
 import { runQualityReview } from "@/lib/quality/editorial-review";
+import { getQualityCommandSummary } from "@/lib/quality/summary";
 import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/promotion";
 
 type ToolDefinition = {
@@ -1637,6 +1638,39 @@ async function reviewQualityTool(args: Record<string, unknown>, context: ToolCon
   };
 }
 
+async function getQualitySummaryTool() {
+  const summary = await getQualityCommandSummary();
+
+  return {
+    toolName: "get_quality_summary",
+    summary: `${summary.metrics[2]?.value ?? 0} reviewed item${summary.metrics[2]?.value === 1 ? "" : "s"} need work and ${summary.metrics[3]?.value ?? 0} active item${summary.metrics[3]?.value === 1 ? "" : "s"} are missing review.`,
+    payload: {
+      metrics: summary.metrics,
+      weakReviews: summary.weakReviews.slice(0, 10).map((review) => ({
+        id: review.id,
+        targetType: review.targetType,
+        targetTitle: review.targetTitle,
+        href: review.href,
+        brand: review.brand,
+        verdict: review.verdict,
+        overallScore: review.overallScore,
+        riskScore: review.riskScore,
+        summary: review.summary,
+        recommendations: review.recommendations.slice(0, 3),
+      })),
+      missingReviewItems: summary.missingReviewItems.slice(0, 10).map((item) => ({
+        id: item.id,
+        title: item.title,
+        type: item.type,
+        href: item.href,
+        brand: item.brand,
+        status: item.status,
+      })),
+      publishReadyCount: summary.publishReadyCount,
+    },
+  };
+}
+
 async function applyQualityRecommendationsTool(args: Record<string, unknown>, context: ToolContext) {
   const contentId = asRequiredString(args.contentId, "contentId");
   const content = await applyContentQualityRecommendations({
@@ -1715,6 +1749,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   list_content_plans: async (args) => listContentPlansTool(args),
   create_content_plan: createContentPlanTool,
   add_content_plan_item: addContentPlanItemTool,
+  get_quality_summary: async () => getQualitySummaryTool(),
   review_quality: reviewQualityTool,
   apply_quality_recommendations: applyQualityRecommendationsTool,
   promote_content_plan_item: promoteContentPlanItemTool,
@@ -2348,6 +2383,18 @@ export const contentOpsTools: ToolDefinition[] = [
           assetRequest: { type: "string" },
         },
         required: ["planId", "title"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_quality_summary",
+      description: "Get the editorial quality command summary, including weak reviewed work and active items missing reviews.",
+      parameters: {
+        type: "object",
+        properties: {},
         additionalProperties: false,
       },
     },

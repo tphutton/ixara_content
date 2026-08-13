@@ -44,6 +44,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Schedule approval now surfaces quality warnings and records approval overrides when content is below the quality gate.
 - Plan items can now be promoted into content, blog, or schedule records from the UI and Quill/Atlas tool layer.
 - Content, schedule, plan, and settings detail pages now use review-first layouts with long forms moved into modal overlays.
+- `/quality` now gives operators and Atlas a command view of weak reviewed work, missing reviews, and recent quality decisions.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -99,6 +100,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added plan-item promotion into content, blog, and schedule records.
 - [x] Added Quill/Atlas `promote_content_plan_item` tool.
 - [x] Replaced the busiest inline forms on content, schedule, plan, and settings pages with modal editing flows.
+- [x] Added the `/quality` command page and Quill/Atlas `get_quality_summary` tool.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
@@ -247,3 +249,4 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `review_quality`: Run and save a strict editorial quality review for content, blogs, or plan items.
 - `apply_quality_recommendations`: Apply the latest saved quality recommendations to a short-form content record.
 - `promote_content_plan_item`: Promote a saved plan item into content, blog, or schedule records.
+- `get_quality_summary`: Read the quality command summary for weak work and active items missing reviews.

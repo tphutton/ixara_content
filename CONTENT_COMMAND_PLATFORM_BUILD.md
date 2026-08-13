@@ -81,6 +81,8 @@ Status: started
 - [x] Score brand fit, audience fit, clarity, channel fit, conversion strength, and publishing risk.
 - [x] Add quality panels to content/blog detail pages.
 - [x] Add plan-item quality review from the saved plan workspace.
+- [x] Add `/quality` as the editorial quality command page for weak work, missing reviews, and recent decisions.
+- [x] Add Quill/Atlas `get_quality_summary` tool.
 - [x] Add Quill/Atlas `review_quality` tool.
 - [ ] Block or warn before approving/scheduling items with low latest quality scores.
 - [x] Warn before approving schedule entries with missing or low quality-review coverage.
@@ -150,6 +152,7 @@ Near-term integration targets:
 - The new `/planner` route is additive and does not replace `/schedule`.
 - `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan creation -> plan-item approval -> promotion into content/blog/schedule records.
 - Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> quality review -> apply recommendations -> re-review -> approve/schedule/publish.
+- `/quality` is now the operator queue for finding weak reviewed work and active items missing a review.
 - Social publishing is still the biggest missing capability before the product becomes end-to-end.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, but saved profile quality still depends on the operator filling the readiness gaps in Settings.
 - UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages. The next pass should migrate Dashboard, Planner, and remaining creation/admin pages away from nested card-heavy layouts toward quiet lists and focused command strips.

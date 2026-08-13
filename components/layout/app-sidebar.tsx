@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Image as ImageIcon,
   Megaphone,
+  Gauge,
   LayoutDashboard,
   MessageSquareText,
   Newspaper,
@@ -48,6 +49,7 @@ const navGroups = [
   {
     label: "Intelligence",
     items: [
+      { href: "/quality", label: "Quality", icon: Gauge },
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/social-accounts", label: "Social", icon: ShieldCheck },
     ],
