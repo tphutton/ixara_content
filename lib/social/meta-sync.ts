@@ -6,6 +6,8 @@ import {
 import { createActionLog } from "@/lib/actions/action-log";
 import { prisma } from "@/lib/prisma";
 import {
+  MetaReauthRequiredError,
+  assertMetaAccountReadyForSync,
   fetchFacebookPagePosts,
   fetchInstagramMedia,
   fetchInstagramMediaInsights,
@@ -112,10 +114,11 @@ async function syncFacebookAccount(account: ConnectedAccount) {
     throw new Error("Connected account is missing the Meta page ID.");
   }
 
+  assertMetaAccountReadyForSync(account);
   const token = getStoredMetaToken(account);
 
   if (!token) {
-    throw new Error("Connected account is missing a stored Meta access token.");
+    throw new MetaReauthRequiredError("Meta account is missing an access token. Reconnect the account.");
   }
 
   const posts = await fetchFacebookPagePosts(account.externalAccountId, token);
@@ -147,10 +150,11 @@ async function syncFacebookAccount(account: ConnectedAccount) {
 }
 
 async function syncInstagramAccount(account: ConnectedAccount) {
+  assertMetaAccountReadyForSync(account);
   const token = getStoredMetaToken(account);
 
   if (!token) {
-    throw new Error("Connected account is missing a stored Meta access token.");
+    throw new MetaReauthRequiredError("Meta account is missing an access token. Reconnect the account.");
   }
 
   const igBusinessId =
@@ -194,7 +198,8 @@ async function syncInstagramAccount(account: ConnectedAccount) {
 
 export async function syncConnectedMetaAccount(input: {
   accountId: string;
-  userId: string;
+  userId?: string;
+  source?: "manual" | "scheduled" | "ai";
 }) {
   const account = await prisma.connectedAccount.findUniqueOrThrow({
     where: { id: input.accountId },
@@ -224,17 +229,19 @@ export async function syncConnectedMetaAccount(input: {
       },
     });
 
-    await createActionLog({
-      userId: input.userId,
-      actionType: "sync",
-      targetType: "connected_account",
-      targetId: account.id,
-      summary: `Synced ${updatedAccount.platform} account "${updatedAccount.accountName}" from Meta`,
-      afterData: {
-        syncedPostIds: syncedIds,
-      },
-      source: "manual",
-    });
+    if (input.userId) {
+      await createActionLog({
+        userId: input.userId,
+        actionType: "sync",
+        targetType: "connected_account",
+        targetId: account.id,
+        summary: `Synced ${updatedAccount.platform} account "${updatedAccount.accountName}" from Meta`,
+        afterData: {
+          syncedPostIds: syncedIds,
+        },
+        source: input.source ?? "manual",
+      });
+    }
 
     return {
       syncedCount: syncedIds.length,
@@ -242,10 +249,12 @@ export async function syncConnectedMetaAccount(input: {
       account: updatedAccount,
     };
   } catch (error) {
+    const needsReauth = error instanceof MetaReauthRequiredError;
+
     await prisma.connectedAccount.update({
       where: { id: account.id },
       data: {
-        status: ConnectedAccountStatus.error,
+        status: needsReauth ? ConnectedAccountStatus.needs_reauth : ConnectedAccountStatus.error,
         lastSyncStatus: error instanceof Error ? error.message : "Meta sync failed.",
       },
     });

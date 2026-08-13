@@ -627,6 +627,97 @@ textarea {
   font-size: 1.4rem;
 }
 
+.dashboard-command-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 18px;
+  align-items: start;
+}
+
+.dashboard-command-grid__main {
+  min-width: 0;
+}
+
+.dashboard-breakdown--quiet {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.dashboard-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dashboard-mini-metric {
+  display: grid;
+  gap: 8px;
+  min-height: 130px;
+  padding: 16px;
+  border: 1px solid rgba(192, 28, 28, 0.16);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.38);
+}
+
+.dashboard-mini-metric h3,
+.dashboard-mini-metric p {
+  margin: 0;
+}
+
+.dashboard-mini-metric h3 {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.dashboard-mini-metric strong {
+  display: block;
+  font-size: 1.8rem;
+}
+
+.dashboard-activity-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.quick-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 12px;
+  border: 1px solid rgba(192, 28, 28, 0.18);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.38);
+  color: var(--text);
+  font-weight: 700;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    transform 150ms ease;
+}
+
+.quick-action:hover {
+  border-color: rgba(192, 28, 28, 0.42);
+  background: rgba(192, 28, 28, 0.09);
+  transform: translateY(-1px);
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.social-account-row,
+.automation-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .quiet-meta {
   display: flex;
   gap: 10px;
@@ -2047,8 +2138,13 @@ textarea {
   .blog-detail-grid,
   .blog-list-card__meta,
   .plan-layout,
+  .dashboard-command-grid,
   .planner-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-mini-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .planner-campaign-grid {
@@ -2089,6 +2185,11 @@ textarea {
   }
 
   .dashboard-breakdown {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-mini-grid,
+  .quick-action-grid {
     grid-template-columns: 1fr;
   }
 

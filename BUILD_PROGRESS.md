@@ -47,6 +47,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `/quality` now gives operators and Atlas a command view of weak reviewed work, missing reviews, and recent quality decisions.
 - `/planner` can now generate a saved 14-day AI content plan and plan items from current command signals.
 - Short-form content now supports saved channel variants for Instagram, Facebook, LinkedIn, email, and other requested platforms.
+- Dashboard, Social Accounts, Analytics, and Automations now use quieter command layouts with focused overlays and row-level actions instead of dense nested cards and always-visible forms.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -82,6 +83,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added a second automation type for structured blog draft generation, including runner support, Quill support, and database-backed execution.
 - [x] Added connected social account management, published post history, analytics snapshots, analytics UI, and Quill access to historical performance data.
 - [x] Added the first Meta OAuth and sync scaffold so Facebook and Instagram account records can be connected and synced once credentials are configured.
+- [x] Added a protected due-sync endpoint and Quill/Atlas tool for active Meta accounts so scheduled analytics ingestion can run without a manual click.
+- [x] Added Meta token expiry checks so active accounts move to `needs_reauth` before scheduled syncs silently fail.
 - [x] Added a legacy blog import path plus compatibility API endpoints that preserve old blog IDs and response fields for deprecated clients.
 - [x] Rebuilt the blog workspace UX with a more professional queue view, structured article overview, and focused update overlay.
 - [x] Upgraded the schedule calendar with a polished weekly view that separates all-day campaigns from timed publishing items.
@@ -108,21 +111,23 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added Quill/Atlas `generate_content_variants` tool.
 
 ## In Progress
-- [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
+- [x] Add the first scheduled sync endpoint on top of the new Meta account and analytics foundation.
+- [ ] Attach the social sync endpoint to a real Railway cron schedule and add long-lived Meta token refresh support.
 - [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
 - [x] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
 - [ ] Add guided promotion from plan item into channel variants and approvals.
 - [ ] Add plan preview/edit step before saving AI-generated plans.
 - [ ] Add variant editing, approval, and promotion into schedule/publishing packages.
 - [ ] Continue modal cleanup for remaining creation, automation, social, analytics, and campaign forms.
-- [ ] Continue simplifying Dashboard, Planner, Content, and Settings around the new quiet-panel pattern.
+- [x] Continue simplifying Dashboard, Social Accounts, Analytics, and Automations around the new quiet-panel pattern.
+- [ ] Continue simplifying Planner, Content, Settings, Campaigns, Assets, and remaining creation/detail pages around the same pattern.
 - [ ] Extend quality recommendation application to blogs and plan items.
 - [ ] Add a quality dashboard for weak drafts, unrevised reviews, and score trends.
 - [ ] Seed or complete brand profiles until core brands reach strong AI-readiness scores.
 
 ## Pending
-- [ ] Add OAuth-based live platform connections starting with Meta so registered social accounts can sync real publishing and analytics data.
-- [ ] Add automated sync jobs for connected accounts to ingest live post and performance data on a schedule.
+- [ ] Harden OAuth-based live platform connections starting with long-lived Meta token refresh.
+- [x] Add automated sync endpoint for connected accounts to ingest live post and performance data on a schedule.
 - [ ] Add platform publishing workflows and social-channel delivery.
 - [ ] Expand asset relationships into section-level blog media slots and publishing-ready variants.
 
@@ -181,6 +186,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `/api/blogs/[id]`
 - `/api/social/meta/start`
 - `/api/social/meta/callback`
+- `/api/social/sync-due`
 - `/api/external/planner/summary`
 - `/blogs/[id]?edit=1`
 
@@ -205,6 +211,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `/schedule` now supports monthly and weekly planning views, with campaigns pinned as all-day blocks and scheduled items ordered by time within each day.
 - The weekly schedule planner now renders multi-day campaigns as single spanning bars, with shared brand filtering across both campaigns and timed posts in the calendar views.
 - Facebook and Instagram account records can now use the first Meta OAuth callback flow and manual sync action once `META_APP_ID`, `META_APP_SECRET`, `META_SCOPES`, and `SOCIAL_ACCOUNT_ENCRYPTION_KEY` are configured.
+- `/api/social/sync-due` can be called with `Authorization: Bearer <AUTOMATION_RUNNER_SECRET>` or `x-automation-secret` to sync stale active Meta accounts into published posts and analytics snapshots.
+- Meta accounts with expired or near-expired tokens are marked `needs_reauth`; adjust the reconnect buffer with `META_REAUTH_BUFFER_DAYS`.
 - `npm run import:legacy:blogs` now fetches the deprecated TechSport blogs API and upserts into the current Prisma `Blog` model using preserved legacy identifiers.
 - Blog editing is now split into review and edit modes so editors can inspect article readiness, metadata, and section coverage before opening the update panel.
 - Quill now stores assistant tool-call records before tool outputs, which prevents OpenAI history validation errors on subsequent thread messages.
@@ -212,8 +220,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
 
 ## Next Steps
-- Finalize deployment envs in Railway, Clerk, OpenAI, campaigns API, and WordPress sync.
-- Connect the protected automation runner to a real scheduled trigger in Railway or another job system.
+- Finalize deployment envs in Railway, Clerk, OpenAI, campaigns API, WordPress sync, Meta OAuth, and social token encryption.
+- Connect the protected automation and social sync runners to real scheduled triggers in Railway or another job system.
 - Add the next automation layer: more workflow types beyond weekly social content, plus deeper safety controls and operator reporting.
 - Expand the new planner cockpit with Atlas-generated weekly plans, drag-and-drop scheduling, and brand/channel coverage heatmaps.
 - Add plan-item promotion actions that create content records, blogs, and schedule entries from approved plan items.

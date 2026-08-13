@@ -33,123 +33,115 @@ export default async function AutomationsPage() {
     <section className="page-shell">
       <WorkspaceHeader
         title="Automations"
-        description="Control recurring editorial workflows for social content, blog generation, and the next layer of automation-ready publishing operations."
+        description="Control recurring content generation and runner health without losing track of what is active."
+        actions={
+          <>
+            <form action={runDueAutomationsAction}>
+              <button className="button button--secondary" type="submit">
+                Run due
+              </button>
+            </form>
+            <Link className="button button--primary" href="/automations/new">
+              Create automation
+            </Link>
+          </>
+        }
       />
 
       <div className="stack">
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Link className="button button--primary" href="/automations/new">
-            Create automation
-          </Link>
-          <form action={runDueAutomationsAction}>
-            <button className="button button--secondary" type="submit">
-              Run due automations
-            </button>
-          </form>
-        </div>
-
-        <div className="grid" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
-          <article className="card card--padded">
+        <section className="dashboard-mini-grid">
+          <article className="dashboard-mini-metric">
             <h3>Total workflows</h3>
             <strong>{health.total}</strong>
           </article>
-          <article className="card card--padded">
+          <article className="dashboard-mini-metric">
             <h3>Active workflows</h3>
             <strong>{health.active}</strong>
           </article>
-          <article className="card card--padded">
+          <article className="dashboard-mini-metric">
             <h3>Due now</h3>
             <strong>{health.dueNow}</strong>
           </article>
-          <article className="card card--padded">
+          <article className="dashboard-mini-metric">
             <h3>Recent failures</h3>
             <strong>{health.failedRecently}</strong>
           </article>
-        </div>
+        </section>
 
         {health.nextDue ? (
-          <div className="card card--padded">
-            <strong>Next scheduled automation</strong>
-            <p className="muted" style={{ margin: "8px 0 0" }}>
-              {health.nextDue.name} • {format(health.nextDue.nextRunAt as Date, "PPP p")}
-            </p>
-          </div>
+          <section className="quiet-panel">
+            <div className="section-heading">
+              <div>
+                <p className="kicker">Next scheduled automation</p>
+                <h3>{health.nextDue.name}</h3>
+                <p className="muted">{format(health.nextDue.nextRunAt as Date, "PPP p")}</p>
+              </div>
+              <span className="inline-chip">{formatDistanceToNow(health.nextDue.nextRunAt as Date, { addSuffix: true })}</span>
+            </div>
+          </section>
         ) : null}
 
-        {workflows.length === 0 ? (
-          <div className="card card--padded empty-state">
-            <h3>No automations yet</h3>
-            <p className="muted">
-              Create your first workflow to define a repeatable content-generation routine.
-            </p>
+        <section className="quiet-panel">
+          <div className="section-heading">
+            <div>
+              <p className="kicker">Workflows</p>
+              <h3>Automation control</h3>
+            </div>
+            <span className="inline-chip">{workflows.length} configured</span>
           </div>
-        ) : (
-          <div className="card table-shell">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Brand</th>
-                  <th>Next run</th>
-                  <th>Last run</th>
-                  <th>Status</th>
-                  <th>Controls</th>
-                </tr>
-              </thead>
-              <tbody>
-                {workflows.map((workflow) => {
-                  const toggleAction = toggleAutomationStatusAction.bind(null, workflow.id);
-                  const runAction = runAutomationNowAction.bind(null, workflow.id);
-                  const latestRun = workflow.runs[0];
 
-                  return (
-                    <tr key={workflow.id}>
-                      <td>
-                        <div className="stack" style={{ gap: 6 }}>
-                          <Link href={`/automations/${workflow.id}`}>{workflow.name}</Link>
-                          <span className="muted">
-                            {workflow.description ?? "No description"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>{workflow.type}</td>
-                      <td>{workflow.brandProfile?.brandName ?? workflow.brandName ?? "—"}</td>
-                      <td>
-                        {workflow.nextRunAt
-                          ? `${format(workflow.nextRunAt, "PPP p")} (${formatDistanceToNow(workflow.nextRunAt, { addSuffix: true })})`
-                          : "Manual only"}
-                      </td>
-                      <td>
-                        {latestRun
-                          ? `${latestRun.status} ${formatDistanceToNow(latestRun.startedAt, { addSuffix: true })}`
-                          : "Never"}
-                      </td>
-                      <td>
+          {workflows.length === 0 ? (
+            <div className="empty-state empty-state--quiet">
+              <h3>No automations yet</h3>
+              <p className="muted">Create your first workflow to define a repeatable content-generation routine.</p>
+            </div>
+          ) : (
+            <div className="quiet-list">
+              {workflows.map((workflow) => {
+                const toggleAction = toggleAutomationStatusAction.bind(null, workflow.id);
+                const runAction = runAutomationNowAction.bind(null, workflow.id);
+                const latestRun = workflow.runs[0];
+
+                return (
+                  <article className="quiet-row automation-row" key={workflow.id}>
+                    <div className="quiet-row__main">
+                      <div className="quiet-row__title">
+                        <Link href={`/automations/${workflow.id}`}>{workflow.name}</Link>
                         <StatusBadge label={workflow.status} />
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <form action={runAction}>
-                            <button className="button button--secondary" type="submit">
-                              Run now
-                            </button>
-                          </form>
-                          <form action={toggleAction}>
-                            <button className="button button--secondary" type="submit">
-                              {workflow.status === "active" ? "Pause" : "Activate"}
-                            </button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                      <p className="muted">{workflow.description ?? "No description"}</p>
+                      <div className="quiet-meta">
+                        <span>{workflow.type}</span>
+                        <span>{workflow.brandProfile?.brandName ?? workflow.brandName ?? "No brand"}</span>
+                        <span>
+                          {workflow.nextRunAt
+                            ? `Next ${format(workflow.nextRunAt, "MMM d, p")}`
+                            : "Manual only"}
+                        </span>
+                        <span>
+                          {latestRun
+                            ? `Last ${latestRun.status} ${formatDistanceToNow(latestRun.startedAt, { addSuffix: true })}`
+                            : "Never run"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="row-actions">
+                      <form action={runAction}>
+                        <button className="button button--secondary" type="submit">Run</button>
+                      </form>
+                      <form action={toggleAction}>
+                        <button className="button button--secondary" type="submit">
+                          {workflow.status === "active" ? "Pause" : "Activate"}
+                        </button>
+                      </form>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
           </div>
-        )}
-      </div>
     </section>
   );
 }

@@ -41,6 +41,7 @@ import { getQualityCommandSummary } from "@/lib/quality/summary";
 import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/promotion";
 import { generateAiContentPlan } from "@/lib/planner/ai-plan-builder";
 import { generateContentVariants, parseVariantPlatforms } from "@/lib/content-variants/generate";
+import { runDueSocialSync } from "@/lib/social/sync-runner";
 
 type ToolDefinition = {
   type: "function";
@@ -1308,6 +1309,21 @@ async function getTopPerformingPostsTool(args: Record<string, unknown>) {
   };
 }
 
+async function syncSocialAccountsTool(args: Record<string, unknown>, context: ToolContext) {
+  const result = await runDueSocialSync({
+    limit: typeof args.limit === "number" ? args.limit : undefined,
+    staleAfterHours: typeof args.staleAfterHours === "number" ? args.staleAfterHours : undefined,
+    userId: context.access.id,
+    source: "ai",
+  });
+
+  return {
+    toolName: "sync_social_accounts",
+    summary: `Checked ${result.checked} social account${result.checked === 1 ? "" : "s"} for analytics sync.`,
+    payload: result,
+  };
+}
+
 async function listAutomationsTool(args: Record<string, unknown>) {
   const status = asOptionalString(args.status);
   const type = asOptionalString(args.type);
@@ -1796,6 +1812,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   list_connected_accounts: async (args) => listConnectedAccountsTool(args),
   list_published_posts: async (args) => listPublishedPostsTool(args),
   get_top_performing_posts: async (args) => getTopPerformingPostsTool(args),
+  sync_social_accounts: syncSocialAccountsTool,
   list_automations: async (args) => listAutomationsTool(args),
   get_automation_health: async () => getAutomationHealthTool(),
   run_automation: runAutomationTool,
@@ -2325,6 +2342,21 @@ export const contentOpsTools: ToolDefinition[] = [
         properties: {
           platform: { type: "string" },
           limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sync_social_accounts",
+      description: "Sync due active Facebook and Instagram accounts into published post history and analytics snapshots.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number" },
+          staleAfterHours: { type: "number" },
         },
         additionalProperties: false,
       },

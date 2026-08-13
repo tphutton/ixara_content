@@ -86,7 +86,7 @@ Content Command Platform expansion has started:
 - Content records can now generate and store platform-specific variants through the UI or Quill/Atlas
 - Sidebar navigation is grouped into Command, Creation, Operations, Intelligence, and Admin sections
 - Brand Profiles now support richer AI context: positioning, content pillars, personas, offers, proof points, SEO keywords, competitors, voice examples, visual guidance, channel rules, and readiness scoring
-- The UI simplification pass has started with the Plans workspace, quieter panels, flatter controls, and a narrower command sidebar
+- The UI simplification pass has started with the Plans workspace, Dashboard, Social Accounts, Analytics, and Automations using quieter panels, focused overlays, flatter controls, and a narrower command sidebar
 - The extended build plan is tracked in `CONTENT_COMMAND_PLATFORM_BUILD.md`
 - The next planner layer is one-click AI plan generation, plan-item promotion into content/blog/schedule records, richer channel swimlanes, and gap heatmaps
 
@@ -96,6 +96,7 @@ Social publishing and analytics foundations are now being added:
 - `/analytics` for storing imported post history and performance snapshots
 - Quill tool access to connected accounts, published post history, and top-performing posts
 - Internal schema support for future OAuth-based live sync, publishing history, and analytics ingestion
+- Protected Meta sync runner at `/api/social/sync-due` for scheduled Facebook/Instagram analytics ingestion once Railway cron is attached
 
 Legacy blog compatibility is now in place:
 
@@ -156,6 +157,7 @@ Local development:
 - `META_APP_ID` for future live Meta OAuth
 - `META_APP_SECRET` for future live Meta OAuth
 - `META_SCOPES` optional override for Meta permissions
+- `META_REAUTH_BUFFER_DAYS` optional number of days before expiry to mark Meta tokens for reconnect, defaulting to 3
 - `SOCIAL_ACCOUNT_ENCRYPTION_KEY` for encrypting stored social access tokens
 
 Railway deployment:
@@ -201,6 +203,9 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - `/api/blogs`
 - `/api/blogs/by_brand`
 - `/api/blogs/[id]`
+- `/api/social/meta/start`
+- `/api/social/meta/callback`
+- `/api/social/sync-due`
 - `/api/external/planner/summary`
 - `/content`
 - `/blogs`
@@ -214,7 +219,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - Legacy blogs can be imported with `npm run import:legacy:blogs`, which upserts by preserved legacy IDs and keeps the compatibility API stable for older clients.
 - WordPress remains the media origin while the local `Asset` table handles cataloging, search, and record relationships.
 - Content and blog mutations now apply matching brand profile defaults server-side, and blogs now carry a dedicated `brand` field for consistent editorial grouping.
-- Automation scheduling metadata and manual runs are now live, and workflows can generate either short-form content drafts or structured blog drafts. Background job execution is still the next planned step before social publishing.
+- Automation scheduling metadata and manual runs are now live, and workflows can generate either short-form content drafts or structured blog drafts. Background execution can use the protected runner endpoints for automations and social analytics sync before platform publishing is added.
 - Quill can now inspect automation health, list workflows, and trigger safe automation runs through the same server-side tool layer used for content operations.
-- The protected runner endpoint accepts either `Authorization: Bearer <AUTOMATION_RUNNER_SECRET>` or `x-automation-secret` and is designed for a future Railway cron or external scheduler.
+- The protected runner endpoints accept either `Authorization: Bearer <AUTOMATION_RUNNER_SECRET>` or `x-automation-secret` and are designed for Railway cron or an external scheduler.
 - See `BUILD_PROGRESS.md` for milestone-by-milestone status.

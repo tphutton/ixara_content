@@ -3,6 +3,7 @@ import { decryptSecret, encryptSecret } from "@/lib/security/encryption";
 
 const META_GRAPH_BASE = "https://graph.facebook.com/v23.0";
 const META_OAUTH_BASE = "https://www.facebook.com/v23.0/dialog/oauth";
+const DEFAULT_META_REAUTH_BUFFER_DAYS = 3;
 
 export type MetaPageAccount = {
   id: string;
@@ -13,6 +14,13 @@ export type MetaPageAccount = {
     username?: string;
   };
 };
+
+export class MetaReauthRequiredError extends Error {
+  constructor(message = "Meta account needs reauthorization.") {
+    super(message);
+    this.name = "MetaReauthRequiredError";
+  }
+}
 
 function getMetaConfig() {
   const appId = process.env.META_APP_ID?.trim();
@@ -158,6 +166,24 @@ export function getStoredMetaToken(account: ConnectedAccount) {
   }
 
   return decryptSecret(account.encryptedAccessToken);
+}
+
+export function assertMetaAccountReadyForSync(account: ConnectedAccount) {
+  if (!account.encryptedAccessToken) {
+    throw new MetaReauthRequiredError("Meta account is missing an access token. Reconnect the account.");
+  }
+
+  if (!account.tokenExpiresAt) {
+    return;
+  }
+
+  const bufferDays = Number(process.env.META_REAUTH_BUFFER_DAYS ?? DEFAULT_META_REAUTH_BUFFER_DAYS);
+  const safeBufferDays = Number.isFinite(bufferDays) ? Math.max(bufferDays, 0) : DEFAULT_META_REAUTH_BUFFER_DAYS;
+  const reauthAt = account.tokenExpiresAt.getTime() - safeBufferDays * 24 * 60 * 60 * 1000;
+
+  if (Date.now() >= reauthAt) {
+    throw new MetaReauthRequiredError("Meta access token is expired or near expiry. Reconnect the account.");
+  }
 }
 
 export function getMetaTokenExpiry(expiresInSeconds?: number) {

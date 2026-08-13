@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { PublishedPostForm } from "@/components/analytics/published-post-form";
 import { SummaryStats } from "@/components/ui/summary-stats";
@@ -7,11 +8,16 @@ import { createImportedPublishedPostAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
+type AnalyticsPageProps = {
+  searchParams?: Promise<{ import?: string }>;
+};
+
 function formatPercent(value: number | null) {
   return value === null ? "—" : `${value.toFixed(2)}%`;
 }
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const [connectedAccounts, contentOptions, blogOptions, scheduleOptions, posts] = await Promise.all([
     prisma.connectedAccount.findMany({
       select: {
@@ -76,7 +82,17 @@ export default async function AnalyticsPage() {
     <section className="page-shell">
       <WorkspaceHeader
         title="Analytics"
-        description="Store published post history and performance data so Quill can learn from what succeeded and what underperformed."
+        description="Performance memory for Quill: synced posts, winning patterns, and historical benchmarks."
+        actions={
+          <>
+            <Link className="button button--secondary" href="/social-accounts">
+              Social accounts
+            </Link>
+            <Link className="button button--primary" href="/analytics?import=1">
+              Import post
+            </Link>
+          </>
+        }
       />
 
       <SummaryStats
@@ -104,64 +120,75 @@ export default async function AnalyticsPage() {
         ]}
       />
 
-      <div className="grid" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
-        <article className="card card--padded">
-          <p className="kicker">Import history</p>
-          <h3 style={{ marginTop: 0 }}>Add a past post with metrics</h3>
-          <p className="muted">
-            Use this to seed historical winners and underperformers before live platform sync is in
-            place.
-          </p>
-          <PublishedPostForm
-            action={createImportedPublishedPostAction}
-            blogOptions={blogOptions}
-            connectedAccounts={connectedAccounts}
-            contentOptions={contentOptions}
-            scheduleOptions={scheduleOptions.map((item) => ({
-              id: item.id,
-              title: item.content?.title ?? item.blog?.title ?? "Untitled schedule",
-            }))}
-          />
-        </article>
-
-        <article className="card card--padded">
-          <p className="kicker">Top performers</p>
-          <h3 style={{ marginTop: 0 }}>Best posts by engagement rate</h3>
-          <div className="stack">
+      <section className="dashboard-command-grid">
+        <article className="quiet-panel dashboard-command-grid__main">
+          <div className="section-heading">
+            <div>
+              <p className="kicker">Top performers</p>
+              <h3>Best posts by engagement rate</h3>
+            </div>
+            <span className="inline-chip">{topPerformers.length} ranked</span>
+          </div>
+          <div className="quiet-list">
             {topPerformers.length === 0 ? (
-              <p className="muted">No analytics snapshots yet. Import past post metrics to seed this view.</p>
+              <div className="empty-state empty-state--quiet">
+                <h3>No analytics snapshots yet</h3>
+                <p className="muted">Import past post metrics or sync connected accounts to seed this view.</p>
+              </div>
             ) : (
               topPerformers.map(({ post, snapshot }) => (
-                <div className="card card--padded" key={post.id}>
-                  <div className="section-heading">
-                    <div>
+                <div className="quiet-row" key={post.id}>
+                  <div className="quiet-row__main">
+                    <div className="quiet-row__title">
                       <strong>{post.titleSnapshot ?? post.content?.title ?? post.blog?.title ?? "Untitled post"}</strong>
-                      <p className="muted" style={{ margin: "8px 0 0" }}>
-                        {post.platform} • {post.connectedAccount?.accountName ?? post.platformAccountName ?? "No account"}
-                      </p>
+                      <StatusBadge label={post.status} />
                     </div>
-                    <StatusBadge label={post.status} />
+                    <div className="quiet-meta">
+                      <span>{post.platform}</span>
+                      <span>{post.connectedAccount?.accountName ?? post.platformAccountName ?? "No account"}</span>
+                      <span>{snapshot?.engagements ?? 0} engagements</span>
+                      <span>{snapshot?.impressions ?? 0} impressions</span>
+                    </div>
                   </div>
-                  <div className="toolbar" style={{ marginTop: 14 }}>
-                    <span className="inline-chip">ER {formatPercent(snapshot?.engagementRate ?? null)}</span>
-                    <span className="inline-chip">{snapshot?.engagements ?? 0} engagements</span>
-                    <span className="inline-chip">{snapshot?.impressions ?? 0} impressions</span>
+                  <div className="quiet-row__aside">
+                    <strong>{formatPercent(snapshot?.engagementRate ?? null)}</strong>
+                    <span className="muted">ER</span>
                   </div>
                 </div>
               ))
             )}
           </div>
         </article>
-      </div>
 
-      <div className="stack">
-        <div>
-          <p className="kicker">Published history</p>
-          <h3 style={{ marginTop: 0 }}>Recent post records</h3>
+        <aside className="quiet-panel">
+          <div>
+            <p className="kicker">Learning loop</p>
+            <h3>What this powers</h3>
+            <p className="muted">
+              These records feed planner recommendations, best-time analysis, channel mix decisions,
+              and future campaign pattern matching.
+            </p>
+          </div>
+          <div className="quick-action-grid">
+            <Link className="quick-action" href="/planner">Planner</Link>
+            <Link className="quick-action" href="/plans">Plans</Link>
+            <Link className="quick-action" href="/social-accounts">Accounts</Link>
+            <Link className="quick-action" href="/chat">Ask Quill</Link>
+          </div>
+        </aside>
+      </section>
+
+      <section className="quiet-panel">
+        <div className="section-heading">
+          <div>
+            <p className="kicker">Published history</p>
+            <h3>Recent post records</h3>
+          </div>
+          <span className="inline-chip">{posts.length} records</span>
         </div>
 
         {posts.length === 0 ? (
-          <div className="card card--padded empty-state">
+          <div className="empty-state empty-state--quiet">
             <h3>No published posts yet</h3>
             <p className="muted">
               Add imported records or connect live social accounts so performance data can start
@@ -169,7 +196,7 @@ export default async function AnalyticsPage() {
             </p>
           </div>
         ) : (
-          <div className="card table-shell">
+          <div className="table-shell">
             <table className="table">
               <thead>
                 <tr>
@@ -205,7 +232,36 @@ export default async function AnalyticsPage() {
             </table>
           </div>
         )}
-      </div>
+      </section>
+
+      {resolvedSearchParams?.import === "1" ? (
+        <div className="editor-overlay">
+          <div className="editor-overlay__backdrop">
+            <Link aria-label="Close import form" href="/analytics" />
+          </div>
+          <div className="editor-overlay__panel">
+            <div className="editor-overlay__header">
+              <div>
+                <p className="kicker">Import history</p>
+                <h3>Add a past post with metrics</h3>
+              </div>
+              <Link className="button button--secondary" href="/analytics">Close</Link>
+            </div>
+            <div className="editor-overlay__content">
+              <PublishedPostForm
+                action={createImportedPublishedPostAction}
+                blogOptions={blogOptions}
+                connectedAccounts={connectedAccounts}
+                contentOptions={contentOptions}
+                scheduleOptions={scheduleOptions.map((item) => ({
+                  id: item.id,
+                  title: item.content?.title ?? item.blog?.title ?? "Untitled schedule",
+                }))}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

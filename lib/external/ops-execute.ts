@@ -21,6 +21,7 @@ export const ATLAS_ALLOWED_TOOLS = new Set([
   "list_connected_accounts",
   "list_published_posts",
   "get_top_performing_posts",
+  "sync_social_accounts",
   "list_automations",
   "get_automation_health",
   "list_content_plans",

@@ -19,6 +19,8 @@ type SocialAccountsPageProps = {
   searchParams?: Promise<{
     error?: string;
     success?: string;
+    new?: string;
+    edit?: string;
   }>;
 };
 
@@ -44,12 +46,19 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
     account.status === "needs_reauth" || account.status === "error",
   ).length;
   const metaConfigured = isMetaConfigured();
+  const creatingAccount = resolvedSearchParams?.new === "1";
+  const editingAccount = accounts.find((account) => account.id === resolvedSearchParams?.edit) ?? null;
 
   return (
     <section className="page-shell">
       <WorkspaceHeader
         title="Social Accounts"
-        description="Register and manage social accounts that will later power live publishing and analytics sync."
+        description="Connect the accounts that power live analytics now and publishing next."
+        actions={
+          <Link className="button button--primary" href="/social-accounts?new=1">
+            Add account
+          </Link>
+        }
       />
 
       <SummaryStats
@@ -97,65 +106,34 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
         </div>
       ) : null}
 
-      <div className="grid" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
-        <article className="card card--padded">
-          <p className="kicker">Add account</p>
-          <h3 style={{ marginTop: 0 }}>Prepare a social connection</h3>
-          <p className="muted">
-            Start by registering the account and platform details here. OAuth tokens and live sync
-            will be layered on top once platform apps are connected.
-          </p>
-          <ConnectedAccountForm
-            action={createConnectedAccountAction}
-            brandProfiles={brandProfiles}
-          />
-        </article>
-
-        <article className="card card--padded">
-          <p className="kicker">Connection model</p>
-          <h3 style={{ marginTop: 0 }}>How live sync will work</h3>
-          <div className="stack" style={{ gap: 16 }}>
-            <div>
-              <strong>1. Register the account</strong>
-              <p className="muted" style={{ marginBottom: 0 }}>
-                Keep platform, brand, region, and account identifiers in one place before live auth
-                is attached.
-              </p>
-            </div>
-            <div>
-              <strong>2. Connect OAuth later</strong>
-              <p className="muted" style={{ marginBottom: 0 }}>
-                When Meta or another provider is ready, these records become the destination for
-                account IDs, scopes, encrypted tokens, and sync metadata.
-              </p>
-            </div>
-            <div>
-              <strong>3. Sync published posts and analytics</strong>
-              <p className="muted" style={{ marginBottom: 0 }}>
-                Synced data will populate the analytics workspace so Quill can learn from what
-                actually performed well.
-              </p>
-            </div>
-            <div>
-              <strong>Meta readiness</strong>
-              <p className="muted" style={{ marginBottom: 0 }}>
-                {metaConfigured
-                  ? "Meta app credentials are configured, so Facebook and Instagram accounts can be connected from this page."
-                  : "Meta app credentials are not configured yet. Add the Meta env vars before trying to connect Facebook or Instagram accounts."}
-              </p>
-            </div>
+      <section className="quiet-panel">
+        <div className="section-heading">
+          <div>
+            <p className="kicker">Connection readiness</p>
+            <h3>{metaConfigured ? "Meta is ready to connect" : "Meta credentials needed"}</h3>
+            <p className="muted">
+              {metaConfigured
+                ? "Facebook and Instagram accounts can be authorized, synced, and monitored from this page."
+                : "Add the Meta environment variables before connecting Facebook or Instagram accounts."}
+            </p>
           </div>
-        </article>
-      </div>
+          <Link className="button button--secondary" href="/analytics">
+            Analytics
+          </Link>
+        </div>
+      </section>
 
-      <div className="stack">
-        <div>
+      <section className="quiet-panel">
+        <div className="section-heading">
+          <div>
           <p className="kicker">Registered accounts</p>
-          <h3 style={{ marginTop: 0 }}>Existing social account records</h3>
+            <h3>Live account control</h3>
+          </div>
+          <span className="inline-chip">{accounts.length} total</span>
         </div>
 
         {accounts.length === 0 ? (
-          <div className="card card--padded empty-state">
+          <div className="empty-state empty-state--quiet">
             <h3>No accounts yet</h3>
             <p className="muted">
               Add the first social account record to start preparing for live publishing and
@@ -163,83 +141,98 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
             </p>
           </div>
         ) : (
-          <div className="stack">
+          <div className="quiet-list">
             {accounts.map((account) => {
-              const updateAction = updateConnectedAccountAction.bind(null, account.id);
               const disconnectAction = disconnectConnectedAccountAction.bind(null, account.id);
               const syncAction = syncConnectedAccountNowAction.bind(null, account.id);
               const canUseMetaFlow = metaConfigured && isMetaPlatform(account.platform);
 
               return (
-                <article className="card card--padded" key={account.id}>
-                  <div className="section-heading" style={{ marginBottom: 20 }}>
-                    <div>
-                      <h3 style={{ marginTop: 0, marginBottom: 6 }}>{account.accountName}</h3>
-                      <p className="muted" style={{ margin: 0 }}>
-                        {account.platform} • {account.brandProfile?.brandName ?? account.brandName ?? "No brand"}
-                      </p>
-                    </div>
-                    <div className="toolbar__group">
+                <article className="quiet-row social-account-row" key={account.id}>
+                  <div className="quiet-row__main">
+                    <div className="quiet-row__title">
+                      <strong>{account.accountName}</strong>
                       <StatusBadge label={account.status} />
-                      <span className="inline-chip">
-                        {account.publishedPosts.length} post{account.publishedPosts.length === 1 ? "" : "s"}
-                      </span>
                     </div>
-                  </div>
-
-                  <div className="stack" style={{ gap: 10, marginBottom: 20 }}>
-                    <p className="muted" style={{ margin: 0 }}>
-                      Last updated {formatDistanceToNow(account.updatedAt, { addSuffix: true })}
-                    </p>
-                    <p className="muted" style={{ margin: 0 }}>
-                      Scopes: {account.scopes.length > 0 ? account.scopes.join(", ") : "Not set"}
-                    </p>
+                    <div className="quiet-meta">
+                      <span>{account.platform}</span>
+                      <span>{account.brandProfile?.brandName ?? account.brandName ?? "No brand"}</span>
+                      <span>{account.publishedPosts.length} post{account.publishedPosts.length === 1 ? "" : "s"}</span>
+                      <span>Updated {formatDistanceToNow(account.updatedAt, { addSuffix: true })}</span>
+                    </div>
                     {account.lastSyncStatus ? (
-                      <p className="muted" style={{ margin: 0 }}>
-                        Notes: {account.lastSyncStatus}
-                      </p>
+                      <p className="muted">{account.lastSyncStatus}</p>
                     ) : null}
                   </div>
 
-                  <ConnectedAccountForm
-                    account={account}
-                    action={updateAction}
-                    brandProfiles={brandProfiles}
-                  />
-
-                  <div className="toolbar" style={{ marginTop: 16 }}>
-                    <div className="toolbar__group">
-                      {canUseMetaFlow ? (
-                        <Link
-                          className="button button--primary"
-                          href={`/api/social/meta/start?accountId=${account.id}`}
-                        >
-                          Connect Meta
-                        </Link>
-                      ) : null}
-                      {canUseMetaFlow && account.encryptedAccessToken ? (
-                        <form action={syncAction}>
-                          <button className="button button--secondary" type="submit">
-                            Sync now
-                          </button>
-                        </form>
-                      ) : null}
-                    </div>
-
-                    <div className="toolbar__group">
-                      <form action={disconnectAction}>
-                        <button className="button button--secondary" type="submit">
-                          Mark disconnected
-                        </button>
+                  <div className="row-actions">
+                    {canUseMetaFlow ? (
+                      <Link className="button button--primary" href={`/api/social/meta/start?accountId=${account.id}`}>
+                        Connect
+                      </Link>
+                    ) : null}
+                    {canUseMetaFlow && account.encryptedAccessToken ? (
+                      <form action={syncAction}>
+                        <button className="button button--secondary" type="submit">Sync</button>
                       </form>
-                    </div>
+                    ) : null}
+                    <Link className="button button--secondary" href={`/social-accounts?edit=${account.id}`}>
+                      Edit
+                    </Link>
+                    <form action={disconnectAction}>
+                      <button className="button button--secondary" type="submit">Disconnect</button>
+                    </form>
                   </div>
                 </article>
               );
             })}
           </div>
         )}
-      </div>
+      </section>
+
+      {creatingAccount ? (
+        <div className="editor-overlay">
+          <div className="editor-overlay__backdrop">
+            <Link aria-label="Close account form" href="/social-accounts" />
+          </div>
+          <div className="editor-overlay__panel">
+            <div className="editor-overlay__header">
+              <div>
+                <p className="kicker">New account</p>
+                <h3>Prepare a social connection</h3>
+              </div>
+              <Link className="button button--secondary" href="/social-accounts">Close</Link>
+            </div>
+            <div className="editor-overlay__content">
+              <ConnectedAccountForm action={createConnectedAccountAction} brandProfiles={brandProfiles} />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {editingAccount ? (
+        <div className="editor-overlay">
+          <div className="editor-overlay__backdrop">
+            <Link aria-label="Close account editor" href="/social-accounts" />
+          </div>
+          <div className="editor-overlay__panel">
+            <div className="editor-overlay__header">
+              <div>
+                <p className="kicker">Edit account</p>
+                <h3>{editingAccount.accountName}</h3>
+              </div>
+              <Link className="button button--secondary" href="/social-accounts">Close</Link>
+            </div>
+            <div className="editor-overlay__content">
+              <ConnectedAccountForm
+                account={editingAccount}
+                action={updateConnectedAccountAction.bind(null, editingAccount.id)}
+                brandProfiles={brandProfiles}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
