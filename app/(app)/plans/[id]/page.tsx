@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { reviewPlanItemQualityAction } from "../../quality/actions";
 import {
   addContentPlanItemAction,
+  promoteContentPlanItemAction,
   updateContentPlanAction,
   updateContentPlanItemStatusAction,
 } from "../actions";
@@ -103,7 +104,9 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
                 {plan.items.map((item) => {
                   const updateStatus = updateContentPlanItemStatusAction.bind(null, plan.id, item.id);
                   const reviewItem = reviewPlanItemQualityAction.bind(null, plan.id, item.id);
+                  const promoteItem = promoteContentPlanItemAction.bind(null, plan.id, item.id);
                   const latestReview = item.qualityReviews[0] ?? null;
+                  const canSchedule = Boolean(item.scheduledFor);
 
                   return (
                     <article className="quiet-row" key={item.id}>
@@ -143,6 +146,23 @@ export default async function PlanDetailPage({ params }: PlanDetailPageProps) {
                           <button className="button button--secondary" type="submit">
                             Review
                           </button>
+                        </form>
+                        <form action={promoteItem} className="plan-promote-actions">
+                          {!item.content ? (
+                            <button className="button button--secondary" name="target" type="submit" value="content">
+                              Create content
+                            </button>
+                          ) : null}
+                          {!item.blog ? (
+                            <button className="button button--secondary" name="target" type="submit" value="blog">
+                              Create blog
+                            </button>
+                          ) : null}
+                          {!item.schedule && canSchedule ? (
+                            <button className="button button--primary" name="target" type="submit" value="schedule">
+                              Schedule
+                            </button>
+                          ) : null}
                         </form>
                       </div>
                     </article>

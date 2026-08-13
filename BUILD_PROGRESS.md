@@ -42,6 +42,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - AI quality reviews are now persisted for content, blogs, and plan items, with scored editorial feedback available in the UI and through Quill/Atlas.
 - Short-form content can now apply the latest quality review recommendations through a controlled AI rewrite that preserves audit logs and brand-rule checks.
 - Schedule approval now surfaces quality warnings and records approval overrides when content is below the quality gate.
+- Plan items can now be promoted into content, blog, or schedule records from the UI and Quill/Atlas tool layer.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -94,11 +95,14 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added Quill/Atlas `review_quality` tool.
 - [x] Added short-form `apply_quality_recommendations` tool/action for controlled post-review rewrites.
 - [x] Added quality-aware schedule approval warnings and override logging.
+- [x] Added plan-item promotion into content, blog, and schedule records.
+- [x] Added Quill/Atlas `promote_content_plan_item` tool.
 
 ## In Progress
 - [ ] Add OAuth-based live platform connections and scheduled sync jobs on top of the new social account and analytics foundation.
 - [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
-- [ ] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
+- [x] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
+- [ ] Add guided promotion from plan item into channel variants and approvals.
 - [ ] Continue simplifying Dashboard, Planner, Content, and Settings around the new quiet-panel pattern.
 - [ ] Extend quality recommendation application to blogs and plan items.
 - [ ] Add a quality dashboard for weak drafts, unrevised reviews, and score trends.
@@ -239,3 +243,4 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `add_content_plan_item`: Add a planned content, blog, schedule, asset request, or automation item to a plan.
 - `review_quality`: Run and save a strict editorial quality review for content, blogs, or plan items.
 - `apply_quality_recommendations`: Apply the latest saved quality recommendations to a short-form content record.
+- `promote_content_plan_item`: Promote a saved plan item into content, blog, or schedule records.

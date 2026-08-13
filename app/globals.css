@@ -665,6 +665,13 @@ textarea {
   flex-wrap: wrap;
 }
 
+.plan-promote-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .status-control select {
   min-width: 128px;
   padding: 10px 12px;

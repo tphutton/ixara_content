@@ -37,6 +37,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { applyContentQualityRecommendations } from "@/lib/quality/apply-recommendations";
 import { runQualityReview } from "@/lib/quality/editorial-review";
+import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/promotion";
 
 type ToolDefinition = {
   type: "function";
@@ -1658,6 +1659,33 @@ async function applyQualityRecommendationsTool(args: Record<string, unknown>, co
   };
 }
 
+async function promoteContentPlanItemTool(args: Record<string, unknown>, context: ToolContext) {
+  const planItemId = asRequiredString(args.planItemId, "planItemId");
+  const targetInput = asOptionalString(args.target);
+  const target: PlanPromotionTarget =
+    targetInput === "blog" || targetInput === "schedule" ? targetInput : "content";
+
+  const result = await promoteContentPlanItem({
+    planItemId,
+    target,
+    access: context.access,
+    source: "ai",
+  });
+
+  return {
+    toolName: "promote_content_plan_item",
+    summary: `Promoted plan item "${result.item.title}" to ${target}.`,
+    payload: {
+      itemId: result.item.id,
+      itemStatus: result.item.status,
+      contentId: result.content?.id ?? null,
+      blogId: result.blog?.id ?? null,
+      scheduleId: result.schedule?.id ?? null,
+      target,
+    },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -1689,6 +1717,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   add_content_plan_item: addContentPlanItemTool,
   review_quality: reviewQualityTool,
   apply_quality_recommendations: applyQualityRecommendationsTool,
+  promote_content_plan_item: promoteContentPlanItemTool,
 };
 
 export const contentOpsTools: ToolDefinition[] = [
@@ -2350,6 +2379,22 @@ export const contentOpsTools: ToolDefinition[] = [
           contentId: { type: "string" },
         },
         required: ["contentId"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "promote_content_plan_item",
+      description: "Promote a saved content plan item into a content record, blog record, or schedule entry.",
+      parameters: {
+        type: "object",
+        properties: {
+          planItemId: { type: "string" },
+          target: { type: "string", enum: ["content", "blog", "schedule"] },
+        },
+        required: ["planItemId", "target"],
         additionalProperties: false,
       },
     },

@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { createActionLog } from "@/lib/actions/action-log";
 import { requireApprovedUserAccess } from "@/lib/auth/user-access";
 import { parseNullableDate, parseOptionalString } from "@/lib/forms/parsers";
+import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/promotion";
 import { prisma } from "@/lib/prisma";
 
 function parsePlanStatus(value: FormDataEntryValue | null) {
@@ -28,6 +29,10 @@ function parsePlanItemType(value: FormDataEntryValue | null) {
   return Object.values(ContentPlanItemType).includes(value as ContentPlanItemType)
     ? (value as ContentPlanItemType)
     : ContentPlanItemType.content;
+}
+
+function parsePromotionTarget(value: FormDataEntryValue | null): PlanPromotionTarget {
+  return value === "blog" || value === "schedule" ? value : "content";
 }
 
 function getPlanInput(formData: FormData) {
@@ -185,4 +190,26 @@ export async function updateContentPlanItemStatusAction(
 
   revalidatePath("/plans");
   revalidatePath(`/plans/${planId}`);
+}
+
+export async function promoteContentPlanItemAction(
+  planId: string,
+  itemId: string,
+  formData: FormData,
+) {
+  const access = await requireApprovedUserAccess();
+  const target = parsePromotionTarget(formData.get("target"));
+
+  await promoteContentPlanItem({
+    planItemId: itemId,
+    target,
+    access,
+    source: "manual",
+  });
+
+  revalidatePath("/plans");
+  revalidatePath(`/plans/${planId}`);
+  revalidatePath("/content");
+  revalidatePath("/blogs");
+  revalidatePath("/schedule");
 }

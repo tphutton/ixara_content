@@ -46,6 +46,7 @@ Status: started
 - [x] Add first saved plan/item layer for briefs, schedule targets, asset requests, and automation work.
 - [x] Link plan items to generated short-form content, blogs, and schedule entries.
 - [x] Add saved AI quality reviews for content, blogs, and plan items.
+- [x] Add plan-item promotion into content, blog, and schedule records while preserving plan links.
 - [ ] Promote plan items into full first-class content briefs with owners, due dates, and approval stages.
 - [ ] Add channel-specific variants for Instagram, Facebook, LinkedIn, email, ads, and blog excerpts.
 - [ ] Add version history, diff review, and revert support.
@@ -69,6 +70,7 @@ Status: started
 - [x] Expose quality review to Quill and Atlas through the controlled tool layer.
 - [ ] Add guided “apply quality recommendations” actions that rewrite records while preserving operator review.
 - [x] Add guided “apply quality recommendations” for short-form content while preserving audit logs and brand-rule checks.
+- [x] Add Quill/Atlas promotion from plan items into production records.
 
 ## Phase 3A: Quality System
 
@@ -145,7 +147,7 @@ Near-term integration targets:
 
 - The original Content Ops build is mostly complete for internal CRUD, chat tools, brand profiles, assets, automations, and planning visibility.
 - The new `/planner` route is additive and does not replace `/schedule`.
-- `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan creation -> plan-item approval -> content/blog/schedule creation.
+- `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan creation -> plan-item approval -> promotion into content/blog/schedule records.
 - Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> quality review -> apply recommendations -> re-review -> approve/schedule/publish.
 - Social publishing is still the biggest missing capability before the product becomes end-to-end.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, but saved profile quality still depends on the operator filling the readiness gaps in Settings.
