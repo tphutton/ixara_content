@@ -40,6 +40,7 @@ import { runQualityReview } from "@/lib/quality/editorial-review";
 import { getQualityCommandSummary } from "@/lib/quality/summary";
 import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/promotion";
 import { generateAiContentPlan } from "@/lib/planner/ai-plan-builder";
+import { generateContentVariants, parseVariantPlatforms } from "@/lib/content-variants/generate";
 
 type ToolDefinition = {
   type: "function";
@@ -1745,6 +1746,33 @@ async function generateAiContentPlanTool(_args: Record<string, unknown>, context
   };
 }
 
+async function generateContentVariantsTool(args: Record<string, unknown>, context: ToolContext) {
+  const contentId = asRequiredString(args.contentId, "contentId");
+  const variants = await generateContentVariants({
+    contentId,
+    platforms: parseVariantPlatforms(args.platforms),
+    access: context.access,
+    source: "ai",
+  });
+
+  return {
+    toolName: "generate_content_variants",
+    summary: `Generated ${variants.length} content variant${variants.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: variants.length,
+      variants: variants.map((variant) => ({
+        id: variant.id,
+        contentId: variant.contentId,
+        platform: variant.platform,
+        title: variant.title,
+        hook: variant.hook,
+        cta: variant.cta,
+        status: variant.status,
+      })),
+    },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -1775,6 +1803,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   create_content_plan: createContentPlanTool,
   add_content_plan_item: addContentPlanItemTool,
   generate_ai_content_plan: generateAiContentPlanTool,
+  generate_content_variants: generateContentVariantsTool,
   get_quality_summary: async () => getQualitySummaryTool(),
   review_quality: reviewQualityTool,
   apply_quality_recommendations: applyQualityRecommendationsTool,
@@ -2409,6 +2438,22 @@ export const contentOpsTools: ToolDefinition[] = [
           assetRequest: { type: "string" },
         },
         required: ["planId", "title"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_content_variants",
+      description: "Generate and save platform-specific variants for an existing short-form content record.",
+      parameters: {
+        type: "object",
+        properties: {
+          contentId: { type: "string" },
+          platforms: { type: "array", items: { type: "string" } },
+        },
+        required: ["contentId"],
         additionalProperties: false,
       },
     },

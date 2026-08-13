@@ -49,7 +49,8 @@ Status: started
 - [x] Add saved AI quality reviews for content, blogs, and plan items.
 - [x] Add plan-item promotion into content, blog, and schedule records while preserving plan links.
 - [ ] Promote plan items into full first-class content briefs with owners, due dates, and approval stages.
-- [ ] Add channel-specific variants for Instagram, Facebook, LinkedIn, email, ads, and blog excerpts.
+- [x] Add saved channel-specific variants for short-form content.
+- [ ] Add channel-specific variants for blog excerpts, ads, and publishing packages.
 - [ ] Add version history, diff review, and revert support.
 - [ ] Add owner, assignee, due date, priority, and editorial stage fields.
 - [ ] Add approval comments and change-request loops.
@@ -63,6 +64,7 @@ Status: started
 - [x] Feed richer brand intelligence into Quill and brand-profile tools.
 - [ ] Add Atlas workflow: build next week’s content plan from business signals.
 - [x] Add Quill/Atlas `generate_ai_content_plan` tool to create saved plans from current planner signals.
+- [x] Add Quill/Atlas `generate_content_variants` tool for saved platform adaptations.
 - [ ] Add Atlas workflow: turn a campaign into a launch calendar.
 - [ ] Add Atlas workflow: generate multi-channel variants from one brief or blog.
 - [ ] Add Atlas workflow: improve weak hooks, CTAs, metadata, and asset fit.

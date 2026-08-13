@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContentForm } from "@/components/content/content-form";
+import { ContentVariantsPanel } from "@/components/content/content-variants-panel";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { QualityReviewPanel } from "@/components/quality/quality-review-panel";
@@ -11,6 +12,7 @@ import {
   reviewContentQualityAction,
 } from "../../quality/actions";
 import { deleteContentAction, updateContentAction } from "../actions";
+import { generateContentVariantsAction } from "./variant-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,7 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
       where: { id },
       include: {
         qualityReviews: { orderBy: { createdAt: "desc" }, take: 5 },
+        variants: { orderBy: { createdAt: "desc" }, take: 12 },
       },
     }),
     prisma.asset.findMany({
@@ -60,6 +63,7 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
   const deleteAction = deleteContentAction.bind(null, id);
   const reviewAction = reviewContentQualityAction.bind(null, id);
   const applyQualityAction = applyContentQualityRecommendationsAction.bind(null, id);
+  const generateVariantsAction = generateContentVariantsAction.bind(null, id);
 
   return (
     <section className="page-shell">
@@ -116,6 +120,8 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
               <div><span>Asset</span><strong>{content.assetImage ?? content.primaryAssetId ?? "Not set"}</strong></div>
             </div>
           </section>
+
+          <ContentVariantsPanel action={generateVariantsAction} variants={content.variants} />
         </div>
 
         <div className="stack">
