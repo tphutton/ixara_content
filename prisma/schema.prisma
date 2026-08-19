@@ -65,6 +65,7 @@ enum ChatRole {
 
 enum AssetSource {
   wordpress
+  tsadb
   manual
 }
 
@@ -539,6 +540,17 @@ model Asset {
   fileSize         Int?
   altText          String?
   caption          String?
+  description      String?
+  category         String?
+  itemName         String?
+  itemId           String?
+  itemType         String?
+  imageType        String?
+  wordpressAttachmentId Int?
+  featured         Boolean      @default(false)
+  orientation      String?
+  qualityScore     Int?
+  lastEnrichedAt   DateTime?
   sourceCreatedAt  DateTime?
   sourceUpdatedAt  DateTime?
   metadata         Json?
@@ -565,6 +577,9 @@ model Asset {
   @@unique([source, externalId])
   @@index([source, syncedAt])
   @@index([brand, campaignName, sport, region, country])
+  @@index([category, itemType, imageType])
+  @@index([wordpressAttachmentId])
+  @@index([featured])
 }
 
 model ContentAsset {

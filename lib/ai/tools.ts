@@ -15,6 +15,7 @@ import {
   type UserAccess,
 } from "@prisma/client";
 import { createActionLog } from "@/lib/actions/action-log";
+import { syncTsadbImages } from "@/lib/assets/tsadb-images";
 import { runBlogPostAutomation } from "@/lib/automation/generate-blog-posts";
 import { getAutomationHealthSummary, runDueAutomations } from "@/lib/automation/runner";
 import { runWeeklySocialAutomation } from "@/lib/automation/generate-weekly-social";
@@ -754,6 +755,9 @@ async function listAssetsTool(args: Record<string, unknown>) {
   const sport = asOptionalString(args.sport);
   const region = asOptionalString(args.region);
   const country = asOptionalString(args.country);
+  const category = asOptionalString(args.category);
+  const imageType = asOptionalString(args.imageType);
+  const itemType = asOptionalString(args.itemType);
   const search = asOptionalString(args.search);
   const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 25) : 12;
 
@@ -764,17 +768,36 @@ async function listAssetsTool(args: Record<string, unknown>) {
       sport: sport ?? undefined,
       region: region ?? undefined,
       country: country ?? undefined,
+      category: category ?? undefined,
+      imageType: imageType ?? undefined,
+      itemType: itemType ?? undefined,
       OR: search
         ? [
             { title: { contains: search, mode: "insensitive" } },
             { altText: { contains: search, mode: "insensitive" } },
             { caption: { contains: search, mode: "insensitive" } },
+            { description: { contains: search, mode: "insensitive" } },
+            { category: { contains: search, mode: "insensitive" } },
+            { itemName: { contains: search, mode: "insensitive" } },
+            { itemType: { contains: search, mode: "insensitive" } },
+            { imageType: { contains: search, mode: "insensitive" } },
             { tags: { has: search } },
           ]
         : undefined,
     },
-    orderBy: [{ syncedAt: "desc" }, { updatedAt: "desc" }],
+    orderBy: [{ featured: "desc" }, { syncedAt: "desc" }, { updatedAt: "desc" }],
     take: limit,
+    include: {
+      _count: {
+        select: {
+          contentPrimaryFor: true,
+          blogFeatureFor: true,
+          contentLinks: true,
+          blogLinks: true,
+          campaignLinks: true,
+        },
+      },
+    },
   });
 
   return {
@@ -791,12 +814,108 @@ async function listAssetsTool(args: Record<string, unknown>) {
         mimeType: item.mimeType,
         width: item.width,
         height: item.height,
+        description: item.description,
+        category: item.category,
+        itemName: item.itemName,
+        itemId: item.itemId,
+        itemType: item.itemType,
+        imageType: item.imageType,
+        featured: item.featured,
+        orientation: item.orientation,
         brand: item.brand,
         campaignName: item.campaignName,
         sport: item.sport,
         region: item.region,
         country: item.country,
         tags: item.tags,
+        usageCount: getAssetUsageCount(item),
+      })),
+    },
+  };
+}
+
+async function recommendAssetsForContentTool(args: Record<string, unknown>) {
+  const search = [
+    asOptionalString(args.search),
+    asOptionalString(args.topic),
+    asOptionalString(args.campaignName),
+    asOptionalString(args.brand),
+    asOptionalString(args.region),
+    asOptionalString(args.country),
+    asOptionalString(args.category),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const searchTerms = search.toLowerCase().split(/\s+/).filter((word) => word.length > 2);
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 10) : 5;
+  const candidates = await prisma.asset.findMany({
+    where: {
+      AND: [
+        {
+          OR: [{ mediaType: "image" }, { mediaType: null }],
+        },
+        ...(searchTerms.length > 0
+        ? [
+            {
+              OR: [
+                ...searchTerms.flatMap((term) => [
+                  { title: { contains: term, mode: "insensitive" as const } },
+                  { altText: { contains: term, mode: "insensitive" as const } },
+                  { caption: { contains: term, mode: "insensitive" as const } },
+                  { description: { contains: term, mode: "insensitive" as const } },
+                  { itemName: { contains: term, mode: "insensitive" as const } },
+                  { category: { contains: term, mode: "insensitive" as const } },
+                ]),
+                { tags: { hasSome: searchTerms } },
+              ],
+            },
+          ]
+        : []),
+      ],
+    },
+    orderBy: [{ featured: "desc" }, { syncedAt: "desc" }, { updatedAt: "desc" }],
+    take: 80,
+    include: {
+      _count: {
+        select: {
+          contentPrimaryFor: true,
+          blogFeatureFor: true,
+          contentLinks: true,
+          blogLinks: true,
+          campaignLinks: true,
+        },
+      },
+    },
+  });
+
+  const scored = candidates
+    .map((asset) => scoreAssetRecommendation(asset, args))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  return {
+    toolName: "recommend_assets_for_content",
+    summary: `Recommended ${scored.length} asset${scored.length === 1 ? "" : "s"} for this content context.`,
+    payload: {
+      count: scored.length,
+      items: scored.map(({ asset, score, reasons }) => ({
+        id: asset.id,
+        title: asset.title,
+        fileUrl: asset.fileUrl,
+        thumbnailUrl: asset.thumbnailUrl,
+        description: asset.description,
+        caption: asset.caption,
+        category: asset.category,
+        itemName: asset.itemName,
+        itemType: asset.itemType,
+        imageType: asset.imageType,
+        featured: asset.featured,
+        region: asset.region,
+        country: asset.country,
+        tags: asset.tags,
+        usageCount: getAssetUsageCount(asset),
+        recommendationScore: score,
+        reasons,
       })),
     },
   };
@@ -828,6 +947,162 @@ async function syncWordPressAssetsTool(context: ToolContext) {
       })),
     },
   };
+}
+
+async function syncTsadbAssetsTool(args: Record<string, unknown>, context: ToolContext) {
+  const ownerId = asOptionalString(args.ownerId);
+  const salesItemId = asOptionalString(args.salesItemId);
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 1000) : 1000;
+  const result = await syncTsadbImages({ ownerId, salesItemId, limit });
+
+  await createActionLog({
+    userId: context.access.id,
+    actionType: "sync",
+    targetType: "asset",
+    targetId: ownerId ?? salesItemId ?? "tsadb",
+    summary: `AI synced ${result.count} enriched TSADB asset${result.count === 1 ? "" : "s"}`,
+    afterData: { count: result.count, skipped: result.skipped, ownerId, salesItemId, limit },
+    source: "ai",
+  });
+
+  return {
+    toolName: "sync_tsadb_assets",
+    summary: `Synced ${result.count} enriched TSADB asset${result.count === 1 ? "" : "s"}.`,
+    payload: {
+      count: result.count,
+      skipped: result.skipped,
+      items: result.assets.slice(0, 10).map((asset) => ({
+        id: asset.id,
+        title: asset.title,
+        fileUrl: asset.fileUrl,
+        description: asset.description,
+        category: asset.category,
+        region: asset.region,
+        country: asset.country,
+      })),
+    },
+  };
+}
+
+function getAssetUsageCount(asset: {
+  _count: {
+    contentPrimaryFor: number;
+    blogFeatureFor: number;
+    contentLinks: number;
+    blogLinks: number;
+    campaignLinks: number;
+  };
+}) {
+  return (
+    asset._count.contentPrimaryFor +
+    asset._count.blogFeatureFor +
+    asset._count.contentLinks +
+    asset._count.blogLinks +
+    asset._count.campaignLinks
+  );
+}
+
+function scoreAssetRecommendation<
+  T extends {
+    title: string;
+    altText: string | null;
+    caption: string | null;
+    description: string | null;
+    category: string | null;
+    itemName: string | null;
+    itemType: string | null;
+    imageType: string | null;
+    featured: boolean;
+    region: string | null;
+    country: string | null;
+    brand: string | null;
+    campaignName: string | null;
+    tags: string[];
+    _count: {
+      contentPrimaryFor: number;
+      blogFeatureFor: number;
+      contentLinks: number;
+      blogLinks: number;
+      campaignLinks: number;
+    };
+  },
+>(asset: T, args: Record<string, unknown>) {
+  const criteria = {
+    brand: asOptionalString(args.brand),
+    campaignName: asOptionalString(args.campaignName),
+    region: asOptionalString(args.region),
+    country: asOptionalString(args.country),
+    category: asOptionalString(args.category),
+    itemType: asOptionalString(args.itemType),
+    imageType: asOptionalString(args.imageType),
+    topic: asOptionalString(args.topic) ?? asOptionalString(args.search),
+  };
+  let score = 40;
+  const reasons: string[] = [];
+
+  if (asset.featured) {
+    score += 12;
+    reasons.push("marked as a featured image");
+  }
+
+  const exactChecks: Array<[keyof typeof criteria, string | null, string | null, number]> = [
+    ["brand", criteria.brand, asset.brand, 10],
+    ["campaignName", criteria.campaignName, asset.campaignName, 10],
+    ["region", criteria.region, asset.region, 12],
+    ["country", criteria.country, asset.country, 10],
+    ["category", criteria.category, asset.category, 12],
+    ["itemType", criteria.itemType, asset.itemType, 8],
+    ["imageType", criteria.imageType, asset.imageType, 8],
+  ];
+
+  for (const [label, wanted, actual, weight] of exactChecks) {
+    if (matchesText(actual, wanted)) {
+      score += weight;
+      reasons.push(`matches ${label}: ${actual}`);
+    }
+  }
+
+  if (criteria.topic) {
+    const searchable = [
+      asset.title,
+      asset.altText,
+      asset.caption,
+      asset.description,
+      asset.category,
+      asset.itemName,
+      asset.itemType,
+      asset.imageType,
+      ...asset.tags,
+    ].join(" ");
+    const topicWords = criteria.topic.toLowerCase().split(/\s+/).filter((word) => word.length > 2);
+    const matches = topicWords.filter((word) => searchable.toLowerCase().includes(word));
+    if (matches.length > 0) {
+      score += Math.min(matches.length * 3, 18);
+      reasons.push(`text context matches: ${matches.slice(0, 5).join(", ")}`);
+    }
+  }
+
+  const usageCount = getAssetUsageCount(asset);
+  if (usageCount > 0) {
+    score -= Math.min(usageCount * 2, 12);
+    reasons.push(`already used ${usageCount} time${usageCount === 1 ? "" : "s"}`);
+  } else {
+    score += 5;
+    reasons.push("not used in this content workspace yet");
+  }
+
+  if (reasons.length === 0) reasons.push("available in the synced asset library");
+
+  return {
+    asset,
+    score: Math.max(0, Math.min(score, 100)),
+    reasons,
+  };
+}
+
+function matchesText(actual: string | null, wanted: string | null) {
+  if (!actual || !wanted) return false;
+  return actual.toLowerCase() === wanted.toLowerCase() || actual.toLowerCase().includes(wanted.toLowerCase());
 }
 
 async function listBrandProfilesTool(args: Record<string, unknown>) {
@@ -1814,7 +2089,9 @@ const toolHandlers: Record<string, ToolHandler> = {
   update_schedule_entry: updateScheduleEntryTool,
   get_dashboard_summary: async () => getDashboardSummaryTool(),
   list_assets: async (args) => listAssetsTool(args),
+  recommend_assets_for_content: async (args) => recommendAssetsForContentTool(args),
   sync_wordpress_assets: async (_args, context) => syncWordPressAssetsTool(context),
+  sync_tsadb_assets: async (args, context) => syncTsadbAssetsTool(args, context),
   list_brand_profiles: async (args) => listBrandProfilesTool(args),
   get_brand_profile: async (args) => getBrandProfileTool(args),
   upsert_brand_profile: upsertBrandProfileTool,
@@ -2150,6 +2427,33 @@ export const contentOpsTools: ToolDefinition[] = [
           sport: { type: "string" },
           region: { type: "string" },
           country: { type: "string" },
+          category: { type: "string" },
+          itemType: { type: "string" },
+          imageType: { type: "string" },
+          search: { type: "string" },
+          limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "recommend_assets_for_content",
+      description: "Recommend the best image assets for a content idea, plan item, campaign, platform, brand, region, or topic.",
+      parameters: {
+        type: "object",
+        properties: {
+          brand: { type: "string" },
+          campaignName: { type: "string" },
+          topic: { type: "string" },
+          platform: { type: "string" },
+          region: { type: "string" },
+          country: { type: "string" },
+          category: { type: "string" },
+          itemType: { type: "string" },
+          imageType: { type: "string" },
           search: { type: "string" },
           limit: { type: "number" },
         },
@@ -2165,6 +2469,22 @@ export const contentOpsTools: ToolDefinition[] = [
       parameters: {
         type: "object",
         properties: {},
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sync_tsadb_assets",
+      description: "Sync enriched TSADB image metadata into the internal asset catalog. Use this when the user wants the WordPress image library to become searchable by region, category, item, and description.",
+      parameters: {
+        type: "object",
+        properties: {
+          ownerId: { type: "string" },
+          salesItemId: { type: "string" },
+          limit: { type: "number" },
+        },
         additionalProperties: false,
       },
     },

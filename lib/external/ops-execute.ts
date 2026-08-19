@@ -14,6 +14,8 @@ export const ATLAS_ALLOWED_TOOLS = new Set([
   "update_schedule_entry",
   "get_dashboard_summary",
   "list_assets",
+  "recommend_assets_for_content",
+  "sync_tsadb_assets",
   "list_brand_profiles",
   "get_brand_profile",
   "list_campaigns",

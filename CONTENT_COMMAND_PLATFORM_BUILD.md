@@ -97,10 +97,15 @@ Status: started
 
 ## Phase 4: Asset Studio
 
-Status: planned
+Status: in progress
 
-- [ ] Add asset detail pages with usage history.
-- [ ] Add asset suitability scoring by brand, channel, and campaign.
+- [x] Add enriched TSADB image sync into the local `Asset` catalog.
+- [x] Expand asset metadata for descriptions, categories, item links, image types, featured state, WordPress attachment IDs, and enrichment timestamps.
+- [x] Replace the basic asset table with a searchable visual asset library and solid preview modal.
+- [x] Add Quill/Atlas `recommend_assets_for_content` tool for scored asset recommendations.
+- [x] Add Quill/Atlas `sync_tsadb_assets` tool for command-center initiated enriched image sync.
+- [ ] Add asset detail pages with full usage history and edit controls.
+- [ ] Add deeper asset suitability scoring by brand, channel, campaign, and historical performance.
 - [ ] Add section-level blog media slots and publishing variants.
 - [ ] Add missing-asset queue.
 - [ ] Add platform crop/format metadata.
@@ -161,7 +166,8 @@ Near-term integration targets:
 - `/quality` is now the operator queue for finding weak reviewed work and active items missing a review.
 - Social publishing is still the biggest missing capability before the product becomes end-to-end, but Meta analytics sync now has a protected runner endpoint and Atlas tool.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, with a dedicated Brands tab and field guidance to help operators fill readiness gaps.
+- Assets have moved beyond simple WordPress media sync: TSADB enriched image metadata can now populate the asset library, and Quill/Atlas can recommend images using region, country, category, item, description, featured status, and current workspace usage.
 - UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages. The next pass should migrate Dashboard, Planner, and remaining creation/admin pages away from nested card-heavy layouts toward quiet lists and focused command strips.
-- The next UI simplification pass has moved Dashboard, Social Accounts, Analytics, and Automations toward quiet command panels, row actions, and focused overlays. Planner, Campaigns, Assets, Content, and Settings still need the same polish.
+- The next UI simplification pass has moved Dashboard, Social Accounts, Analytics, Automations, and Assets toward quiet command panels, row actions, and focused overlays. Planner, Campaigns, Content, and Settings still need the same polish.
 - `tsconfig.tsbuildinfo` is an untracked generated file and should not be committed unless intentionally needed.
 - Operator delete coverage now includes plans, plan items, connected social accounts, published analytics records, and generated content variants, alongside existing record delete flows.

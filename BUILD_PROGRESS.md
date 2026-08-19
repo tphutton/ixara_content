@@ -249,8 +249,10 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `create_schedule_entry`: Create a new schedule entry linked to content or a blog.
 - `update_schedule_entry`: Update an existing schedule entry by id.
 - `get_dashboard_summary`: Return dashboard counts, schedule visibility, and recent activity.
-- `list_assets`: Read synced WordPress/media assets with optional brand, campaign, geography, and search filters.
+- `list_assets`: Read synced WordPress/TSADB media assets with optional brand, campaign, geography, category, image type, item type, and search filters.
+- `recommend_assets_for_content`: Score and recommend image assets for a content idea, campaign, post, platform, brand, region, country, category, or topic.
 - `sync_wordpress_assets`: Pull the latest media from the configured WordPress source into the internal asset catalog.
+- `sync_tsadb_assets`: Pull enriched TSADB image metadata into the internal asset catalog for region/category/item-aware planning.
 - `list_brand_profiles`: Read saved editorial brand profiles.
 - `get_brand_profile`: Read a single brand profile by id or brand name.
 - `upsert_brand_profile`: Create or update a brand profile.

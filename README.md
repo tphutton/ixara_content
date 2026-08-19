@@ -53,10 +53,11 @@ External campaigns integration is now in place:
 Asset and brand operations are now in place:
 
 - WordPress media sync into a local `Asset` catalog
-- `/assets` workspace for syncing and browsing reusable media
+- TSADB enriched image sync for descriptions, regions, categories, item links, featured state, and WordPress attachment IDs
+- `/assets` workspace for visual search, filtering, previewing, deleting, and browsing reusable media
 - Linked asset selection in content, blog, and campaign forms
 - Dedicated `/brands` workspace for shared editorial rules and AI brand memory
-- AI access to synced assets and brand profiles during chat workflows
+- AI access to synced assets, scored image recommendations, TSADB sync, and brand profiles during chat workflows
 - Brand-driven defaults for content and blogs so missing tone, audience, websites, geography, and CTA fields can inherit from saved profiles
 - Dashboard readiness visibility for records that still need metadata before automation or publishing
 
@@ -136,6 +137,9 @@ Additional environment for campaigns:
 Additional environment for assets:
 
 - `WORDPRESS_MEDIA_BASE_URL` defaulting to `https://media.ixara.tech/wp-json/wp/v2`
+- `TSADB_API_BASE_URL` defaulting to `https://data.techsport.asia/api`
+- `TSADB_API_KEY`, falling back to `CAMPAIGNS_API_KEY` when not set
+- `TSADB_IMAGES_OWNER_ID` for the default enriched organization image sync
 
 ## Environment Checklist
 
