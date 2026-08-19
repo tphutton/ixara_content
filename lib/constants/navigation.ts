@@ -2,6 +2,7 @@ export const workspaceRoutes = [
   "/dashboard",
   "/chat",
   "/planner",
+  "/brands",
   "/content",
   "/blogs",
   "/schedule",

@@ -57,6 +57,7 @@ export async function createBrandProfileAction(formData: FormData) {
   });
 
   revalidatePath("/settings");
+  revalidatePath("/brands");
 }
 
 export async function updateBrandProfileAction(id: string, formData: FormData) {
@@ -85,6 +86,7 @@ export async function updateBrandProfileAction(id: string, formData: FormData) {
   });
 
   revalidatePath("/settings");
+  revalidatePath("/brands");
 }
 
 export async function deleteBrandProfileAction(id: string) {
@@ -104,4 +106,5 @@ export async function deleteBrandProfileAction(id: string) {
   });
 
   revalidatePath("/settings");
+  revalidatePath("/brands");
 }

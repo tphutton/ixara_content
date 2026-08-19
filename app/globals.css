@@ -1255,8 +1255,8 @@ textarea {
 }
 
 .editor-overlay__backdrop {
-  background: rgba(10, 17, 29, 0.44);
-  backdrop-filter: blur(4px);
+  background: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(8px);
 }
 
 .editor-overlay__backdrop a {
@@ -1270,11 +1270,9 @@ textarea {
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;
   height: 100vh;
-  border-left: 1px solid rgba(15, 23, 42, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 251, 251, 0.99), rgba(255, 255, 255, 0.96)),
-    radial-gradient(circle at top left, rgba(192, 28, 28, 0.08), transparent 35%);
-  box-shadow: -24px 0 60px rgba(15, 23, 42, 0.16);
+  border-left: 1px solid var(--border-strong);
+  background: #020617;
+  box-shadow: -24px 0 60px rgba(0, 0, 0, 0.48);
   overflow: hidden;
 }
 
@@ -1287,7 +1285,7 @@ textarea {
 .editor-overlay__footer {
   border-bottom: 0;
   border-top: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.86);
+  background: #020617;
 }
 
 .editor-overlay__header {
@@ -1999,6 +1997,13 @@ textarea {
 .table-shell {
   background:
     linear-gradient(180deg, rgba(8, 20, 40, 0.86), rgba(2, 6, 23, 0.68));
+}
+
+.editor-overlay__panel,
+.editor-overlay__footer,
+.editor-overlay__header,
+.editor-overlay__content {
+  background: #020617;
 }
 
 .field input,

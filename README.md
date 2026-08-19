@@ -55,7 +55,7 @@ Asset and brand operations are now in place:
 - WordPress media sync into a local `Asset` catalog
 - `/assets` workspace for syncing and browsing reusable media
 - Linked asset selection in content, blog, and campaign forms
-- Settings-based Brand Profile CRUD for shared editorial rules
+- Dedicated `/brands` workspace for shared editorial rules and AI brand memory
 - AI access to synced assets and brand profiles during chat workflows
 - Brand-driven defaults for content and blogs so missing tone, audience, websites, geography, and CTA fields can inherit from saved profiles
 - Dashboard readiness visibility for records that still need metadata before automation or publishing
@@ -80,12 +80,13 @@ Content Command Platform expansion has started:
 - Content/blog detail pages and plan items now have saved quality review actions, and Quill/Atlas can call `review_quality`
 - Short-form content can apply saved quality recommendations through an audited AI rewrite, and schedule approvals now show quality warnings before queue approval
 - Saved plan items can be promoted into content, blog, and schedule records from the UI or via Quill/Atlas
-- Content, schedule, plan, and settings pages now use cleaner review-first layouts with long forms opened in modal overlays
+- Content, schedule, plan, and brand pages now use cleaner review-first layouts with long forms opened in solid modal overlays
 - `/quality` now shows weak reviewed work, active items missing reviews, recent quality decisions, and is available to Quill/Atlas through `get_quality_summary`
 - `/planner` can now generate a saved AI content plan and plan items directly from current campaign, calendar, readiness, and performance signals
 - Content records can now generate and store platform-specific variants through the UI or Quill/Atlas
 - Sidebar navigation is grouped into Command, Creation, Operations, Intelligence, and Admin sections
 - Brand Profiles now support richer AI context: positioning, content pillars, personas, offers, proof points, SEO keywords, competitors, voice examples, visual guidance, channel rules, and readiness scoring
+- Brand profile forms now include field guidance and example placeholders so operators know what context to add
 - The UI simplification pass has started with the Plans workspace, Dashboard, Social Accounts, Analytics, and Automations using quieter panels, focused overlays, flatter controls, and a narrower command sidebar
 - The extended build plan is tracked in `CONTENT_COMMAND_PLATFORM_BUILD.md`
 - The next planner layer is one-click AI plan generation, plan-item promotion into content/blog/schedule records, richer channel swimlanes, and gap heatmaps
@@ -195,6 +196,7 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - `/pending-approval`
 - `/dashboard`
 - `/planner`
+- `/brands`
 - `/chat`
 - `/assets`
 - `/automations`

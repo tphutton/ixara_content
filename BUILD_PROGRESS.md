@@ -18,7 +18,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - External campaigns are integrated through the TechSport campaigns API and exposed in both the workspace UI and the AI tool layer.
 - Campaign API access now degrades gracefully in the dashboard, campaigns workspace, and chat tool flow when config or upstream availability fails.
 - WordPress media is now synced into a local `Asset` catalog so content, blogs, campaigns, and chat can reuse the same media records.
-- Brand profiles are now managed inside Settings and injected into the AI chat context to keep editorial output aligned with shared rules.
+- Brand profiles are now managed inside the dedicated Brands workspace and injected into the AI chat context to keep editorial output aligned with shared rules.
 - Brand profiles now actively shape content and blog workflows through server-side default inheritance, blog-level brand metadata, and readiness guidance in the editor UI and dashboard.
 - Schedule oversight now includes readiness evaluation, approval queues, and editor-driven approval actions so the calendar can feed future automation safely.
 - Content and blog list pages now expose lightweight operational queues so the team can quickly isolate automation-ready versus needs-attention records without introducing a heavy reporting layer.
@@ -36,7 +36,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - The content app shell has been visually aligned with the dark Ixara Command Center style, including the full Ixara PNG logo in the sidebar and dark command surfaces across cards, forms, calendars, chat, planner, and editor overlays.
 - Planner AI actions can now load strategic planning prompts directly into Quill, and `/api/external/planner/summary` exposes the planner intelligence to Atlas / Command Center through the existing external API key guard.
 - The sidebar is now grouped into Command, Creation, Operations, Intelligence, and Admin sections so the workspace reads as a command product rather than one long nav list.
-- Brand profiles now include deeper AI context fields for positioning, pillars, personas, offers, proof points, SEO, competitors, voice examples, visual guidance, and channel-specific rules, with readiness scoring in Settings and richer Quill/tool context.
+- Brand profiles now include deeper AI context fields for positioning, pillars, personas, offers, proof points, SEO, competitors, voice examples, visual guidance, and channel-specific rules, with readiness scoring in Brands and richer Quill/tool context.
 - Saved content plans are now part of the product model: `/plans` stores planning artifacts and ordered plan items, while Quill and Atlas can list plans, create plans, and add plan items.
 - The UI simplification pass has started with a quieter plan workspace, flatter buttons, narrower sidebar, and reusable quiet list/panel patterns for future page cleanup.
 - AI quality reviews are now persisted for content, blogs, and plan items, with scored editorial feedback available in the UI and through Quill/Atlas.
@@ -48,6 +48,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `/planner` can now generate a saved 14-day AI content plan and plan items from current command signals.
 - Short-form content now supports saved channel variants for Instagram, Facebook, LinkedIn, email, and other requested platforms.
 - Dashboard, Social Accounts, Analytics, and Automations now use quieter command layouts with focused overlays and row-level actions instead of dense nested cards and always-visible forms.
+- Brand profiles now live in a dedicated sidebar tab, and form fields include inline guidance/example placeholders for easier setup.
 - Planner AI generation now opens a focused brief modal where operators can set mode, brand, campaign, date range, channels, item count, region, country, sport/category, goal, and guidance before Quill creates the saved plan.
 - Delete coverage now includes saved content plans, plan items, connected social accounts, imported/synced published post records, and generated content variants, in addition to the existing content, blog, schedule, campaign, automation, and brand-profile delete flows.
 
@@ -160,6 +161,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `/api/chat`
 - `/dashboard`
 - `/planner`
+- `/brands`
 - `/plans`
 - `/plans/new`
 - `/plans/[id]`

@@ -29,7 +29,7 @@ export function BrandRuleGuide({ profiles }: BrandRuleGuideProps) {
       <div className="card card--padded">
         <h3 style={{ marginTop: 0 }}>No brand profiles configured</h3>
         <p className="muted" style={{ marginBottom: 0 }}>
-          Add profiles in Settings to auto-fill editorial defaults and give the assistant stronger
+          Add profiles in Brands to auto-fill editorial defaults and give the assistant stronger
           brand context.
         </p>
       </div>
