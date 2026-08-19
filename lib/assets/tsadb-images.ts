@@ -46,10 +46,16 @@ const tsadbApiBaseUrl =
   "https://data.techsport.asia/api";
 
 function getTsadbApiKey() {
-  const apiKey = process.env.TSADB_API_KEY ?? process.env.CAMPAIGNS_API_KEY;
+  const apiKey =
+    process.env.TSADB_API_KEY ??
+    process.env.IXARA_EXTERNAL_API_KEY ??
+    process.env.CAMPAIGNS_API_KEY;
 
   if (!apiKey) {
-    throw new TsadbImagesError("TSADB_API_KEY or CAMPAIGNS_API_KEY is not set.", "missing_config");
+    throw new TsadbImagesError(
+      "TSADB_API_KEY, IXARA_EXTERNAL_API_KEY, or CAMPAIGNS_API_KEY is not set.",
+      "missing_config",
+    );
   }
 
   return apiKey;

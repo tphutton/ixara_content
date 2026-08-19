@@ -138,7 +138,7 @@ Additional environment for assets:
 
 - `WORDPRESS_MEDIA_BASE_URL` defaulting to `https://media.ixara.tech/wp-json/wp/v2`
 - `TSADB_API_BASE_URL` defaulting to `https://data.techsport.asia/api`
-- `TSADB_API_KEY`, falling back to `CAMPAIGNS_API_KEY` when not set
+- `TSADB_API_KEY` optional override, falling back to `IXARA_EXTERNAL_API_KEY`, then `CAMPAIGNS_API_KEY`
 - `TSADB_IMAGES_OWNER_ID` for the default enriched organization image sync
 
 ## Environment Checklist
