@@ -89,6 +89,7 @@ Content Command Platform expansion has started:
 - The UI simplification pass has started with the Plans workspace, Dashboard, Social Accounts, Analytics, and Automations using quieter panels, focused overlays, flatter controls, and a narrower command sidebar
 - The extended build plan is tracked in `CONTENT_COMMAND_PLATFORM_BUILD.md`
 - The next planner layer is one-click AI plan generation, plan-item promotion into content/blog/schedule records, richer channel swimlanes, and gap heatmaps
+- AI plan generation now supports a focused operator brief for mode, brand, campaign, dates, channels, item count, geography, category, goal, and extra guidance
 
 Social publishing and analytics foundations are now being added:
 

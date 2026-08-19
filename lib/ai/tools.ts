@@ -1738,8 +1738,21 @@ async function promoteContentPlanItemTool(args: Record<string, unknown>, context
   };
 }
 
-async function generateAiContentPlanTool(_args: Record<string, unknown>, context: ToolContext) {
-  const plan = await generateAiContentPlan(context.access);
+async function generateAiContentPlanTool(args: Record<string, unknown>, context: ToolContext) {
+  const plan = await generateAiContentPlan(context.access, {
+    planningMode: asOptionalString(args.planningMode),
+    brand: asOptionalString(args.brand),
+    campaignName: asOptionalString(args.campaignName),
+    startDate: asNullableDate(args.startDate),
+    endDate: asNullableDate(args.endDate),
+    channels: asStringArray(args.channels),
+    itemCount: typeof args.itemCount === "number" ? args.itemCount : null,
+    region: asOptionalString(args.region),
+    country: asOptionalString(args.country),
+    sport: asOptionalString(args.sport),
+    goal: asOptionalString(args.goal),
+    guidance: asOptionalString(args.guidance),
+  });
 
   return {
     toolName: "generate_ai_content_plan",
@@ -2497,7 +2510,20 @@ export const contentOpsTools: ToolDefinition[] = [
       description: "Generate and save a 14-day AI content plan from current planner signals.",
       parameters: {
         type: "object",
-        properties: {},
+        properties: {
+          planningMode: { type: "string", enum: ["new_content", "balanced", "cleanup", "campaign_launch", "calendar_gaps", "variants"] },
+          brand: { type: "string" },
+          campaignName: { type: "string" },
+          startDate: { type: "string" },
+          endDate: { type: "string" },
+          channels: { type: "array", items: { type: "string" } },
+          itemCount: { type: "number" },
+          region: { type: "string" },
+          country: { type: "string" },
+          sport: { type: "string" },
+          goal: { type: "string" },
+          guidance: { type: "string" },
+        },
         additionalProperties: false,
       },
     },

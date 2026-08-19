@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { isMetaConfigured, isMetaPlatform } from "@/lib/social/meta";
 import {
   createConnectedAccountAction,
+  deleteConnectedAccountAction,
   disconnectConnectedAccountAction,
   syncConnectedAccountNowAction,
   updateConnectedAccountAction,
@@ -144,6 +145,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
           <div className="quiet-list">
             {accounts.map((account) => {
               const disconnectAction = disconnectConnectedAccountAction.bind(null, account.id);
+              const deleteAction = deleteConnectedAccountAction.bind(null, account.id);
               const syncAction = syncConnectedAccountNowAction.bind(null, account.id);
               const canUseMetaFlow = metaConfigured && isMetaPlatform(account.platform);
 
@@ -181,6 +183,9 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
                     </Link>
                     <form action={disconnectAction}>
                       <button className="button button--secondary" type="submit">Disconnect</button>
+                    </form>
+                    <form action={deleteAction}>
+                      <button className="button button--secondary" type="submit">Delete</button>
                     </form>
                   </div>
                 </article>

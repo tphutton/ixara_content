@@ -128,6 +128,34 @@ export async function disconnectConnectedAccountAction(id: string) {
   revalidatePath("/analytics");
 }
 
+export async function deleteConnectedAccountAction(id: string) {
+  const access = await requireEditorialUserAccess();
+  const before = await prisma.connectedAccount.findUniqueOrThrow({
+    where: { id },
+    include: { publishedPosts: { select: { id: true } } },
+  });
+
+  await prisma.connectedAccount.delete({ where: { id } });
+
+  await createActionLog({
+    userId: access.id,
+    actionType: "delete",
+    targetType: "connected_account",
+    targetId: id,
+    summary: `Deleted ${before.platform} account "${before.accountName}"`,
+    beforeData: {
+      id: before.id,
+      platform: before.platform,
+      accountName: before.accountName,
+      linkedPublishedPosts: before.publishedPosts.length,
+    },
+    source: "manual",
+  });
+
+  revalidatePath("/social-accounts");
+  revalidatePath("/analytics");
+}
+
 export async function syncConnectedAccountNowAction(id: string) {
   const access = await requireEditorialUserAccess();
 

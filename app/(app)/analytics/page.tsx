@@ -4,7 +4,7 @@ import { PublishedPostForm } from "@/components/analytics/published-post-form";
 import { SummaryStats } from "@/components/ui/summary-stats";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { prisma } from "@/lib/prisma";
-import { createImportedPublishedPostAction } from "./actions";
+import { createImportedPublishedPostAction, deletePublishedPostAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -207,11 +207,13 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                   <th>Engagement Rate</th>
                   <th>Engagements</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {posts.map((post) => {
                   const snapshot = post.analyticsSnapshots[0] ?? null;
+                  const deleteAction = deletePublishedPostAction.bind(null, post.id);
                   return (
                     <tr key={post.id}>
                       <td>
@@ -224,6 +226,13 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                       <td>{snapshot?.engagements ?? "—"}</td>
                       <td>
                         <StatusBadge label={post.status} />
+                      </td>
+                      <td>
+                        <form action={deleteAction}>
+                          <button className="button button--secondary" type="submit">
+                            Delete
+                          </button>
+                        </form>
                       </td>
                     </tr>
                   );

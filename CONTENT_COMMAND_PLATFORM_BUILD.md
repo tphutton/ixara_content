@@ -37,6 +37,7 @@ Status: in progress
 - [x] Begin simplifying the UI with quieter plan panels, shorter controls, and flatter command surfaces.
 - [x] Move high-friction inline forms on content, schedule, plan, and settings pages into modal overlays.
 - [x] Add one-click AI plan generation from the planner that creates a plan plus suggested items in one guided flow.
+- [x] Add configurable AI plan generation inputs for mode, brand, campaign, dates, channels, item count, geography, category, goal, and operator guidance.
 - [ ] Add drag-and-drop rescheduling and channel swimlanes to the planning surface.
 - [ ] Add gap heatmaps by brand, channel, sport, region, campaign, and week.
 
@@ -163,3 +164,4 @@ Near-term integration targets:
 - UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages. The next pass should migrate Dashboard, Planner, and remaining creation/admin pages away from nested card-heavy layouts toward quiet lists and focused command strips.
 - The next UI simplification pass has moved Dashboard, Social Accounts, Analytics, and Automations toward quiet command panels, row actions, and focused overlays. Planner, Campaigns, Assets, Content, and Settings still need the same polish.
 - `tsconfig.tsbuildinfo` is an untracked generated file and should not be committed unless intentionally needed.
+- Operator delete coverage now includes plans, plan items, connected social accounts, published analytics records, and generated content variants, alongside existing record delete flows.

@@ -116,3 +116,31 @@ export async function createImportedPublishedPostAction(formData: FormData) {
 
   revalidatePath("/analytics");
 }
+
+export async function deletePublishedPostAction(id: string) {
+  const access = await requireEditorialUserAccess();
+  const before = await prisma.publishedPost.findUniqueOrThrow({
+    where: { id },
+    include: { analyticsSnapshots: { select: { id: true } } },
+  });
+
+  await prisma.publishedPost.delete({ where: { id } });
+
+  await createActionLog({
+    userId: access.id,
+    actionType: "delete",
+    targetType: "published_post",
+    targetId: id,
+    summary: `Deleted ${before.platform} published post record${before.titleSnapshot ? ` "${before.titleSnapshot}"` : ""}`,
+    beforeData: {
+      id: before.id,
+      platform: before.platform,
+      titleSnapshot: before.titleSnapshot,
+      externalPostId: before.externalPostId,
+      analyticsSnapshots: before.analyticsSnapshots.length,
+    },
+    source: "manual",
+  });
+
+  revalidatePath("/analytics");
+}

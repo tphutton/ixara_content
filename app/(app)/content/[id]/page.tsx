@@ -12,7 +12,7 @@ import {
   reviewContentQualityAction,
 } from "../../quality/actions";
 import { deleteContentAction, updateContentAction } from "../actions";
-import { generateContentVariantsAction } from "./variant-actions";
+import { deleteContentVariantAction, generateContentVariantsAction } from "./variant-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +64,7 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
   const reviewAction = reviewContentQualityAction.bind(null, id);
   const applyQualityAction = applyContentQualityRecommendationsAction.bind(null, id);
   const generateVariantsAction = generateContentVariantsAction.bind(null, id);
+  const deleteVariantAction = deleteContentVariantAction.bind(null, id);
 
   return (
     <section className="page-shell">
@@ -121,7 +122,7 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
             </div>
           </section>
 
-          <ContentVariantsPanel action={generateVariantsAction} variants={content.variants} />
+          <ContentVariantsPanel action={generateVariantsAction} deleteAction={deleteVariantAction} variants={content.variants} />
         </div>
 
         <div className="stack">

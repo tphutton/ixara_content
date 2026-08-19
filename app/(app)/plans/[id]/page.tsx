@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { reviewPlanItemQualityAction } from "../../quality/actions";
 import {
   addContentPlanItemAction,
+  deleteContentPlanAction,
+  deleteContentPlanItemAction,
   promoteContentPlanItemAction,
   updateContentPlanAction,
   updateContentPlanItemStatusAction,
@@ -52,6 +54,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
   }
 
   const updatePlan = updateContentPlanAction.bind(null, plan.id);
+  const deletePlan = deleteContentPlanAction.bind(null, plan.id);
   const addItem = addContentPlanItemAction.bind(null, plan.id);
 
   return (
@@ -67,6 +70,11 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
             <Link className="button button--secondary" href={`/plans/${plan.id}?edit=1`}>
               Edit plan
             </Link>
+            <form action={deletePlan}>
+              <button className="button button--secondary" type="submit">
+                Delete plan
+              </button>
+            </form>
             <Link className="button button--primary" href={`/plans/${plan.id}?add=1`}>
               Add item
             </Link>
@@ -112,6 +120,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
               <div className="quiet-list">
                 {plan.items.map((item) => {
                   const updateStatus = updateContentPlanItemStatusAction.bind(null, plan.id, item.id);
+                  const deleteItem = deleteContentPlanItemAction.bind(null, plan.id, item.id);
                   const reviewItem = reviewPlanItemQualityAction.bind(null, plan.id, item.id);
                   const promoteItem = promoteContentPlanItemAction.bind(null, plan.id, item.id);
                   const latestReview = item.qualityReviews[0] ?? null;
@@ -154,6 +163,11 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
                         <form action={reviewItem} className="status-control">
                           <button className="button button--secondary" type="submit">
                             Review
+                          </button>
+                        </form>
+                        <form action={deleteItem} className="status-control">
+                          <button className="button button--secondary" type="submit">
+                            Delete item
                           </button>
                         </form>
                         <form action={promoteItem} className="plan-promote-actions">

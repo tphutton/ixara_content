@@ -4,10 +4,11 @@ import { StatusBadge } from "@/components/ui/status-badge";
 
 type ContentVariantsPanelProps = {
   action: () => Promise<void>;
+  deleteAction: (variantId: string) => Promise<void>;
   variants: ContentVariant[];
 };
 
-export function ContentVariantsPanel({ action, variants }: ContentVariantsPanelProps) {
+export function ContentVariantsPanel({ action, deleteAction, variants }: ContentVariantsPanelProps) {
   return (
     <section className="quiet-panel">
       <div className="section-heading">
@@ -31,7 +32,14 @@ export function ContentVariantsPanel({ action, variants }: ContentVariantsPanelP
                   <p className="kicker">{variant.platform}</p>
                   <h3>{variant.title}</h3>
                 </div>
-                <StatusBadge label={variant.status} />
+                <div className="row-actions">
+                  <StatusBadge label={variant.status} />
+                  <form action={deleteAction.bind(null, variant.id)}>
+                    <button className="button button--secondary" type="submit">
+                      Delete
+                    </button>
+                  </form>
+                </div>
               </div>
               {variant.hook ? <strong>{variant.hook}</strong> : null}
               {variant.body ? <p className="muted">{variant.body}</p> : null}

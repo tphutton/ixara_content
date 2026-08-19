@@ -3,11 +3,17 @@ import { format } from "date-fns";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SummaryStats } from "@/components/ui/summary-stats";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
-import { SubmitButton } from "@/components/forms/submit-button";
+import { AiPlanForm } from "@/components/planner/ai-plan-form";
+import { safeListCampaigns } from "@/lib/campaigns/client";
 import { getContentCommandCenter } from "@/lib/planner/content-command-center";
+import { prisma } from "@/lib/prisma";
 import { generateAiContentPlanAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+type PlannerPageProps = {
+  searchParams?: Promise<{ generate?: string }>;
+};
 
 function formatPercent(value: number | null) {
   if (value === null) return "n/a";
@@ -18,8 +24,18 @@ function chatPromptHref(prompt: string) {
   return `/chat?prompt=${encodeURIComponent(prompt)}`;
 }
 
-export default async function PlannerPage() {
-  const planner = await getContentCommandCenter();
+export default async function PlannerPage({ searchParams }: PlannerPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const [planner, brandProfiles, campaignsResponse] = await Promise.all([
+    getContentCommandCenter(),
+    prisma.brandProfile.findMany({
+      select: { brandName: true },
+      orderBy: { brandName: "asc" },
+    }),
+    safeListCampaigns({ limit: 100 }),
+  ]);
+  const campaigns = campaignsResponse.ok ? campaignsResponse.data : [];
+  const isGenerating = resolvedSearchParams?.generate === "1";
 
   return (
     <section className="page-shell">
@@ -55,9 +71,9 @@ export default async function PlannerPage() {
               <h3>Use Quill as the creative operator</h3>
             </div>
             <div className="header-actions">
-              <form action={generateAiContentPlanAction}>
-                <SubmitButton label="Generate AI plan" pendingLabel="Building plan..." />
-              </form>
+              <Link className="button button--primary" href="/planner?generate=1">
+                Generate AI plan
+              </Link>
               <Link className="button button--secondary" href="/chat">
                 Open chat
               </Link>
@@ -345,6 +361,35 @@ export default async function PlannerPage() {
           )}
         </section>
       </div>
+
+      {isGenerating ? (
+        <div className="editor-overlay">
+          <div className="editor-overlay__backdrop">
+            <Link aria-label="Close AI plan generator" href="/planner" />
+          </div>
+          <div className="editor-overlay__panel">
+            <div className="editor-overlay__header">
+              <div>
+                <p className="kicker">AI planning brief</p>
+                <h3>Generate a focused content plan</h3>
+                <p className="muted">
+                  Choose the direction, or leave fields blank and Quill will use the strongest current signals.
+                </p>
+              </div>
+              <Link className="button button--secondary" href="/planner">
+                Close
+              </Link>
+            </div>
+            <div className="editor-overlay__content">
+              <AiPlanForm
+                action={generateAiContentPlanAction}
+                brandProfiles={brandProfiles}
+                campaigns={campaigns}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

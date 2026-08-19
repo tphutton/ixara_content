@@ -128,6 +128,29 @@ export async function updateContentPlanAction(id: string, formData: FormData) {
   revalidatePath(`/plans/${id}`);
 }
 
+export async function deleteContentPlanAction(id: string) {
+  const access = await requireApprovedUserAccess();
+  const before = await prisma.contentPlan.findUniqueOrThrow({
+    where: { id },
+    include: { _count: { select: { items: true } } },
+  });
+
+  await prisma.contentPlan.delete({ where: { id } });
+
+  await createActionLog({
+    userId: access.id,
+    actionType: "delete",
+    targetType: "content_plan",
+    targetId: id,
+    summary: `Deleted content plan "${before.title}" with ${before._count.items} item${before._count.items === 1 ? "" : "s"}`,
+    beforeData: before,
+    source: "manual",
+  });
+
+  revalidatePath("/plans");
+  redirect("/plans");
+}
+
 export async function addContentPlanItemAction(planId: string, formData: FormData) {
   const access = await requireApprovedUserAccess();
   const plan = await prisma.contentPlan.findUniqueOrThrow({
@@ -185,6 +208,26 @@ export async function updateContentPlanItemStatusAction(
     summary: `Moved plan item "${item.title}" to ${item.status}`,
     beforeData: before,
     afterData: item,
+    source: "manual",
+  });
+
+  revalidatePath("/plans");
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function deleteContentPlanItemAction(planId: string, itemId: string) {
+  const access = await requireApprovedUserAccess();
+  const before = await prisma.contentPlanItem.findUniqueOrThrow({ where: { id: itemId } });
+
+  await prisma.contentPlanItem.delete({ where: { id: itemId } });
+
+  await createActionLog({
+    userId: access.id,
+    actionType: "delete",
+    targetType: "content_plan_item",
+    targetId: itemId,
+    summary: `Deleted plan item "${before.title}"`,
+    beforeData: before,
     source: "manual",
   });
 

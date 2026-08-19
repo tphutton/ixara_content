@@ -48,6 +48,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `/planner` can now generate a saved 14-day AI content plan and plan items from current command signals.
 - Short-form content now supports saved channel variants for Instagram, Facebook, LinkedIn, email, and other requested platforms.
 - Dashboard, Social Accounts, Analytics, and Automations now use quieter command layouts with focused overlays and row-level actions instead of dense nested cards and always-visible forms.
+- Planner AI generation now opens a focused brief modal where operators can set mode, brand, campaign, date range, channels, item count, region, country, sport/category, goal, and guidance before Quill creates the saved plan.
+- Delete coverage now includes saved content plans, plan items, connected social accounts, imported/synced published post records, and generated content variants, in addition to the existing content, blog, schedule, campaign, automation, and brand-profile delete flows.
 
 ## Completed
 - [x] Created root project scaffold and TypeScript/Next.js config.
@@ -117,6 +119,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
 - [ ] Add guided promotion from plan item into channel variants and approvals.
 - [ ] Add plan preview/edit step before saving AI-generated plans.
+- [x] Add configurable AI plan generation inputs before creating saved plans.
 - [ ] Add variant editing, approval, and promotion into schedule/publishing packages.
 - [ ] Continue modal cleanup for remaining creation, automation, social, analytics, and campaign forms.
 - [x] Continue simplifying Dashboard, Social Accounts, Analytics, and Automations around the new quiet-panel pattern.
@@ -145,6 +148,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `AutomationWorkflow` and `AutomationRun` now provide the basis for controlled recurring content generation and future scheduler execution.
 - `ConnectedAccount`, `PublishedPost`, and `PostAnalyticsSnapshot` now hold the future social connection, publishing history, and performance intelligence layer.
 - `ContentPlan` and `ContentPlanItem` now persist AI/manual planning decisions before they become content, blog, schedule, asset, or automation work.
+- `ContentPlan`, `ContentPlanItem`, `ConnectedAccount`, `PublishedPost`, and `ContentVariant` now have operator delete paths with audit logging.
 - `QualityReview` stores AI editorial scoring for content, blogs, and content plan items.
 - `Blog.legacyExternalId`, `Blog.legacyBlogId`, and `Blog.legacyZohoId` preserve deprecated blog system identifiers so compatibility APIs and imports remain stable during migration.
 
