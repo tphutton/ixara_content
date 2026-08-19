@@ -5,6 +5,7 @@ import {
   SocialPlatform,
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createActionLog } from "@/lib/actions/action-log";
 import { requireEditorialUserAccess } from "@/lib/auth/user-access";
 import { parseOptionalString, parseStringArray } from "@/lib/forms/parsers";
@@ -67,6 +68,7 @@ export async function createConnectedAccountAction(formData: FormData) {
 
   revalidatePath("/social-accounts");
   revalidatePath("/analytics");
+  redirect("/social-accounts?success=account_created");
 }
 
 export async function updateConnectedAccountAction(id: string, formData: FormData) {
@@ -99,6 +101,7 @@ export async function updateConnectedAccountAction(id: string, formData: FormDat
 
   revalidatePath("/social-accounts");
   revalidatePath("/analytics");
+  redirect("/social-accounts?success=account_updated");
 }
 
 export async function disconnectConnectedAccountAction(id: string) {
@@ -126,6 +129,7 @@ export async function disconnectConnectedAccountAction(id: string) {
 
   revalidatePath("/social-accounts");
   revalidatePath("/analytics");
+  redirect("/social-accounts?success=account_disconnected");
 }
 
 export async function deleteConnectedAccountAction(id: string) {
@@ -154,6 +158,7 @@ export async function deleteConnectedAccountAction(id: string) {
 
   revalidatePath("/social-accounts");
   revalidatePath("/analytics");
+  redirect("/social-accounts?success=account_deleted");
 }
 
 export async function syncConnectedAccountNowAction(id: string) {
@@ -167,4 +172,5 @@ export async function syncConnectedAccountNowAction(id: string) {
   revalidatePath("/social-accounts");
   revalidatePath("/analytics");
   revalidatePath("/dashboard");
+  redirect("/social-accounts?success=account_synced");
 }

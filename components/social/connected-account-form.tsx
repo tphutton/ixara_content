@@ -19,6 +19,9 @@ export function ConnectedAccountForm({
 }: ConnectedAccountFormProps) {
   return (
     <form action={action} className="stack">
+      {!account ? (
+        <input name="status" type="hidden" value={ConnectedAccountStatus.pending_setup} />
+      ) : null}
       <div className="form-grid form-grid--2">
         <Field htmlFor="platform" label="Platform">
           <select
@@ -39,6 +42,7 @@ export function ConnectedAccountForm({
             defaultValue={account?.status ?? ConnectedAccountStatus.pending_setup}
             id="status"
             name="status"
+            disabled={!account}
           >
             {Object.values(ConnectedAccountStatus).map((status) => (
               <option key={status} value={status}>
@@ -56,7 +60,7 @@ export function ConnectedAccountForm({
           <input defaultValue={account?.accountHandle ?? ""} id="accountHandle" name="accountHandle" />
         </Field>
 
-        <Field htmlFor="externalAccountId" hint="Optional until OAuth is connected" label="External account ID">
+        <Field htmlFor="externalAccountId" hint="Optional. Meta OAuth fills this automatically after connection." label="External account ID">
           <input
             defaultValue={account?.externalAccountId ?? ""}
             id="externalAccountId"
@@ -106,8 +110,8 @@ export function ConnectedAccountForm({
       </Field>
 
       <SubmitButton
-        label={account ? "Save account" : "Create account"}
-        pendingLabel={account ? "Saving account..." : "Creating account..."}
+        label={account ? "Save and close" : "Save and close"}
+        pendingLabel="Saving account..."
       />
     </form>
   );

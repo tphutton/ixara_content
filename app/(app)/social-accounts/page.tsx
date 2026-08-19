@@ -93,6 +93,16 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
           <p className="muted" style={{ margin: "8px 0 0" }}>
             {resolvedSearchParams.success === "meta_connected"
               ? "Meta account connected successfully. You can sync posts and analytics now."
+              : resolvedSearchParams.success === "account_created"
+                ? "Account saved. Connect it to Meta to authorize sync and publishing permissions."
+              : resolvedSearchParams.success === "account_updated"
+                ? "Account updated."
+              : resolvedSearchParams.success === "account_synced"
+                ? "Account synced. Published posts and analytics are now refreshed."
+              : resolvedSearchParams.success === "account_disconnected"
+                ? "Account disconnected."
+              : resolvedSearchParams.success === "account_deleted"
+                ? "Account deleted."
               : resolvedSearchParams.success}
           </p>
         </div>
@@ -168,14 +178,14 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
                   </div>
 
                   <div className="row-actions">
-                    {canUseMetaFlow ? (
+                    {canUseMetaFlow && !account.encryptedAccessToken ? (
                       <Link className="button button--primary" href={`/api/social/meta/start?accountId=${account.id}`}>
-                        Connect
+                        Connect Meta
                       </Link>
                     ) : null}
                     {canUseMetaFlow && account.encryptedAccessToken ? (
                       <form action={syncAction}>
-                        <button className="button button--secondary" type="submit">Sync</button>
+                        <button className="button button--primary" type="submit">Sync posts</button>
                       </form>
                     ) : null}
                     <Link className="button button--secondary" href={`/social-accounts?edit=${account.id}`}>
