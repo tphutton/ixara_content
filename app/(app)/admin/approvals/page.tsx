@@ -26,57 +26,46 @@ export default async function AdminApprovalsPage() {
         description="Manual approval and role assignment workspace for internal access control."
       />
 
-      <div className="grid" style={{ gridTemplateColumns: "1.3fr 1fr", alignItems: "start" }}>
-        <section className="card card--padded">
-          <p className="kicker">Pending queue</p>
+      <div className="admin-approval-grid">
+        <section className="quiet-panel">
+          <div className="section-heading">
+            <div>
+              <p className="kicker">Pending queue</p>
+              <h3>{pendingUsers.length} request{pendingUsers.length === 1 ? "" : "s"}</h3>
+            </div>
+          </div>
           {pendingUsers.length === 0 ? (
-            <div className="empty-state card card--padded">
+            <div className="empty-state empty-state--quiet">
               <h3>No pending approvals</h3>
               <p className="muted">New Clerk signups will appear here automatically after their first authenticated request.</p>
             </div>
           ) : (
-            <div className="stack">
+            <div className="quiet-list">
               {pendingUsers.map((user) => (
-                <article className="card card--padded" key={user.id}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-                    <div>
+                <article className="quiet-row" key={user.id}>
+                  <div className="quiet-row__main">
+                    <div className="quiet-row__title">
                       <strong>{user.fullName ?? "Unnamed user"}</strong>
-                      <p className="muted" style={{ margin: "8px 0 0" }}>
-                        {user.email}
-                      </p>
+                      <StatusBadge label={user.approvalStatus} />
                     </div>
-                    <StatusBadge label={user.approvalStatus} />
+                    <p className="muted">{user.email}</p>
                   </div>
 
-                  <form action={updateUserAccessAction} className="stack" style={{ marginTop: 18 }}>
+                  <form action={updateUserAccessAction} className="admin-access-form">
                     <input name="userId" type="hidden" value={user.id} />
-
-                    <label className="stack" style={{ gap: 8 }}>
-                      <span className="muted">Role</span>
-                      <select
-                        defaultValue={user.role}
-                        name="role"
-                        style={{
-                          padding: "12px 14px",
-                          borderRadius: 12,
-                          border: "1px solid rgba(15, 23, 42, 0.12)",
-                          background: "white",
-                        }}
-                      >
-                        {Object.values(UserRole).map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <select defaultValue={user.role} name="role" aria-label={`Role for ${user.email}`}>
+                      {Object.values(UserRole).map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                    <div>
                       <button className="button button--primary" name="approvalStatus" type="submit" value={ApprovalStatus.approved}>
-                        Approve user
+                        Approve
                       </button>
                       <button className="button button--secondary" name="approvalStatus" type="submit" value={ApprovalStatus.rejected}>
-                        Reject user
+                        Reject
                       </button>
                     </div>
                   </form>
@@ -87,7 +76,7 @@ export default async function AdminApprovalsPage() {
         </section>
 
         <aside className="stack">
-          <section className="card card--padded">
+          <section className="quiet-panel">
             <p className="kicker">Current admin session</p>
             <h3>{currentAdmin.fullName ?? currentAdmin.email}</h3>
             <p className="muted">
@@ -95,56 +84,44 @@ export default async function AdminApprovalsPage() {
             </p>
           </section>
 
-          <section className="card card--padded">
-            <p className="kicker">Reviewed users</p>
-            <div className="stack">
+          <section className="quiet-panel">
+            <div className="section-heading">
+              <div>
+                <p className="kicker">Reviewed users</p>
+                <h3>{reviewedUsers.length} account{reviewedUsers.length === 1 ? "" : "s"}</h3>
+              </div>
+            </div>
+            <div className="quiet-list">
               {reviewedUsers.length === 0 ? (
                 <p className="muted">No reviewed users yet.</p>
               ) : (
                 reviewedUsers.map((user) => (
-                  <article className="card card--padded" key={user.id}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                      <div>
+                  <article className="quiet-row quiet-row--compact" key={user.id}>
+                    <div className="quiet-row__main">
+                      <div className="quiet-row__title">
                         <strong>{user.fullName ?? "Unnamed user"}</strong>
-                        <p className="muted" style={{ margin: "8px 0 0" }}>
-                          {user.email}
-                        </p>
+                        <StatusBadge label={user.approvalStatus} />
                       </div>
-                      <StatusBadge label={user.approvalStatus} />
+                      <p className="muted">
+                        {user.email} • {user.role}
+                      </p>
                     </div>
-                    <p className="muted" style={{ margin: "12px 0 0" }}>
-                      Current role: {user.role}
-                    </p>
 
-                    <form action={updateUserAccessAction} className="stack" style={{ marginTop: 16 }}>
+                    <form action={updateUserAccessAction} className="admin-access-form admin-access-form--compact">
                       <input name="userId" type="hidden" value={user.id} />
-
-                      <label className="stack" style={{ gap: 8 }}>
-                        <span className="muted">Role</span>
-                        <select
-                          defaultValue={user.role}
-                          name="role"
-                          style={{
-                            padding: "12px 14px",
-                            borderRadius: 12,
-                            border: "1px solid rgba(15, 23, 42, 0.12)",
-                            background: "white",
-                          }}
-                        >
-                          {Object.values(UserRole).map((role) => (
-                            <option key={role} value={role}>
-                              {role}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-
-                      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        <button className="button button--primary" name="approvalStatus" type="submit" value={ApprovalStatus.approved}>
-                          Save as approved
+                      <select defaultValue={user.role} name="role" aria-label={`Role for ${user.email}`}>
+                        {Object.values(UserRole).map((role) => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
+                        ))}
+                      </select>
+                      <div>
+                        <button className="button button--secondary" name="approvalStatus" type="submit" value={ApprovalStatus.approved}>
+                          Approve
                         </button>
                         <button className="button button--secondary" name="approvalStatus" type="submit" value={ApprovalStatus.rejected}>
-                          Mark rejected
+                          Reject
                         </button>
                       </div>
                     </form>

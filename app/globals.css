@@ -713,6 +713,59 @@ textarea {
   flex-wrap: wrap;
 }
 
+.command-list-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.command-list-header h3,
+.command-list-header p {
+  margin-top: 0;
+}
+
+.command-list-header__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  max-width: 680px;
+}
+
+.admin-approval-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-access-form {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.admin-access-form select {
+  min-width: 160px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.72);
+  color: var(--text);
+}
+
+.admin-access-form div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-access-form--compact {
+  justify-items: stretch;
+}
+
 .navigation-spinner {
   position: fixed;
   top: 18px;
@@ -2540,6 +2593,7 @@ textarea {
   .blog-detail-grid,
   .blog-list-card__meta,
   .plan-layout,
+  .admin-approval-grid,
   .dashboard-command-grid,
   .planner-grid {
     grid-template-columns: 1fr;
@@ -2653,6 +2707,7 @@ textarea {
   }
 
   .blog-list-card__header,
+  .command-list-header,
   .editor-overlay__header,
   .planner-gap-card,
   .planner-schedule-card,
@@ -2664,6 +2719,13 @@ textarea {
   }
 
   .quiet-row__aside {
+    justify-items: start;
+  }
+
+  .command-list-header__actions,
+  .admin-access-form,
+  .admin-access-form div {
+    justify-content: flex-start;
     justify-items: start;
   }
 

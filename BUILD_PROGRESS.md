@@ -52,6 +52,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Planner AI generation now opens a focused brief modal where operators can set mode, brand, campaign, date range, channels, item count, region, country, sport/category, goal, and guidance before Quill creates the saved plan.
 - Planner AI generation now includes a preview/edit step before database creation, so operators can review the returned plan title, goal, dates, campaign, item briefs, channels, schedule targets, brands, and asset requests before saving.
 - Saved plan detail pages now operate as status-based production boards with filters, next-best-action guidance, item editing, quality review, promotion, and delete controls on each item.
+- Content, blog, campaign, asset, and admin pages have been flattened into quieter queue/library views with fewer stacked panels and modal-only heavy operations where appropriate.
 - Delete coverage now includes saved content plans, plan items, connected social accounts, imported/synced published post records, and generated content variants, in addition to the existing content, blog, schedule, campaign, automation, and brand-profile delete flows.
 
 ## Completed
@@ -114,6 +115,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added AI plan generation from Planner with operator brief controls and a review-before-save draft step.
 - [x] Rebuilt saved plan detail pages into production boards grouped by item status.
 - [x] Added full plan-item editing from the saved plan board.
+- [x] Simplified content, blog, campaign, asset, and admin approval pages around quieter command surfaces.
 - [x] Added saved content variants with UI generation from content detail pages.
 - [x] Added Quill/Atlas `generate_content_variants` tool.
 
@@ -128,7 +130,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [ ] Add variant editing, approval, and promotion into schedule/publishing packages.
 - [ ] Continue modal cleanup for remaining creation, automation, social, analytics, and campaign forms.
 - [x] Continue simplifying Dashboard, Social Accounts, Analytics, and Automations around the new quiet-panel pattern.
-- [ ] Continue simplifying Planner, Content, Settings, Campaigns, Assets, and remaining creation/detail pages around the same pattern.
+- [ ] Continue simplifying Planner, Settings, creation pages, and remaining detail pages around the same pattern.
 - [ ] Extend quality recommendation application to blogs and plan items.
 - [ ] Add a quality dashboard for weak drafts, unrevised reviews, and score trends.
 - [ ] Seed or complete brand profiles until core brands reach strong AI-readiness scores.

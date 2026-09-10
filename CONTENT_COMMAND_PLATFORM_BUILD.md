@@ -171,6 +171,6 @@ Near-term integration targets:
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, with a dedicated Brands tab and field guidance to help operators fill readiness gaps.
 - Assets have moved beyond simple WordPress media sync: TSADB enriched image metadata can now populate the asset library, and Quill/Atlas can recommend images using region, country, category, item, description, featured status, and current workspace usage.
 - UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages.
-- The next UI simplification pass has moved Dashboard, Social Accounts, Analytics, Automations, Assets, and AI plan generation toward quieter command panels, row actions, focused overlays, and review-before-save flows. Campaigns, Content lists, and deeper Planner swimlanes still need the same polish.
+- The next UI simplification pass has moved Dashboard, Social Accounts, Analytics, Automations, Assets, Content, Blogs, Campaigns, Admin approvals, and AI plan generation toward quieter command panels, row actions, focused overlays, and review-before-save flows. Deeper Planner swimlanes, Settings, and creation/detail pages still need the same polish.
 - `tsconfig.tsbuildinfo` is an untracked generated file and should not be committed unless intentionally needed.
 - Operator delete coverage now includes plans, plan items, connected social accounts, published analytics records, and generated content variants, alongside existing record delete flows.

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { SummaryStats } from "@/components/ui/summary-stats";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { prisma } from "@/lib/prisma";
 
@@ -79,44 +78,28 @@ export default async function ContentPage({ searchParams }: ContentPageProps) {
       <WorkspaceHeader
         title="Content"
         description="Operational table for short-form content, campaign copy, and channel-specific assets."
+        actions={
+          <Link className="button button--primary" href="/content/new">
+            Create content
+          </Link>
+        }
       />
 
       <div className="stack">
-        <SummaryStats
-          items={[
-            {
-              label: "Total records",
-              value: queueCounts.all,
-              detail: `${availableBrands.length} active brands in the content library`,
-            },
-            {
-              label: "Automation ready",
-              value: queueCounts.ready,
-              detail: "Ready for automation workflows or scheduling",
-            },
-            {
-              label: "Needs attention",
-              value: queueCounts.attention,
-              detail: "Missing brand, audience, tone, or asset context",
-            },
-            {
-              label: "Published",
-              value: publishedCount,
-              detail: "Live content records already moved through the workflow",
-            },
-          ]}
-        />
-
-        <div className="toolbar">
-          <div className="toolbar__group">
-            <Link className="button button--primary" href="/content/new">
-              Create content
-            </Link>
+        <section className="quiet-panel command-list-header">
+          <div>
+            <p className="kicker">Content queue</p>
+            <h3>
+              {filteredRows.length} visible record{filteredRows.length === 1 ? "" : "s"}
+            </h3>
+            <p className="muted">
+              {queueCounts.ready} ready, {queueCounts.attention} need attention, {publishedCount} published.
+            </p>
           </div>
-          <div className="toolbar__group">
+          <div className="command-list-header__actions">
             {queueOptions.map((option) => (
               <Link
-                className="button button--secondary"
+                className="inline-chip"
                 data-active={queue === option.key}
                 href={option.key === "all" ? "/content" : `/content?queue=${option.key}`}
                 key={option.key}
@@ -125,13 +108,13 @@ export default async function ContentPage({ searchParams }: ContentPageProps) {
               </Link>
             ))}
           </div>
-        </div>
+        </section>
 
-        <div className="toolbar">
-          <div className="toolbar__group">
+        {availableBrands.length > 0 ? (
+          <div className="plan-filter-bar">
             {availableBrands.slice(0, 6).map((brand) => (
               <Link
-                className="button button--secondary"
+                className="inline-chip"
                 data-active={brandFilter === brand.toLowerCase()}
                 href={`/content?queue=${queue}&brand=${encodeURIComponent(brand)}`}
                 key={brand}
@@ -139,41 +122,19 @@ export default async function ContentPage({ searchParams }: ContentPageProps) {
                 {brand}
               </Link>
             ))}
-          </div>
-          <div className="toolbar__group">
             {brandFilter ? (
               <Link
-                className="button button--secondary"
+                className="inline-chip"
                 href={queue === "all" ? "/content" : `/content?queue=${queue}`}
               >
                 Clear brand filter
               </Link>
             ) : null}
           </div>
-        </div>
-
-        <div className="card card--padded">
-          <div className="section-heading">
-            <div>
-              <p className="kicker">Operational queue</p>
-              <h3 style={{ marginTop: 0 }}>
-                {queue === "all"
-                  ? "All content records"
-                  : queue === "ready"
-                    ? "Automation-ready content"
-                    : queue === "attention"
-                      ? "Content needing attention"
-                      : "Draft content"}
-              </h3>
-            </div>
-            <span className="inline-chip">
-              {filteredRows.length} visible record{filteredRows.length === 1 ? "" : "s"}
-            </span>
-          </div>
-        </div>
+        ) : null}
 
         {filteredRows.length === 0 ? (
-          <div className="card card--padded empty-state">
+          <div className="quiet-panel empty-state empty-state--quiet">
             <h3>No content records in this queue</h3>
             <p className="muted">
               Adjust the queue or brand filter, or create a new record to populate this view.

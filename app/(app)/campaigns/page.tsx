@@ -95,42 +95,36 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
         </div>
 
         {response.ok && response.data.length === 0 ? (
-          <div className="card card--padded empty-state">
+          <div className="quiet-panel empty-state empty-state--quiet">
             <h3>No campaigns found</h3>
             <p className="muted">Create a new campaign or clear the active filter to see more results.</p>
           </div>
         ) : response.ok ? (
-          <div className="card table-shell">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Brand</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th>Country</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {response.data.map((campaign) => (
-                  <tr key={campaign.campaign_id}>
-                    <td>
-                      <Link href={`/campaigns/${campaign.campaign_id}`}>{campaign.campaign_name}</Link>
-                    </td>
-                    <td>{campaign.brand.join(", ") || "—"}</td>
-                    <td>{campaign.start_date ? new Date(campaign.start_date).toLocaleDateString() : "—"}</td>
-                    <td>{campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : "—"}</td>
-                    <td>{campaign.country ?? "—"}</td>
-                    <td>{campaign.campaign_type ?? "—"}</td>
-                    <td>
-                      <StatusBadge label={campaign.campaign_status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="quiet-list">
+            {response.data.map((campaign) => (
+              <article className="quiet-row" key={campaign.campaign_id}>
+                <div className="quiet-row__main">
+                  <div className="quiet-row__title">
+                    <Link href={`/campaigns/${campaign.campaign_id}`}>{campaign.campaign_name}</Link>
+                    <StatusBadge label={campaign.campaign_status} />
+                  </div>
+                  <div className="quiet-meta">
+                    <span>{campaign.brand.join(", ") || "No brand"}</span>
+                    <span>{campaign.campaign_type ?? "No type"}</span>
+                    <span>{campaign.country ?? "No country"}</span>
+                    <span>
+                      {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString() : "No start"} to{" "}
+                      {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : "No end"}
+                    </span>
+                  </div>
+                </div>
+                <div className="row-actions">
+                  <Link className="button button--secondary" href={`/campaigns/${campaign.campaign_id}`}>
+                    Open
+                  </Link>
+                </div>
+              </article>
+            ))}
           </div>
         ) : null}
       </div>

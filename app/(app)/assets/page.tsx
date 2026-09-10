@@ -24,6 +24,7 @@ type AssetsPageProps = {
     source?: string;
     featured?: string;
     asset?: string;
+    sync?: string;
   }>;
 };
 
@@ -91,6 +92,16 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
       <WorkspaceHeader
         title="Assets"
         description="Search, sync, and curate reusable image assets for plans, campaigns, content, blogs, and publishing workflows."
+        actions={
+          <div className="header-actions">
+            <Link className="button button--secondary" href="/assets?sync=wordpress">
+              WordPress sync
+            </Link>
+            <Link className="button button--primary" href="/assets?sync=tsadb">
+              TSADB sync
+            </Link>
+          </div>
+        }
       />
 
       <div className="asset-summary-grid">
@@ -109,44 +120,6 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
           <strong className="asset-stat">{featuredAssets}</strong>
           <p className="muted">Priority images the planner should consider first.</p>
         </article>
-      </div>
-
-      <div className="asset-ops-grid">
-        <form action={syncTsadbAssetsAction} className="quiet-panel asset-sync-panel">
-          <div>
-            <p className="kicker">Enriched TSADB sync</p>
-            <h3>Bring in the useful image metadata</h3>
-            <p className="muted">
-              Pulls descriptions, regions, countries, categories, item links, featured state, and WordPress IDs.
-            </p>
-          </div>
-          <div className="asset-sync-fields">
-            <label>
-              <span>Owner ID</span>
-              <input name="ownerId" placeholder="Optional if TSADB_IMAGES_OWNER_ID is set" />
-            </label>
-            <label>
-              <span>Sales item ID</span>
-              <input name="salesItemId" placeholder="Optional targeted sync" />
-            </label>
-            <label>
-              <span>Limit</span>
-              <input defaultValue="1000" min="1" name="limit" type="number" />
-            </label>
-          </div>
-          <SubmitButton label="Sync enriched images" pendingLabel="Syncing images..." />
-        </form>
-
-        <form action={syncWordPressAssetsAction} className="quiet-panel asset-sync-panel">
-          <div>
-            <p className="kicker">WordPress sync</p>
-            <h3>Refresh recent media</h3>
-            <p className="muted">
-              Pulls the latest public WordPress media records for files that are not yet in the catalog.
-            </p>
-          </div>
-          <AssetSyncButton />
-        </form>
       </div>
 
       <form className="quiet-panel asset-filter-panel">
@@ -273,6 +246,76 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {params.sync === "tsadb" ? (
+        <div className="editor-overlay">
+          <div className="editor-overlay__backdrop">
+            <Link aria-label="Close TSADB sync" href="/assets" />
+          </div>
+          <div className="editor-overlay__panel">
+            <div className="editor-overlay__header">
+              <div>
+                <p className="kicker">Asset sync</p>
+                <h3>Sync enriched TSADB images</h3>
+                <p className="muted">
+                  Pull descriptions, regions, categories, item links, featured state, and WordPress IDs into the local asset catalog.
+                </p>
+              </div>
+              <Link className="button button--secondary" href="/assets">
+                Close
+              </Link>
+            </div>
+            <div className="editor-overlay__content">
+              <form action={syncTsadbAssetsAction} className="quiet-form">
+                <label className="field">
+                  <span className="field__label">Owner ID</span>
+                  <input name="ownerId" placeholder="Optional if TSADB_IMAGES_OWNER_ID is set" />
+                  <span className="field__hint">Use only when you want to override the default configured TSADB owner.</span>
+                </label>
+                <label className="field">
+                  <span className="field__label">Sales item ID</span>
+                  <input name="salesItemId" placeholder="Optional targeted sync" />
+                  <span className="field__hint">Leave blank for the full image library, or target one sales item.</span>
+                </label>
+                <label className="field">
+                  <span className="field__label">Limit</span>
+                  <input defaultValue="1000" min="1" name="limit" type="number" />
+                </label>
+                <div className="form-actions">
+                  <SubmitButton label="Sync enriched images" pendingLabel="Syncing images..." />
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {params.sync === "wordpress" ? (
+        <div className="editor-overlay">
+          <div className="editor-overlay__backdrop">
+            <Link aria-label="Close WordPress sync" href="/assets" />
+          </div>
+          <div className="editor-overlay__panel">
+            <div className="editor-overlay__header">
+              <div>
+                <p className="kicker">Asset sync</p>
+                <h3>Refresh WordPress media</h3>
+                <p className="muted">
+                  Pull the latest public WordPress media records for files not yet in the asset catalog.
+                </p>
+              </div>
+              <Link className="button button--secondary" href="/assets">
+                Close
+              </Link>
+            </div>
+            <div className="editor-overlay__content">
+              <form action={syncWordPressAssetsAction} className="quiet-form">
+                <AssetSyncButton />
+              </form>
             </div>
           </div>
         </div>
