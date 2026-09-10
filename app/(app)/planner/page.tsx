@@ -7,7 +7,7 @@ import { AiPlanForm } from "@/components/planner/ai-plan-form";
 import { safeListCampaigns } from "@/lib/campaigns/client";
 import { getContentCommandCenter } from "@/lib/planner/content-command-center";
 import { prisma } from "@/lib/prisma";
-import { generateAiContentPlanAction } from "./actions";
+import { saveAiContentPlanPreviewAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -382,7 +382,7 @@ export default async function PlannerPage({ searchParams }: PlannerPageProps) {
             </div>
             <div className="editor-overlay__content">
               <AiPlanForm
-                action={generateAiContentPlanAction}
+                action={saveAiContentPlanPreviewAction}
                 brandProfiles={brandProfiles}
                 campaigns={campaigns}
               />

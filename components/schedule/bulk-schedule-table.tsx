@@ -7,6 +7,7 @@ import { bulkUpdateScheduleAction } from "@/app/(app)/schedule/actions";
 import { scheduleStatusOptions } from "@/lib/constants/options";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { BrandSelect } from "@/components/forms/brand-select";
 
 type ScheduleTableRow = {
   id: string;
@@ -130,14 +131,10 @@ export function BulkScheduleTable({ rows, availableBrands }: BulkScheduleTablePr
                 <input name="applyBrand" type="checkbox" value="true" />
                 <span>Brand</span>
               </span>
-              <select defaultValue="" name="brand">
-                <option value="">No change</option>
-                {availableBrands.map((brand) => (
-                  <option key={brand} value={brand}>
-                    {brand}
-                  </option>
-                ))}
-              </select>
+              <BrandSelect
+                options={availableBrands.map((brandName) => ({ brandName }))}
+                placeholder="No change"
+              />
             </label>
 
             <label className="field">

@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { PlanForm } from "@/components/plans/plan-form";
+import { prisma } from "@/lib/prisma";
 import { createContentPlanAction } from "../actions";
 
-export default function NewPlanPage() {
+export default async function NewPlanPage() {
+  const brandProfiles = await prisma.brandProfile.findMany({
+    select: { id: true, brandName: true },
+    orderBy: { brandName: "asc" },
+  });
+
   return (
     <section className="page-shell page-shell--narrow">
       <WorkspaceHeader
@@ -17,7 +23,7 @@ export default function NewPlanPage() {
       />
 
       <section className="quiet-panel">
-        <PlanForm action={createContentPlanAction} submitLabel="Create plan" />
+        <PlanForm action={createContentPlanAction} brandProfiles={brandProfiles} submitLabel="Create plan" />
       </section>
     </section>
   );

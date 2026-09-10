@@ -1,5 +1,6 @@
 import { Content, ContentStatus, ContentType } from "@prisma/client";
 import { contentStatusOptions, contentTypeOptions } from "@/lib/constants/options";
+import { BrandSelect } from "@/components/forms/brand-select";
 import { Field } from "@/components/forms/field";
 import { SubmitButton } from "@/components/forms/submit-button";
 
@@ -18,12 +19,6 @@ export function ContentForm({
 }: ContentFormProps) {
   return (
     <form action={action} className="stack">
-      <datalist id="brand-profile-options">
-        {brandProfiles.map((profile) => (
-          <option key={profile.id} value={profile.brandName} />
-        ))}
-      </datalist>
-
       <div className="form-grid form-grid--2">
         <Field htmlFor="title" label="Title">
           <input defaultValue={content?.title ?? ""} id="title" name="title" required />
@@ -62,12 +57,7 @@ export function ContentForm({
         </Field>
 
         <Field htmlFor="brand" hint="Matches a saved brand profile when available" label="Brand">
-          <input
-            defaultValue={content?.brand ?? ""}
-            id="brand"
-            list="brand-profile-options"
-            name="brand"
-          />
+          <BrandSelect options={brandProfiles} value={content?.brand} />
         </Field>
 
         <Field htmlFor="sport" label="Sport">

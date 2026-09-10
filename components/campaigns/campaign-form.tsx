@@ -1,4 +1,5 @@
 import { Field } from "@/components/forms/field";
+import { BrandMultiSelect } from "@/components/forms/brand-select";
 import { SubmitButton } from "@/components/forms/submit-button";
 import {
   campaignStatuses,
@@ -11,9 +12,10 @@ type CampaignFormProps = {
   campaign?: Campaign | null;
   linkedAssetId?: string | null;
   assets?: Array<{ id: string; title: string }>;
+  brandProfiles?: Array<{ id?: string; brandName: string }>;
 };
 
-export function CampaignForm({ action, campaign, linkedAssetId, assets = [] }: CampaignFormProps) {
+export function CampaignForm({ action, campaign, linkedAssetId, assets = [], brandProfiles = [] }: CampaignFormProps) {
   return (
     <form action={action} className="stack">
       <div className="form-grid form-grid--2">
@@ -55,8 +57,8 @@ export function CampaignForm({ action, campaign, linkedAssetId, assets = [] }: C
           </select>
         </Field>
 
-        <Field htmlFor="brand" hint="Comma separated brands" label="Brands">
-          <input defaultValue={campaign?.brand.join(", ") ?? ""} id="brand" name="brand" />
+        <Field htmlFor="brand" hint="Select one or more saved brand profiles." label="Brands">
+          <BrandMultiSelect options={brandProfiles} values={campaign?.brand ?? []} />
         </Field>
 
         <Field htmlFor="start_date" label="Start date">

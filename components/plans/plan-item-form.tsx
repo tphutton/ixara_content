@@ -1,11 +1,13 @@
 import { ContentPlanItemStatus, ContentPlanItemType, type ContentPlan } from "@prisma/client";
+import { BrandSelect } from "@/components/forms/brand-select";
 
 type PlanItemFormProps = {
   action: (formData: FormData) => Promise<void>;
   plan: ContentPlan;
+  brandProfiles?: Array<{ id?: string; brandName: string }>;
 };
 
-export function PlanItemForm({ action, plan }: PlanItemFormProps) {
+export function PlanItemForm({ action, plan, brandProfiles = [] }: PlanItemFormProps) {
   return (
     <form action={action} className="quiet-form">
       <label className="field">
@@ -55,7 +57,7 @@ export function PlanItemForm({ action, plan }: PlanItemFormProps) {
       <div className="form-grid form-grid--2">
         <label className="field">
           <span className="field__label">Brand</span>
-          <input name="brand" defaultValue={plan.brand ?? ""} />
+          <BrandSelect options={brandProfiles} value={plan.brand} />
         </label>
         <label className="field">
           <span className="field__label">Campaign</span>

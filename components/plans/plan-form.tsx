@@ -1,8 +1,10 @@
 import { ContentPlanStatus, type ContentPlan } from "@prisma/client";
+import { BrandSelect } from "@/components/forms/brand-select";
 
 type PlanFormProps = {
   action: (formData: FormData) => Promise<void>;
   plan?: ContentPlan | null;
+  brandProfiles?: Array<{ id?: string; brandName: string }>;
   submitLabel: string;
 };
 
@@ -10,7 +12,7 @@ function dateValue(date?: Date | null) {
   return date ? date.toISOString().slice(0, 10) : "";
 }
 
-export function PlanForm({ action, plan, submitLabel }: PlanFormProps) {
+export function PlanForm({ action, plan, brandProfiles = [], submitLabel }: PlanFormProps) {
   return (
     <form action={action} className="quiet-form">
       <div className="form-grid form-grid--2">
@@ -43,7 +45,7 @@ export function PlanForm({ action, plan, submitLabel }: PlanFormProps) {
       <div className="form-grid form-grid--2">
         <label className="field">
           <span className="field__label">Brand</span>
-          <input name="brand" defaultValue={plan?.brand ?? ""} />
+          <BrandSelect options={brandProfiles} value={plan?.brand} />
         </label>
         <label className="field">
           <span className="field__label">Campaign</span>

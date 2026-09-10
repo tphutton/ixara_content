@@ -14,7 +14,7 @@ type CampaignDetailPageProps = {
 
 export default async function CampaignDetailPage({ params }: CampaignDetailPageProps) {
   const { id } = await params;
-  const [campaign, assets, linkedAsset] = await Promise.all([
+  const [campaign, assets, linkedAsset, brandProfiles] = await Promise.all([
     getCampaign(id),
     prisma.asset.findMany({
       select: { id: true, title: true },
@@ -24,6 +24,10 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
     prisma.campaignAsset.findFirst({
       where: { campaignId: id, role: "primary" },
       select: { assetId: true },
+    }),
+    prisma.brandProfile.findMany({
+      select: { id: true, brandName: true },
+      orderBy: { brandName: "asc" },
     }),
   ]);
   const updateAction = updateCampaignAction.bind(null, id);
@@ -45,6 +49,7 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
           <CampaignForm
             action={updateAction}
             assets={assets}
+            brandProfiles={brandProfiles}
             campaign={campaign}
             linkedAssetId={linkedAsset?.assetId ?? null}
           />

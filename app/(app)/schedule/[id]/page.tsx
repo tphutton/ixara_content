@@ -25,7 +25,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
   const { id } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const isEditing = resolvedSearchParams?.edit === "1";
-  const [schedule, contents, blogs] = await Promise.all([
+  const [schedule, contents, blogs, brandProfiles] = await Promise.all([
     prisma.contentSchedule.findUnique({
       where: { id },
       include: {
@@ -67,6 +67,10 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
       select: { id: true, title: true },
       orderBy: { updatedAt: "desc" },
       take: 100,
+    }),
+    prisma.brandProfile.findMany({
+      select: { id: true, brandName: true },
+      orderBy: { brandName: "asc" },
     }),
   ]);
 
@@ -208,7 +212,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
               </Link>
             </div>
             <div className="editor-overlay__content">
-              <ScheduleForm action={updateAction} blogs={blogs} contents={contents} schedule={schedule} />
+              <ScheduleForm action={updateAction} blogs={blogs} brandProfiles={brandProfiles} contents={contents} schedule={schedule} />
             </div>
             <div className="editor-overlay__footer">
               <form action={deleteAction}>

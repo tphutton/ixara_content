@@ -7,7 +7,7 @@ import { createScheduleAction } from "../actions";
 export const dynamic = "force-dynamic";
 
 export default async function NewSchedulePage() {
-  const [contents, blogs] = await Promise.all([
+  const [contents, blogs, brandProfiles] = await Promise.all([
     prisma.content.findMany({
       select: { id: true, title: true },
       orderBy: { updatedAt: "desc" },
@@ -17,6 +17,10 @@ export default async function NewSchedulePage() {
       select: { id: true, title: true },
       orderBy: { updatedAt: "desc" },
       take: 100,
+    }),
+    prisma.brandProfile.findMany({
+      select: { id: true, brandName: true },
+      orderBy: { brandName: "asc" },
     }),
   ]);
 
@@ -32,7 +36,7 @@ export default async function NewSchedulePage() {
           Back to schedule
         </Link>
         <div className="card card--padded">
-          <ScheduleForm action={createScheduleAction} blogs={blogs} contents={contents} />
+          <ScheduleForm action={createScheduleAction} blogs={blogs} brandProfiles={brandProfiles} contents={contents} />
         </div>
       </div>
     </section>

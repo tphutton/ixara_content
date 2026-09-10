@@ -45,11 +45,12 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Plan items can now be promoted into content, blog, or schedule records from the UI and Quill/Atlas tool layer.
 - Content, schedule, plan, and settings detail pages now use review-first layouts with long forms moved into modal overlays.
 - `/quality` now gives operators and Atlas a command view of weak reviewed work, missing reviews, and recent quality decisions.
-- `/planner` can now generate a saved 14-day AI content plan and plan items from current command signals.
+- `/planner` can now generate a reviewable AI plan draft from current command signals, let operators edit/remove proposed items, and only then save the plan and plan items.
 - Short-form content now supports saved channel variants for Instagram, Facebook, LinkedIn, email, and other requested platforms.
 - Dashboard, Social Accounts, Analytics, and Automations now use quieter command layouts with focused overlays and row-level actions instead of dense nested cards and always-visible forms.
 - Brand profiles now live in a dedicated sidebar tab, and form fields include inline guidance/example placeholders for easier setup.
 - Planner AI generation now opens a focused brief modal where operators can set mode, brand, campaign, date range, channels, item count, region, country, sport/category, goal, and guidance before Quill creates the saved plan.
+- Planner AI generation now includes a preview/edit step before database creation, so operators can review the returned plan title, goal, dates, campaign, item briefs, channels, schedule targets, brands, and asset requests before saving.
 - Delete coverage now includes saved content plans, plan items, connected social accounts, imported/synced published post records, and generated content variants, in addition to the existing content, blog, schedule, campaign, automation, and brand-profile delete flows.
 
 ## Completed
@@ -109,17 +110,17 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added Quill/Atlas `promote_content_plan_item` tool.
 - [x] Replaced the busiest inline forms on content, schedule, plan, and settings pages with modal editing flows.
 - [x] Added the `/quality` command page and Quill/Atlas `get_quality_summary` tool.
-- [x] Added one-click AI plan generation from Planner plus Quill/Atlas `generate_ai_content_plan`.
+- [x] Added AI plan generation from Planner with operator brief controls and a review-before-save draft step.
 - [x] Added saved content variants with UI generation from content detail pages.
 - [x] Added Quill/Atlas `generate_content_variants` tool.
 
 ## In Progress
 - [x] Add the first scheduled sync endpoint on top of the new Meta account and analytics foundation.
 - [ ] Attach the social sync endpoint to a real Railway cron schedule and add long-lived Meta token refresh support.
-- [ ] Extend `/planner` with AI plan-generation actions, channel swimlanes, and gap heatmaps.
+- [ ] Extend `/planner` with channel swimlanes and gap heatmaps.
 - [x] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
 - [ ] Add guided promotion from plan item into channel variants and approvals.
-- [ ] Add plan preview/edit step before saving AI-generated plans.
+- [x] Add plan preview/edit step before saving AI-generated plans.
 - [x] Add configurable AI plan generation inputs before creating saved plans.
 - [ ] Add variant editing, approval, and promotion into schedule/publishing packages.
 - [ ] Continue modal cleanup for remaining creation, automation, social, analytics, and campaign forms.

@@ -34,20 +34,26 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const isAddingItem = resolvedSearchParams?.add === "1";
   const isEditingPlan = resolvedSearchParams?.edit === "1";
-  const plan = await prisma.contentPlan.findUnique({
-    where: { id },
-    include: {
-      items: {
-        include: {
-          content: { select: { id: true, title: true } },
-          blog: { select: { id: true, title: true } },
-          schedule: { select: { id: true, scheduledFor: true } },
-          qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
+  const [plan, brandProfiles] = await Promise.all([
+    prisma.contentPlan.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            content: { select: { id: true, title: true } },
+            blog: { select: { id: true, title: true } },
+            schedule: { select: { id: true, scheduledFor: true } },
+            qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
+          },
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       },
-    },
-  });
+    }),
+    prisma.brandProfile.findMany({
+      select: { id: true, brandName: true },
+      orderBy: { brandName: "asc" },
+    }),
+  ]);
 
   if (!plan) {
     notFound();
@@ -213,7 +219,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
               </Link>
             </div>
             <div className="editor-overlay__content">
-              <PlanItemForm action={addItem} plan={plan} />
+              <PlanItemForm action={addItem} brandProfiles={brandProfiles} plan={plan} />
             </div>
           </div>
         </div>
@@ -236,7 +242,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
               </Link>
             </div>
             <div className="editor-overlay__content">
-              <PlanForm action={updatePlan} plan={plan} submitLabel="Save plan" />
+              <PlanForm action={updatePlan} brandProfiles={brandProfiles} plan={plan} submitLabel="Save plan" />
             </div>
           </div>
         </div>

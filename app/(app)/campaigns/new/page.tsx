@@ -7,11 +7,17 @@ import { createCampaignAction } from "../actions";
 export const dynamic = "force-dynamic";
 
 export default async function NewCampaignPage() {
-  const assets = await prisma.asset.findMany({
-    select: { id: true, title: true },
-    orderBy: { syncedAt: "desc" },
-    take: 100,
-  });
+  const [assets, brandProfiles] = await Promise.all([
+    prisma.asset.findMany({
+      select: { id: true, title: true },
+      orderBy: { syncedAt: "desc" },
+      take: 100,
+    }),
+    prisma.brandProfile.findMany({
+      select: { id: true, brandName: true },
+      orderBy: { brandName: "asc" },
+    }),
+  ]);
 
   return (
     <section className="page-shell">
@@ -26,7 +32,7 @@ export default async function NewCampaignPage() {
         </Link>
 
         <div className="card card--padded">
-          <CampaignForm action={createCampaignAction} assets={assets} />
+          <CampaignForm action={createCampaignAction} assets={assets} brandProfiles={brandProfiles} />
         </div>
       </div>
     </section>

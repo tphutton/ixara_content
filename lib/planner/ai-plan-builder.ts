@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 
 const PLANNER_MODEL = process.env.OPENAI_PLANNER_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-5-mini";
 
-type AiPlanItem = {
+export type AiPlanItem = {
   title?: string;
   itemType?: string;
   status?: string;
@@ -26,7 +26,7 @@ type AiPlanItem = {
   assetRequest?: string | null;
 };
 
-type AiPlanOutput = {
+export type AiPlanOutput = {
   title?: string;
   description?: string | null;
   goal?: string | null;
@@ -35,6 +35,11 @@ type AiPlanOutput = {
   startDate?: string | null;
   endDate?: string | null;
   items?: AiPlanItem[];
+};
+
+export type AiPlanPreview = Required<Omit<AiPlanOutput, "items">> & {
+  items: AiPlanItem[];
+  sourcePrompt: string;
 };
 
 export type GenerateAiContentPlanOptions = {
@@ -198,6 +203,13 @@ export async function generateAiContentPlan(
   access: UserAccess,
   options: GenerateAiContentPlanOptions = {},
 ) {
+  const preview = await generateAiContentPlanPreview(options);
+  return saveAiContentPlanPreview(access, preview);
+}
+
+export async function generateAiContentPlanPreview(
+  options: GenerateAiContentPlanOptions = {},
+): Promise<AiPlanPreview> {
   const summary = await getContentCommandCenter();
   const client = getOpenAIClient();
   const response = await client.chat.completions.create({
@@ -207,17 +219,25 @@ export async function generateAiContentPlan(
   });
 
   const parsed = normalizePlan(JSON.parse(response.choices[0]?.message.content ?? "{}"));
+  return {
+    ...parsed,
+    sourcePrompt: buildSourcePrompt(options),
+  };
+}
+
+export async function saveAiContentPlanPreview(access: UserAccess, preview: AiPlanOutput & { sourcePrompt?: string | null }) {
+  const parsed = normalizePlan(preview);
   const plan = await prisma.contentPlan.create({
     data: {
       title: parsed.title,
       description: parsed.description,
-      goal: asOptionalString(options.goal) ?? parsed.goal,
+      goal: parsed.goal,
       status: ContentPlanStatus.draft,
-      startDate: options.startDate ?? asDate(parsed.startDate),
-      endDate: options.endDate ?? asDate(parsed.endDate),
-      brand: asOptionalString(options.brand) ?? parsed.brand,
-      campaignName: asOptionalString(options.campaignName) ?? parsed.campaignName,
-      sourcePrompt: buildSourcePrompt(options),
+      startDate: asDate(parsed.startDate),
+      endDate: asDate(parsed.endDate),
+      brand: parsed.brand,
+      campaignName: parsed.campaignName,
+      sourcePrompt: asOptionalString(preview.sourcePrompt) ?? "AI-generated from /planner command signals.",
       createdById: access.id,
       updatedById: access.id,
       items: {
@@ -226,13 +246,13 @@ export async function generateAiContentPlan(
           itemType: parseItemType(item.itemType),
           status: parseItemStatus(item.status),
           brief: asOptionalString(item.brief),
-          channel: asOptionalString(item.channel) ?? options.channels?.[index % Math.max(options.channels.length, 1)],
+          channel: asOptionalString(item.channel),
           scheduledFor: asDate(item.scheduledFor),
-          brand: asOptionalString(item.brand) ?? asOptionalString(options.brand) ?? parsed.brand,
-          sport: asOptionalString(item.sport) ?? asOptionalString(options.sport),
-          region: asOptionalString(item.region) ?? asOptionalString(options.region),
-          country: asOptionalString(item.country) ?? asOptionalString(options.country),
-          campaignName: asOptionalString(item.campaignName) ?? asOptionalString(options.campaignName) ?? parsed.campaignName,
+          brand: asOptionalString(item.brand) ?? parsed.brand,
+          sport: asOptionalString(item.sport),
+          region: asOptionalString(item.region),
+          country: asOptionalString(item.country),
+          campaignName: asOptionalString(item.campaignName) ?? parsed.campaignName,
           assetRequest: asOptionalString(item.assetRequest),
           sortOrder: index,
         })),

@@ -3,6 +3,7 @@ import {
   SocialPlatform,
   type ConnectedAccount,
 } from "@prisma/client";
+import { BrandSelect } from "@/components/forms/brand-select";
 import { Field } from "@/components/forms/field";
 import { SubmitButton } from "@/components/forms/submit-button";
 
@@ -80,7 +81,7 @@ export function ConnectedAccountForm({
         </Field>
 
         <Field htmlFor="brandName" label="Brand override">
-          <input defaultValue={account?.brandName ?? ""} id="brandName" name="brandName" />
+          <BrandSelect id="brandName" name="brandName" options={brandProfiles} value={account?.brandName} />
         </Field>
 
         <Field htmlFor="scopes" hint="Comma separated" label="Scopes">

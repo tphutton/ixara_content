@@ -1,5 +1,6 @@
 import { Blog, Content, ContentSchedule, ScheduleStatus } from "@prisma/client";
 import { scheduleStatusOptions } from "@/lib/constants/options";
+import { BrandSelect } from "@/components/forms/brand-select";
 import { Field } from "@/components/forms/field";
 import { SubmitButton } from "@/components/forms/submit-button";
 
@@ -8,9 +9,10 @@ type ScheduleFormProps = {
   schedule?: ContentSchedule | null;
   contents: Pick<Content, "id" | "title">[];
   blogs: Pick<Blog, "id" | "title">[];
+  brandProfiles?: Array<{ id?: string; brandName: string }>;
 };
 
-export function ScheduleForm({ action, schedule, contents, blogs }: ScheduleFormProps) {
+export function ScheduleForm({ action, schedule, contents, blogs, brandProfiles = [] }: ScheduleFormProps) {
   return (
     <form action={action} className="stack">
       <div className="form-grid form-grid--2">
@@ -73,7 +75,7 @@ export function ScheduleForm({ action, schedule, contents, blogs }: ScheduleForm
         </Field>
 
         <Field htmlFor="brand" label="Brand">
-          <input defaultValue={schedule?.brand ?? ""} id="brand" name="brand" />
+          <BrandSelect options={brandProfiles} value={schedule?.brand} />
         </Field>
 
         <Field htmlFor="sport" label="Sport">

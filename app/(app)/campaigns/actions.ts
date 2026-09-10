@@ -6,7 +6,7 @@ import { createActionLog } from "@/lib/actions/action-log";
 import { deleteCampaign, upsertCampaign } from "@/lib/campaigns/client";
 import { type CampaignStatus } from "@/lib/campaigns/types";
 import { requireApprovedUserAccess } from "@/lib/auth/user-access";
-import { parseOptionalString, parseStringArray } from "@/lib/forms/parsers";
+import { parseOptionalString, parseStringArrayEntries } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
 
 function getCampaignInput(formData: FormData) {
@@ -15,7 +15,7 @@ function getCampaignInput(formData: FormData) {
     campaign_status:
       (parseOptionalString(formData.get("campaign_status")) as CampaignStatus | null) ?? "draft",
     campaign_type: parseOptionalString(formData.get("campaign_type")),
-    brand: parseStringArray(formData.get("brand")),
+    brand: parseStringArrayEntries(formData.getAll("brand")),
     start_date: parseOptionalString(formData.get("start_date")),
     end_date: parseOptionalString(formData.get("end_date")),
     campaign_description: parseOptionalString(formData.get("campaign_description")),

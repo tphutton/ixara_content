@@ -36,8 +36,9 @@ Status: in progress
 - [x] Restructure the sidebar into Command, Creation, Operations, Intelligence, and Admin groups.
 - [x] Begin simplifying the UI with quieter plan panels, shorter controls, and flatter command surfaces.
 - [x] Move high-friction inline forms on content, schedule, plan, and settings pages into modal overlays.
-- [x] Add one-click AI plan generation from the planner that creates a plan plus suggested items in one guided flow.
+- [x] Add AI plan generation from the planner that produces a reviewable draft plan plus suggested items.
 - [x] Add configurable AI plan generation inputs for mode, brand, campaign, dates, channels, item count, geography, category, goal, and operator guidance.
+- [x] Add a preview/edit step so operators can adjust generated plan details and remove weak items before saving.
 - [ ] Add drag-and-drop rescheduling and channel swimlanes to the planning surface.
 - [ ] Add gap heatmaps by brand, channel, sport, region, campaign, and week.
 
@@ -167,7 +168,7 @@ Near-term integration targets:
 - Social publishing is still the biggest missing capability before the product becomes end-to-end, but Meta analytics sync now has a protected runner endpoint and Atlas tool.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, with a dedicated Brands tab and field guidance to help operators fill readiness gaps.
 - Assets have moved beyond simple WordPress media sync: TSADB enriched image metadata can now populate the asset library, and Quill/Atlas can recommend images using region, country, category, item, description, featured status, and current workspace usage.
-- UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages. The next pass should migrate Dashboard, Planner, and remaining creation/admin pages away from nested card-heavy layouts toward quiet lists and focused command strips.
-- The next UI simplification pass has moved Dashboard, Social Accounts, Analytics, Automations, and Assets toward quiet command panels, row actions, and focused overlays. Planner, Campaigns, Content, and Settings still need the same polish.
+- UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages.
+- The next UI simplification pass has moved Dashboard, Social Accounts, Analytics, Automations, Assets, and AI plan generation toward quieter command panels, row actions, focused overlays, and review-before-save flows. Campaigns, Content lists, and deeper Planner swimlanes still need the same polish.
 - `tsconfig.tsbuildinfo` is an untracked generated file and should not be committed unless intentionally needed.
 - Operator delete coverage now includes plans, plan items, connected social accounts, published analytics records, and generated content variants, alongside existing record delete flows.

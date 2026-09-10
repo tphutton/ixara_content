@@ -5,6 +5,7 @@ import {
   ContentStatus,
   type AutomationWorkflow,
 } from "@prisma/client";
+import { BrandSelect } from "@/components/forms/brand-select";
 import { Field } from "@/components/forms/field";
 import { SubmitButton } from "@/components/forms/submit-button";
 
@@ -75,7 +76,7 @@ export function AutomationForm({ action, workflow, brandProfiles }: AutomationFo
         </Field>
 
         <Field htmlFor="brandName" label="Brand override">
-          <input defaultValue={workflow?.brandName ?? ""} id="brandName" name="brandName" />
+          <BrandSelect id="brandName" name="brandName" options={brandProfiles} value={workflow?.brandName} />
         </Field>
 
         <Field htmlFor="itemCount" label="Items per run">

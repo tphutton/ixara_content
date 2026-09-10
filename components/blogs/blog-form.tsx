@@ -1,5 +1,6 @@
 import { Blog, BlogStatus } from "@prisma/client";
 import { blogStatusOptions, websiteOptions } from "@/lib/constants/options";
+import { BrandSelect } from "@/components/forms/brand-select";
 import { Field } from "@/components/forms/field";
 import { SubmitButton } from "@/components/forms/submit-button";
 
@@ -22,12 +23,6 @@ export function BlogForm({
 
   return (
     <form action={action} className="stack">
-      <datalist id="brand-profile-options">
-        {brandProfiles.map((profile) => (
-          <option key={profile.id} value={profile.brandName} />
-        ))}
-      </datalist>
-
       <section className="card card--padded">
         <div className="section-heading">
           <div>
@@ -66,12 +61,7 @@ export function BlogForm({
         </Field>
 
         <Field htmlFor="brand" hint="Matches a saved brand profile when available" label="Brand">
-          <input
-            defaultValue={blog?.brand ?? ""}
-            id="brand"
-            list="brand-profile-options"
-            name="brand"
-          />
+          <BrandSelect options={brandProfiles} value={blog?.brand} />
         </Field>
 
         <Field htmlFor="authorName" label="Author name">
