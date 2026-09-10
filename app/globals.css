@@ -766,6 +766,18 @@ textarea {
   justify-items: stretch;
 }
 
+.publishing-row {
+  align-items: start;
+}
+
+.publishing-row__reasons {
+  margin-top: 10px;
+  padding: 12px 12px 12px 28px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.06);
+}
+
 .navigation-spinner {
   position: fixed;
   top: 18px;

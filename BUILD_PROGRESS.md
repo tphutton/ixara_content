@@ -57,6 +57,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Schedule creation can now preselect a source content or blog record from query parameters, allowing detail pages to hand off directly into scheduling.
 - Schedule detail pages now show Meta publishing readiness, matched connected account state, existing published post records, and a controlled publish action when the entry is approved, quality-ready, and account-ready.
 - The first Meta publishing service is in place for Facebook feed/photo posts and Instagram image posts, with `PublishedPost` creation, schedule/content/blog status updates, and audit logging.
+- `/publishing` now provides a dedicated Meta delivery command queue for ready entries, approval blockers, missing accounts, failed posts, and published records.
 - Delete coverage now includes saved content plans, plan items, connected social accounts, imported/synced published post records, and generated content variants, in addition to the existing content, blog, schedule, campaign, automation, and brand-profile delete flows.
 
 ## Completed
@@ -124,6 +125,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added direct content/blog-to-schedule handoff.
 - [x] Added schedule-level Meta publishing readiness checks.
 - [x] Added controlled Meta publish action for ready schedule entries.
+- [x] Added `/publishing` as the first delivery queue for Meta schedule operations.
 - [x] Added saved content variants with UI generation from content detail pages.
 - [x] Added Quill/Atlas `generate_content_variants` tool.
 
@@ -194,6 +196,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `/schedule`
 - `/schedule/new`
 - `/schedule/[id]`
+- `/publishing`
 - `/admin/approvals`
 - `/settings`
 - `/social-accounts`

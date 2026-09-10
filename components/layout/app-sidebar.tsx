@@ -18,6 +18,7 @@ import {
   Newspaper,
   Settings,
   ShieldCheck,
+  Send,
   Sparkles,
 } from "lucide-react";
 
@@ -43,6 +44,7 @@ const navGroups = [
     label: "Operations",
     items: [
       { href: "/schedule", label: "Schedule", icon: CalendarDays },
+      { href: "/publishing", label: "Publishing", icon: Send },
       { href: "/campaigns", label: "Campaigns", icon: Megaphone },
       { href: "/automations", label: "Automations", icon: Bot },
     ],
