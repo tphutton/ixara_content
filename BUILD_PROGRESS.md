@@ -55,6 +55,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Content, blog, campaign, asset, and admin pages have been flattened into quieter queue/library views with fewer stacked panels and modal-only heavy operations where appropriate.
 - Content and blog detail pages now include a production-flow panel that shows the current stage, missing work, next action, quality state, variants/schedule progress, and direct action buttons.
 - Schedule creation can now preselect a source content or blog record from query parameters, allowing detail pages to hand off directly into scheduling.
+- Schedule detail pages now show Meta publishing readiness, matched connected account state, existing published post records, and a controlled publish action when the entry is approved, quality-ready, and account-ready.
+- The first Meta publishing service is in place for Facebook feed/photo posts and Instagram image posts, with `PublishedPost` creation, schedule/content/blog status updates, and audit logging.
 - Delete coverage now includes saved content plans, plan items, connected social accounts, imported/synced published post records, and generated content variants, in addition to the existing content, blog, schedule, campaign, automation, and brand-profile delete flows.
 
 ## Completed
@@ -120,6 +122,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Simplified content, blog, campaign, asset, and admin approval pages around quieter command surfaces.
 - [x] Added production-flow guidance to content and blog detail pages.
 - [x] Added direct content/blog-to-schedule handoff.
+- [x] Added schedule-level Meta publishing readiness checks.
+- [x] Added controlled Meta publish action for ready schedule entries.
 - [x] Added saved content variants with UI generation from content detail pages.
 - [x] Added Quill/Atlas `generate_content_variants` tool.
 
@@ -142,7 +146,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 ## Pending
 - [ ] Harden OAuth-based live platform connections starting with long-lived Meta token refresh.
 - [x] Add automated sync endpoint for connected accounts to ingest live post and performance data on a schedule.
-- [ ] Add platform publishing workflows and social-channel delivery.
+- [x] Add first platform publishing workflow and social-channel delivery for ready Meta schedule entries.
+- [ ] Add publishing retry/failure queue and richer delivery diagnostics.
 - [ ] Expand asset relationships into section-level blog media slots and publishing-ready variants.
 
 ## Database Schema Summary

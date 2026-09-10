@@ -87,6 +87,25 @@ async function metaFetch<T>(path: string, accessToken: string, query?: Record<st
   return payload;
 }
 
+export async function metaPost<T>(path: string, accessToken: string, body: Record<string, string>) {
+  const url = new URL(`${META_GRAPH_BASE}${path}`);
+  url.searchParams.set("access_token", accessToken);
+
+  const response = await fetch(url, {
+    method: "POST",
+    cache: "no-store",
+    body: new URLSearchParams(body),
+  });
+
+  const payload = (await response.json()) as T & { error?: { message?: string } };
+
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "Meta publish request failed.");
+  }
+
+  return payload;
+}
+
 export async function exchangeMetaCodeForToken(code: string) {
   const { appId, appSecret, redirectUri } = getMetaConfig();
 

@@ -124,11 +124,12 @@ Status: planned
 - [ ] Finish long-lived Meta token refresh.
 - [x] Add protected scheduled sync endpoint for active Meta connected accounts.
 - [ ] Attach scheduled background sync jobs for connected accounts in Railway.
-- [ ] Add platform publishing workflows.
+- [x] Add first platform publishing workflow for approved, quality-ready Facebook and Instagram schedule entries.
 - [ ] Add publishing previews per channel.
 - [ ] Add publishing approval gates.
 - [ ] Add failure/retry queue.
-- [ ] Track published URLs and delivery status back to schedule/content/blog records.
+- [x] Track published post IDs, URLs, snapshots, and status back to schedule/content/blog records for the first Meta publish path.
+- [ ] Expand publishing delivery status with retry history and failure diagnostics.
 
 ## Phase 6: Analytics-To-Planning Intelligence
 
@@ -169,7 +170,7 @@ Near-term integration targets:
 - `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan draft -> operator review/edit -> plan-item quality review -> promotion into content/blog/schedule records.
 - Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> production-flow guidance -> quality review -> apply recommendations -> re-review -> variants/schedule -> approve/publish.
 - `/quality` is now the operator queue for finding weak reviewed work and active items missing a review.
-- Social publishing is still the biggest missing capability before the product becomes end-to-end, but Meta analytics sync now has a protected runner endpoint and Atlas tool.
+- Social publishing now has a first controlled Meta delivery path from approved schedule entries, while broader retry handling, diagnostics, publishing previews, and long-lived token refresh remain outstanding.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, with a dedicated Brands tab and field guidance to help operators fill readiness gaps.
 - Assets have moved beyond simple WordPress media sync: TSADB enriched image metadata can now populate the asset library, and Quill/Atlas can recommend images using region, country, category, item, description, featured status, and current workspace usage.
 - UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages.

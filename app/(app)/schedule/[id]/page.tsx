@@ -7,10 +7,12 @@ import { prisma } from "@/lib/prisma";
 import { ReadinessPanel } from "@/components/schedule/readiness-panel";
 import { getScheduleReadiness } from "@/lib/schedule/readiness";
 import { getQualityGate } from "@/lib/quality/gates";
+import { getMetaPublishReadiness } from "@/lib/social/meta-publish";
 import {
   approveScheduleAction,
   clearScheduleApprovalAction,
   deleteScheduleAction,
+  publishScheduleToMetaAction,
   updateScheduleAction,
 } from "../actions";
 
@@ -25,28 +27,19 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
   const { id } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const isEditing = resolvedSearchParams?.edit === "1";
-  const [schedule, contents, blogs, brandProfiles] = await Promise.all([
+  const [schedule, contents, blogs, brandProfiles, connectedAccounts] = await Promise.all([
     prisma.contentSchedule.findUnique({
       where: { id },
       include: {
         content: {
-          select: {
-            title: true,
-            brand: true,
-            tone: true,
-            targetAudience: true,
-            primaryAssetId: true,
-            assetImage: true,
+          include: {
+            primaryAsset: { select: { fileUrl: true, title: true } },
             qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
           },
         },
         blog: {
-          select: {
-            title: true,
-            brand: true,
-            websites: true,
-            featureAssetId: true,
-            featureImage: true,
+          include: {
+            featureAsset: { select: { fileUrl: true, title: true } },
             qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
           },
         },
@@ -55,6 +48,16 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
             fullName: true,
             email: true,
           },
+        },
+        publishedPosts: {
+          select: {
+            id: true,
+            status: true,
+            platform: true,
+            externalPostUrl: true,
+            publishedAt: true,
+          },
+          orderBy: { publishedAt: "desc" },
         },
       },
     }),
@@ -72,6 +75,12 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
       select: { id: true, brandName: true },
       orderBy: { brandName: "asc" },
     }),
+    prisma.connectedAccount.findMany({
+      where: {
+        platform: { in: ["facebook", "instagram"] },
+      },
+      orderBy: [{ status: "asc" }, { accountName: "asc" }],
+    }),
   ]);
 
   if (!schedule) {
@@ -82,6 +91,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
   const deleteAction = deleteScheduleAction.bind(null, id);
   const approveAction = approveScheduleAction.bind(null, id);
   const clearApprovalAction = clearScheduleApprovalAction.bind(null, id);
+  const publishAction = publishScheduleToMetaAction.bind(null, id);
   const readiness = getScheduleReadiness({
     channel: schedule.channel,
     platformAccount: schedule.platformAccount,
@@ -93,6 +103,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
   const latestQualityReview =
     schedule.content?.qualityReviews[0] ?? schedule.blog?.qualityReviews[0] ?? null;
   const qualityGate = getQualityGate(latestQualityReview);
+  const metaReadiness = getMetaPublishReadiness(schedule, connectedAccounts);
 
   return (
     <section className="page-shell">
@@ -135,6 +146,68 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
 
         <div className="stack">
           <ReadinessPanel readiness={readiness} />
+
+          <section className="quiet-panel publish-readiness">
+            <div className="section-heading">
+              <div>
+                <p className="kicker">Meta publishing</p>
+                <h3>{metaReadiness.label}</h3>
+              </div>
+              <span className="inline-chip">{metaReadiness.platform ?? "No platform"}</span>
+            </div>
+
+            <div className="metadata-grid">
+              <div><span>Account</span><strong>{metaReadiness.account?.accountName ?? "Not matched"}</strong></div>
+              <div><span>State</span><strong>{metaReadiness.ready ? "Ready" : "Blocked"}</strong></div>
+              <div><span>Published records</span><strong>{schedule.publishedPosts.length}</strong></div>
+              <div><span>Approved</span><strong>{schedule.approvedById ? "Yes" : "No"}</strong></div>
+            </div>
+
+            {metaReadiness.reasons.length > 0 ? (
+              <ul className="quality-list">
+                {metaReadiness.reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="quality-next-step">This entry can be published to the matched Meta account.</p>
+            )}
+
+            {schedule.publishedPosts.length > 0 ? (
+              <div className="quiet-meta">
+                {schedule.publishedPosts.slice(0, 3).map((post) =>
+                  post.externalPostUrl ? (
+                    <Link href={post.externalPostUrl} key={post.id} target="_blank">
+                      {post.platform} · {post.status}
+                    </Link>
+                  ) : (
+                    <span key={post.id}>{post.platform} · {post.status}</span>
+                  ),
+                )}
+              </div>
+            ) : null}
+
+            <div className="form-actions">
+              {metaReadiness.account ? (
+                <Link className="button button--secondary" href={`/social-accounts?edit=${metaReadiness.account.id}`}>
+                  Account
+                </Link>
+              ) : (
+                <Link className="button button--secondary" href="/social-accounts?add=1">
+                  Connect account
+                </Link>
+              )}
+              {metaReadiness.ready ? (
+                <form action={publishAction}>
+                  <SubmitButton label="Publish to Meta" pendingLabel="Publishing..." />
+                </form>
+              ) : (
+                <button className="button button--secondary" disabled type="button">
+                  Publish to Meta
+                </button>
+              )}
+            </div>
+          </section>
 
           <article className="card card--padded">
             <p className="kicker">Approval</p>

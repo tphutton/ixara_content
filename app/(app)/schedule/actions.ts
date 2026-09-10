@@ -13,6 +13,7 @@ import {
 } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
 import { getQualityGate } from "@/lib/quality/gates";
+import { publishScheduleToMeta } from "@/lib/social/meta-publish";
 
 type BulkScheduleActionState = {
   error: string | null;
@@ -247,6 +248,20 @@ export async function clearScheduleApprovalAction(id: string) {
 
   revalidatePath("/schedule");
   revalidatePath(`/schedule/${id}`);
+}
+
+export async function publishScheduleToMetaAction(id: string) {
+  const access = await requireEditorialUserAccess();
+  const publishedPost = await publishScheduleToMeta({
+    scheduleId: id,
+    access,
+  });
+
+  revalidatePath("/schedule");
+  revalidatePath(`/schedule/${id}`);
+  if (publishedPost.contentId) revalidatePath(`/content/${publishedPost.contentId}`);
+  if (publishedPost.blogId) revalidatePath(`/blogs/${publishedPost.blogId}`);
+  revalidatePath("/analytics");
 }
 
 export async function bulkUpdateScheduleAction(
