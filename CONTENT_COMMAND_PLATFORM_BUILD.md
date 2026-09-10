@@ -54,6 +54,8 @@ Status: started
 - [x] Add full plan-item editing after creation.
 - [ ] Promote plan items into full first-class content briefs with owners, due dates, and approval stages.
 - [x] Add saved channel-specific variants for short-form content.
+- [x] Add production-flow guidance to content/blog detail pages so operators can see the next step from draft to quality, variants, schedule, and publish.
+- [x] Add direct schedule creation handoff from content/blog detail pages.
 - [ ] Add channel-specific variants for blog excerpts, ads, and publishing packages.
 - [ ] Add version history, diff review, and revert support.
 - [ ] Add owner, assignee, due date, priority, and editorial stage fields.
@@ -165,7 +167,7 @@ Near-term integration targets:
 - The original Content Ops build is mostly complete for internal CRUD, chat tools, brand profiles, assets, automations, and planning visibility.
 - The new `/planner` route is additive and does not replace `/schedule`.
 - `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan draft -> operator review/edit -> plan-item quality review -> promotion into content/blog/schedule records.
-- Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> quality review -> apply recommendations -> re-review -> approve/schedule/publish.
+- Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> production-flow guidance -> quality review -> apply recommendations -> re-review -> variants/schedule -> approve/publish.
 - `/quality` is now the operator queue for finding weak reviewed work and active items missing a review.
 - Social publishing is still the biggest missing capability before the product becomes end-to-end, but Meta analytics sync now has a protected runner endpoint and Atlas tool.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, with a dedicated Brands tab and field guidance to help operators fill readiness gaps.

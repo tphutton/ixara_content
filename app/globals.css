@@ -1426,6 +1426,46 @@ textarea {
   line-height: 1.45;
 }
 
+.production-flow {
+  display: grid;
+  gap: 14px;
+}
+
+.production-flow__steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.production-flow__steps span {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  padding: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.62);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.production-flow__steps span[data-ready="true"] {
+  border-color: rgba(20, 184, 166, 0.26);
+  background: rgba(20, 184, 166, 0.09);
+  color: #99f6e4;
+}
+
+.production-flow__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .variant-list {
   display: grid;
   gap: 12px;

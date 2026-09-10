@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BlogForm } from "@/components/blogs/blog-form";
 import { BlogDetailOverview } from "@/components/blogs/blog-detail-overview";
+import { ProductionFlowPanel } from "@/components/content/production-flow-panel";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { QualityReviewPanel } from "@/components/quality/quality-review-panel";
@@ -30,6 +31,7 @@ export default async function BlogDetailPage({
       where: { id },
       include: {
         qualityReviews: { orderBy: { createdAt: "desc" }, take: 5 },
+        schedules: { select: { id: true, scheduledFor: true, status: true }, orderBy: { scheduledFor: "asc" } },
       },
     }),
     prisma.asset.findMany({
@@ -61,6 +63,7 @@ export default async function BlogDetailPage({
   const updateAction = updateBlogAction.bind(null, id);
   const deleteAction = deleteBlogAction.bind(null, id);
   const reviewAction = reviewBlogQualityAction.bind(null, id);
+  const latestQualityReview = blog.qualityReviews[0] ?? null;
 
   return (
     <section className="page-shell">
@@ -80,19 +83,48 @@ export default async function BlogDetailPage({
         </div>
       </div>
 
-      <BlogDetailOverview blog={blog} />
-
-      <QualityReviewPanel action={reviewAction} reviews={blog.qualityReviews} />
-
-      <div className="card card--padded">
-        <div className="section-heading">
-          <div>
-            <p className="kicker">Brand guidance</p>
-            <h3>Editorial guardrails</h3>
-          </div>
-          <span className="inline-chip">{brandProfiles.length} profiles loaded</span>
+      <div className="dashboard-command-grid">
+        <div className="stack">
+          <BlogDetailOverview blog={blog} />
         </div>
-        <BrandRuleGuide profiles={brandProfiles} />
+
+        <div className="stack">
+          <ProductionFlowPanel
+            kind="blog"
+            recordId={blog.id}
+            status={blog.status}
+            hasBody={Boolean(blog.text1 || blog.text2 || blog.text3)}
+            hasBrand={Boolean(blog.brand)}
+            hasAsset={Boolean(blog.featureAssetId || blog.featureImage || blog.image1)}
+            latestQualityScore={latestQualityReview?.overallScore}
+            scheduleCount={blog.schedules.length}
+            editHref={`/blogs/${id}?edit=1`}
+            reviewAction={reviewAction}
+          >
+            {blog.schedules.length > 0 ? (
+              <div className="quiet-meta">
+                {blog.schedules.slice(0, 3).map((schedule) => (
+                  <Link href={`/schedule/${schedule.id}`} key={schedule.id}>
+                    {new Date(schedule.scheduledFor).toLocaleDateString()} · {schedule.status}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </ProductionFlowPanel>
+
+          <QualityReviewPanel action={reviewAction} reviews={blog.qualityReviews} />
+
+          <section className="quiet-panel">
+            <div className="section-heading">
+              <div>
+                <p className="kicker">Brand guidance</p>
+                <h3>Editorial guardrails</h3>
+              </div>
+              <span className="inline-chip">{brandProfiles.length} profiles loaded</span>
+            </div>
+            <BrandRuleGuide profiles={brandProfiles} />
+          </section>
+        </div>
       </div>
 
       {isEditing ? (

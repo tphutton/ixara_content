@@ -10,9 +10,19 @@ type ScheduleFormProps = {
   contents: Pick<Content, "id" | "title">[];
   blogs: Pick<Blog, "id" | "title">[];
   brandProfiles?: Array<{ id?: string; brandName: string }>;
+  defaultContentId?: string | null;
+  defaultBlogId?: string | null;
 };
 
-export function ScheduleForm({ action, schedule, contents, blogs, brandProfiles = [] }: ScheduleFormProps) {
+export function ScheduleForm({
+  action,
+  schedule,
+  contents,
+  blogs,
+  brandProfiles = [],
+  defaultContentId,
+  defaultBlogId,
+}: ScheduleFormProps) {
   return (
     <form action={action} className="stack">
       <div className="form-grid form-grid--2">
@@ -37,7 +47,7 @@ export function ScheduleForm({ action, schedule, contents, blogs, brandProfiles 
         </Field>
 
         <Field htmlFor="contentId" label="Linked content">
-          <select defaultValue={schedule?.contentId ?? ""} id="contentId" name="contentId">
+          <select defaultValue={schedule?.contentId ?? defaultContentId ?? ""} id="contentId" name="contentId">
             <option value="">No linked content</option>
             {contents.map((content) => (
               <option key={content.id} value={content.id}>
@@ -48,7 +58,7 @@ export function ScheduleForm({ action, schedule, contents, blogs, brandProfiles 
         </Field>
 
         <Field htmlFor="blogId" label="Linked blog">
-          <select defaultValue={schedule?.blogId ?? ""} id="blogId" name="blogId">
+          <select defaultValue={schedule?.blogId ?? defaultBlogId ?? ""} id="blogId" name="blogId">
             <option value="">No linked blog</option>
             {blogs.map((blog) => (
               <option key={blog.id} value={blog.id}>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContentForm } from "@/components/content/content-form";
 import { ContentVariantsPanel } from "@/components/content/content-variants-panel";
+import { ProductionFlowPanel } from "@/components/content/production-flow-panel";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { QualityReviewPanel } from "@/components/quality/quality-review-panel";
@@ -30,6 +31,7 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
       where: { id },
       include: {
         qualityReviews: { orderBy: { createdAt: "desc" }, take: 5 },
+        schedules: { select: { id: true, scheduledFor: true, status: true }, orderBy: { scheduledFor: "asc" } },
         variants: { orderBy: { createdAt: "desc" }, take: 12 },
       },
     }),
@@ -65,6 +67,7 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
   const applyQualityAction = applyContentQualityRecommendationsAction.bind(null, id);
   const generateVariantsAction = generateContentVariantsAction.bind(null, id);
   const deleteVariantAction = deleteContentVariantAction.bind(null, id);
+  const latestQualityReview = content.qualityReviews[0] ?? null;
 
   return (
     <section className="page-shell">
@@ -126,6 +129,33 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
         </div>
 
         <div className="stack">
+          <ProductionFlowPanel
+            kind="content"
+            recordId={content.id}
+            status={content.status}
+            hasBody={Boolean(content.body || content.hook)}
+            hasBrand={Boolean(content.brand)}
+            hasAudience={Boolean(content.targetAudience)}
+            hasAsset={Boolean(content.primaryAssetId || content.assetImage)}
+            variantCount={content.variants.length}
+            latestQualityScore={latestQualityReview?.overallScore}
+            scheduleCount={content.schedules.length}
+            editHref={`/content/${id}?edit=1`}
+            reviewAction={reviewAction}
+            applyQualityAction={applyQualityAction}
+            generateVariantsAction={generateVariantsAction}
+          >
+            {content.schedules.length > 0 ? (
+              <div className="quiet-meta">
+                {content.schedules.slice(0, 3).map((schedule) => (
+                  <Link href={`/schedule/${schedule.id}`} key={schedule.id}>
+                    {new Date(schedule.scheduledFor).toLocaleDateString()} · {schedule.status}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </ProductionFlowPanel>
+
           <QualityReviewPanel
             action={reviewAction}
             applyAction={applyQualityAction}

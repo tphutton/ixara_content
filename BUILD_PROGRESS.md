@@ -53,6 +53,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Planner AI generation now includes a preview/edit step before database creation, so operators can review the returned plan title, goal, dates, campaign, item briefs, channels, schedule targets, brands, and asset requests before saving.
 - Saved plan detail pages now operate as status-based production boards with filters, next-best-action guidance, item editing, quality review, promotion, and delete controls on each item.
 - Content, blog, campaign, asset, and admin pages have been flattened into quieter queue/library views with fewer stacked panels and modal-only heavy operations where appropriate.
+- Content and blog detail pages now include a production-flow panel that shows the current stage, missing work, next action, quality state, variants/schedule progress, and direct action buttons.
+- Schedule creation can now preselect a source content or blog record from query parameters, allowing detail pages to hand off directly into scheduling.
 - Delete coverage now includes saved content plans, plan items, connected social accounts, imported/synced published post records, and generated content variants, in addition to the existing content, blog, schedule, campaign, automation, and brand-profile delete flows.
 
 ## Completed
@@ -116,6 +118,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Rebuilt saved plan detail pages into production boards grouped by item status.
 - [x] Added full plan-item editing from the saved plan board.
 - [x] Simplified content, blog, campaign, asset, and admin approval pages around quieter command surfaces.
+- [x] Added production-flow guidance to content and blog detail pages.
+- [x] Added direct content/blog-to-schedule handoff.
 - [x] Added saved content variants with UI generation from content detail pages.
 - [x] Added Quill/Atlas `generate_content_variants` tool.
 
