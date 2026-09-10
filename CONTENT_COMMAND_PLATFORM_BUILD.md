@@ -50,6 +50,8 @@ Status: started
 - [x] Link plan items to generated short-form content, blogs, and schedule entries.
 - [x] Add saved AI quality reviews for content, blogs, and plan items.
 - [x] Add plan-item promotion into content, blog, and schedule records while preserving plan links.
+- [x] Rebuild plan detail pages as status-based production boards with filters and next-best-action cues.
+- [x] Add full plan-item editing after creation.
 - [ ] Promote plan items into full first-class content briefs with owners, due dates, and approval stages.
 - [x] Add saved channel-specific variants for short-form content.
 - [ ] Add channel-specific variants for blog excerpts, ads, and publishing packages.
@@ -162,7 +164,7 @@ Near-term integration targets:
 
 - The original Content Ops build is mostly complete for internal CRUD, chat tools, brand profiles, assets, automations, and planning visibility.
 - The new `/planner` route is additive and does not replace `/schedule`.
-- `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan creation -> plan-item approval -> promotion into content/blog/schedule records.
+- `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan draft -> operator review/edit -> plan-item quality review -> promotion into content/blog/schedule records.
 - Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> quality review -> apply recommendations -> re-review -> approve/schedule/publish.
 - `/quality` is now the operator queue for finding weak reviewed work and active items missing a review.
 - Social publishing is still the biggest missing capability before the product becomes end-to-end, but Meta analytics sync now has a protected runner endpoint and Atlas tool.

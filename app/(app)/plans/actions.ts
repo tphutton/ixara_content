@@ -187,6 +187,36 @@ export async function addContentPlanItemAction(planId: string, formData: FormDat
   revalidatePath(`/plans/${planId}`);
 }
 
+export async function updateContentPlanItemAction(planId: string, itemId: string, formData: FormData) {
+  const access = await requireApprovedUserAccess();
+  const before = await prisma.contentPlanItem.findUniqueOrThrow({ where: { id: itemId } });
+  const data = getPlanItemInput(formData);
+
+  if (!data.title) {
+    throw new Error("Item title is required.");
+  }
+
+  const item = await prisma.contentPlanItem.update({
+    where: { id: itemId },
+    data,
+  });
+
+  await createActionLog({
+    userId: access.id,
+    actionType: "update",
+    targetType: "content_plan_item",
+    targetId: item.id,
+    summary: `Updated plan item "${item.title}"`,
+    beforeData: before,
+    afterData: item,
+    source: "manual",
+  });
+
+  revalidatePath("/plans");
+  revalidatePath(`/plans/${planId}`);
+  redirect(`/plans/${planId}`);
+}
+
 export async function updateContentPlanItemStatusAction(
   planId: string,
   itemId: string,

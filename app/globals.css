@@ -1006,6 +1006,126 @@ textarea {
   flex-wrap: wrap;
 }
 
+.plan-board-shell {
+  overflow: hidden;
+}
+
+.plan-filter-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+}
+
+.inline-chip[data-active="true"] {
+  border-color: rgba(248, 113, 113, 0.48);
+  background: rgba(192, 28, 28, 0.22);
+  color: var(--text);
+}
+
+.plan-board {
+  display: grid;
+  grid-auto-columns: minmax(280px, 320px);
+  grid-auto-flow: column;
+  gap: 14px;
+  margin-top: 18px;
+  padding-bottom: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.plan-lane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  min-height: 460px;
+  padding: 12px;
+  border: 1px solid rgba(192, 28, 28, 0.16);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.46);
+}
+
+.plan-lane__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.plan-lane__header span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  border: 1px solid rgba(192, 28, 28, 0.22);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.plan-lane__items {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.plan-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(192, 28, 28, 0.18);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.74);
+}
+
+.plan-card__header,
+.plan-card__links,
+.plan-card__actions {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.plan-card__header {
+  justify-content: space-between;
+}
+
+.plan-card__header strong {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.plan-card__links {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.plan-next-action {
+  padding: 10px 12px;
+  border: 1px solid rgba(248, 113, 113, 0.24);
+  border-radius: 8px;
+  background: rgba(127, 29, 29, 0.16);
+  color: var(--text);
+  font-size: 0.86rem;
+}
+
+.status-control--compact {
+  justify-content: stretch;
+}
+
+.status-control--compact select {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-card__actions {
+  justify-content: flex-end;
+}
+
 .ai-plan-review {
   display: grid;
   gap: 16px;

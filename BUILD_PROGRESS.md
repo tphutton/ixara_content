@@ -51,6 +51,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Brand profiles now live in a dedicated sidebar tab, and form fields include inline guidance/example placeholders for easier setup.
 - Planner AI generation now opens a focused brief modal where operators can set mode, brand, campaign, date range, channels, item count, region, country, sport/category, goal, and guidance before Quill creates the saved plan.
 - Planner AI generation now includes a preview/edit step before database creation, so operators can review the returned plan title, goal, dates, campaign, item briefs, channels, schedule targets, brands, and asset requests before saving.
+- Saved plan detail pages now operate as status-based production boards with filters, next-best-action guidance, item editing, quality review, promotion, and delete controls on each item.
 - Delete coverage now includes saved content plans, plan items, connected social accounts, imported/synced published post records, and generated content variants, in addition to the existing content, blog, schedule, campaign, automation, and brand-profile delete flows.
 
 ## Completed
@@ -111,6 +112,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Replaced the busiest inline forms on content, schedule, plan, and settings pages with modal editing flows.
 - [x] Added the `/quality` command page and Quill/Atlas `get_quality_summary` tool.
 - [x] Added AI plan generation from Planner with operator brief controls and a review-before-save draft step.
+- [x] Rebuilt saved plan detail pages into production boards grouped by item status.
+- [x] Added full plan-item editing from the saved plan board.
 - [x] Added saved content variants with UI generation from content detail pages.
 - [x] Added Quill/Atlas `generate_content_variants` tool.
 
