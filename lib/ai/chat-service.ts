@@ -69,17 +69,26 @@ function getThreadTitle(message: string) {
   return message.trim().slice(0, 80) || "New chat";
 }
 
-async function getBrandProfilePromptContext() {
+async function getBrandProfilePromptContext(message: string) {
   const profiles = await prisma.brandProfile.findMany({
     orderBy: { brandName: "asc" },
-    take: 12,
+    take: 100,
   });
 
   if (profiles.length === 0) {
     return "No brand profiles are configured yet.";
   }
 
-  return profiles
+  const normalizedMessage = message.toLowerCase();
+  const rankedProfiles = [...profiles].sort((a, b) => {
+    const aMentioned = normalizedMessage.includes(a.brandName.toLowerCase()) ? 1 : 0;
+    const bMentioned = normalizedMessage.includes(b.brandName.toLowerCase()) ? 1 : 0;
+    if (aMentioned !== bMentioned) return bMentioned - aMentioned;
+    return getBrandProfileReadiness(b).score - getBrandProfileReadiness(a).score;
+  });
+
+  return rankedProfiles
+    .slice(0, 12)
     .map((profile) => {
       const readiness = getBrandProfileReadiness(profile);
       return `- ${compactBrandContext(profile)} | AI readiness: ${readiness.score}% (${readiness.status})`;
@@ -229,7 +238,7 @@ export async function runContentOpsChat(input: {
     orderBy: { createdAt: "asc" },
     take: 40,
   });
-  const brandProfileContext = await getBrandProfilePromptContext();
+  const brandProfileContext = await getBrandProfilePromptContext(input.message);
 
   const conversation: ChatCompletionMessageParam[] = toOpenAIMessages(
     storedMessages.map((message) => ({

@@ -15,6 +15,8 @@
 - Added a read-only Meta readiness tool so Quill verifies live blockers before proposing publication.
 - Hardened chat input and approval validation, recovered malformed tool arguments without breaking threads, and deduplicated repeated pending proposals.
 - Added user-owned conversation deletion with cascading cleanup of messages and pending actions.
+- Brand context selection now prioritizes profiles explicitly mentioned in the current request, then the most complete profiles.
+- Failed chat requests restore the original prompt for immediate retry, and conversation titles can be renamed from a solid-background dialog.
 
 ## 2026-09-21: Compact workspace UI
 

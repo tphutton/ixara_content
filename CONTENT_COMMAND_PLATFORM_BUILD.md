@@ -14,6 +14,8 @@ The global `/actions` queue surfaces pending and failed Quill proposals across a
 
 Production reliability controls now include strict request and approval validation, duplicate-proposal suppression, recoverable malformed tool calls, atomic action execution, and owner-scoped conversation deletion.
 
+Quill now ranks brand context against the current request so named brands are never displaced by alphabetical limits. Chat network failures preserve the prompt for retry, and users can rename or delete their own conversation threads.
+
 Railway startup runs pending Prisma migrations before starting Next.js, ensuring action-control schema changes are available before Quill receives traffic.
 
 This document extends the original Content Ops AI build into a world-class content creation, planning, publishing, and intelligence platform connected to the Ixara AI Command Center.

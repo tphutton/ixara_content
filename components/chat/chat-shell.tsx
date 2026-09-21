@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 type ChatMessage = {
   id: string;
@@ -73,6 +73,8 @@ export function ChatShell({
   const [actionProposals, setActionProposals] = useState(initialActionProposals);
   const [actionError, setActionError] = useState<string | null>(null);
   const [processingActionId, setProcessingActionId] = useState<string | null>(null);
+  const [renamingThread, setRenamingThread] = useState<ChatThread | null>(null);
+  const [renameTitle, setRenameTitle] = useState("");
 
   const selectedTitle = useMemo(() => {
     return threads.find((item) => item.id === threadId)?.title ?? "New thread";
@@ -101,7 +103,8 @@ export function ChatShell({
     setMessage("");
 
     startTransition(async () => {
-      const response = await fetch("/api/chat", {
+      try {
+        const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -112,7 +115,7 @@ export function ChatShell({
         }),
       });
 
-      const data = (await response.json()) as
+        const data = (await response.json()) as
         | {
             error?: string;
             threadId?: string;
@@ -123,6 +126,7 @@ export function ChatShell({
         | undefined;
 
       if (!response.ok || !data?.assistantMessage || !data.userMessage || !data.threadId) {
+        setMessage(pendingMessage.content);
         setMessages((current) => [
           ...current.filter((entry) => entry.id !== pendingMessage.id),
           {
@@ -194,6 +198,18 @@ export function ChatShell({
 
       router.replace(`/chat?thread=${confirmedThreadId}`);
       router.refresh();
+      } catch (error) {
+        setMessage(pendingMessage.content);
+        setMessages((current) => [
+          ...current.filter((entry) => entry.id !== pendingMessage.id),
+          {
+            id: `error-${Date.now()}`,
+            role: "assistant",
+            content: error instanceof Error ? error.message : "Quill could not be reached. Your prompt is ready to retry.",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
     });
   }
 
@@ -252,6 +268,27 @@ export function ChatShell({
       setActionProposals([]);
       router.replace(remaining[0] ? `/chat?thread=${remaining[0].id}` : "/chat");
     }
+    router.refresh();
+  }
+
+  async function renameThread(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!renamingThread || !renameTitle.trim()) return;
+    const response = await fetch(`/api/chat/threads/${renamingThread.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: renameTitle }),
+    });
+    const data = (await response.json()) as { title?: string; error?: string };
+    if (!response.ok || !data.title) {
+      setActionError(data.error ?? "Conversation could not be renamed.");
+      return;
+    }
+    setThreads((current) => current.map((thread) =>
+      thread.id === renamingThread.id ? { ...thread, title: data.title as string } : thread,
+    ));
+    setRenamingThread(null);
+    setRenameTitle("");
     router.refresh();
   }
 
@@ -397,6 +434,18 @@ export function ChatShell({
                     </p>
                   </button>
                   <button
+                    aria-label={`Rename ${thread.title}`}
+                    className="chat-thread-rename"
+                    onClick={() => {
+                      setRenamingThread(thread);
+                      setRenameTitle(thread.title);
+                    }}
+                    title="Rename conversation"
+                    type="button"
+                  >
+                    <Pencil aria-hidden="true" size={15} />
+                  </button>
+                  <button
                     aria-label={`Delete ${thread.title}`}
                     className="chat-thread-delete"
                     onClick={() => deleteThread(thread.id)}
@@ -498,6 +547,32 @@ export function ChatShell({
           </div>
         </section>
       </aside>
+
+      {renamingThread ? (
+        <div className="editor-overlay editor-overlay--dialog">
+          <button
+            aria-label="Close rename conversation"
+            className="editor-overlay__backdrop"
+            onClick={() => setRenamingThread(null)}
+            type="button"
+          />
+          <section className="editor-overlay__panel quill-rename-panel">
+            <div className="editor-overlay__header">
+              <div><p className="kicker">Conversation</p><h3>Rename thread</h3></div>
+              <button className="button button--secondary" onClick={() => setRenamingThread(null)} type="button">Close</button>
+            </div>
+            <form className="editor-overlay__content quiet-form" onSubmit={renameThread}>
+              <label className="field">
+                <span className="field__label">Title</span>
+                <input autoFocus maxLength={80} onChange={(event) => setRenameTitle(event.target.value)} value={renameTitle} />
+              </label>
+              <div className="form-actions">
+                <button className="button button--primary" type="submit">Save title</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
