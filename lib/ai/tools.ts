@@ -43,7 +43,7 @@ import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/pr
 import { generateAiContentPlan } from "@/lib/planner/ai-plan-builder";
 import { generateContentVariants, parseVariantPlatforms } from "@/lib/content-variants/generate";
 import { runDueSocialSync } from "@/lib/social/sync-runner";
-import { publishScheduleToMeta } from "@/lib/social/meta-publish";
+import { getMetaPublishReadiness, publishScheduleToMeta } from "@/lib/social/meta-publish";
 
 type ToolDefinition = {
   type: "function";
@@ -561,6 +561,71 @@ async function listScheduleEntriesTool(args: Record<string, unknown>) {
         channel: item.channel,
         status: item.status,
         brand: item.brand,
+      })),
+    },
+  };
+}
+
+async function getMetaPublishingReadinessTool(args: Record<string, unknown>) {
+  const brand = asOptionalString(args.brand)?.toLowerCase();
+  const queue = asOptionalString(args.queue) ?? "all";
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 50) : 20;
+  const [schedules, accounts] = await Promise.all([
+    prisma.contentSchedule.findMany({
+      where: { status: { notIn: [ScheduleStatus.cancelled, ScheduleStatus.missed] } },
+      include: {
+        content: {
+          include: {
+            primaryAsset: { select: { fileUrl: true, title: true } },
+            qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
+          },
+        },
+        blog: {
+          include: {
+            featureAsset: { select: { fileUrl: true, title: true } },
+            qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
+          },
+        },
+        publishedPosts: { select: { id: true, status: true } },
+      },
+      orderBy: [{ scheduledFor: "asc" }, { updatedAt: "desc" }],
+      take: 100,
+    }),
+    prisma.connectedAccount.findMany({
+      where: {
+        platform: { in: [SocialPlatform.facebook, SocialPlatform.instagram] },
+        status: { in: [ConnectedAccountStatus.active, ConnectedAccountStatus.needs_reauth, ConnectedAccountStatus.error] },
+      },
+    }),
+  ]);
+
+  const items = schedules
+    .map((schedule) => ({ schedule, readiness: getMetaPublishReadiness(schedule, accounts) }))
+    .filter(({ schedule, readiness }) => {
+      const scheduleBrand = schedule.brand ?? schedule.content?.brand ?? schedule.blog?.brand;
+      if (brand && scheduleBrand?.toLowerCase() !== brand) return false;
+      if (queue === "ready" && !readiness.ready) return false;
+      if (queue === "blocked" && readiness.ready) return false;
+      return true;
+    })
+    .slice(0, limit);
+
+  return {
+    toolName: "get_meta_publishing_readiness",
+    summary: `Found ${items.filter((item) => item.readiness.ready).length} Meta-ready and ${items.filter((item) => !item.readiness.ready).length} blocked schedule item${items.length === 1 ? "" : "s"}.`,
+    payload: {
+      count: items.length,
+      items: items.map(({ schedule, readiness }) => ({
+        id: schedule.id,
+        title: schedule.content?.title ?? schedule.blog?.title ?? "Untitled scheduled item",
+        brand: schedule.brand ?? schedule.content?.brand ?? schedule.blog?.brand,
+        scheduledFor: schedule.scheduledFor.toISOString(),
+        channel: schedule.channel,
+        ready: readiness.ready,
+        label: readiness.label,
+        reasons: readiness.reasons,
+        platform: readiness.platform,
+        account: readiness.account,
       })),
     },
   };
@@ -2104,6 +2169,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   create_blog: createBlogTool,
   update_blog: updateBlogTool,
   list_schedule_entries: async (args) => listScheduleEntriesTool(args),
+  get_meta_publishing_readiness: async (args) => getMetaPublishingReadinessTool(args),
   create_schedule_entry: createScheduleEntryTool,
   update_schedule_entry: updateScheduleEntryTool,
   get_dashboard_summary: async () => getDashboardSummaryTool(),
@@ -2362,6 +2428,22 @@ export const contentOpsTools: ToolDefinition[] = [
         type: "object",
         properties: {
           status: { type: "string", enum: Object.values(ScheduleStatus) },
+          limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_meta_publishing_readiness",
+      description: "Inspect Facebook and Instagram schedule entries using the live publishing readiness rules. Use this before proposing a Meta publish.",
+      parameters: {
+        type: "object",
+        properties: {
+          queue: { type: "string", enum: ["all", "ready", "blocked"] },
+          brand: { type: "string" },
           limit: { type: "number" },
         },
         additionalProperties: false,

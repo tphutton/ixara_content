@@ -11,6 +11,8 @@
 - The supported Node runtime range and npm 10.8.2 package manager are declared for consistent Railway builds.
 - Added approval-controlled Meta publishing so Quill can deliver a ready schedule entry without bypassing quality, account, or authorization gates.
 - Approval cards now preview proposed arguments, and completed or rejected outcomes are persisted back into the conversation.
+- Added `/actions` as a global per-user Quill approval queue with open actions, retry controls, and recent decision history.
+- Added a read-only Meta readiness tool so Quill verifies live blockers before proposing publication.
 
 ## 2026-09-21: Compact workspace UI
 
@@ -284,6 +286,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `create_blog`: Create a structured blog record with up to 8 text/image sections.
 - `update_blog`: Update an existing blog record by id.
 - `list_schedule_entries`: Read schedule/calendar entries with optional status and limit filters.
+- `get_meta_publishing_readiness`: Inspect live Meta readiness, matched accounts, and blockers before proposing publication.
 - `create_schedule_entry`: Create a new schedule entry linked to content or a blog.
 - `update_schedule_entry`: Update an existing schedule entry by id.
 - `get_dashboard_summary`: Return dashboard counts, schedule visibility, and recent activity.

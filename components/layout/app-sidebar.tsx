@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   BadgeCheck,
+  ListChecks,
   Bot,
   CalendarDays,
   Columns3,
@@ -30,6 +31,7 @@ const navGroups = [
       { href: "/planner", label: "Planner", icon: ClipboardList },
       { href: "/plans", label: "Plans", icon: Columns3 },
       { href: "/chat", label: "Quill Chat", icon: MessageSquareText },
+      { href: "/actions", label: "AI Actions", icon: ListChecks },
     ],
   },
   {

@@ -386,6 +386,10 @@ textarea {
   white-space: nowrap;
 }
 
+.quill-queue-row {
+  align-items: start;
+}
+
 .chat-thread-card[data-active="true"] {
   border-color: rgba(192, 28, 28, 0.26);
   background: linear-gradient(180deg, rgba(255, 246, 246, 0.98), rgba(255, 255, 255, 0.92));

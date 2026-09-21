@@ -10,6 +10,8 @@ Quill separates research from mutation. Read-only tools execute immediately, whi
 
 Quill can publish an approved, quality-ready schedule entry to Facebook or Instagram through the same proposal flow. Existing Meta readiness checks remain authoritative, and the approval outcome is written back into the conversation.
 
+The global `/actions` queue surfaces pending and failed Quill proposals across all chat threads. Quill also has a read-only Meta readiness tool and is instructed to verify readiness before proposing any live publish.
+
 Railway startup runs pending Prisma migrations before starting Next.js, ensuring action-control schema changes are available before Quill receives traffic.
 
 This document extends the original Content Ops AI build into a world-class content creation, planning, publishing, and intelligence platform connected to the Ixara AI Command Center.
