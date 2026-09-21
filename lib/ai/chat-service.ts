@@ -280,10 +280,15 @@ export async function runContentOpsChat(input: {
           continue;
         }
 
-        const args = JSON.parse(toolCall.function.arguments || "{}") as Record<string, unknown>;
+        let args: Record<string, unknown> = {};
         let result;
 
         try {
+          const parsedArgs = JSON.parse(toolCall.function.arguments || "{}");
+          if (!parsedArgs || typeof parsedArgs !== "object" || Array.isArray(parsedArgs)) {
+            throw new Error("Quill produced invalid tool arguments. Please try the request again.");
+          }
+          args = parsedArgs as Record<string, unknown>;
           if (isContentOpsMutationTool(toolCall.function.name)) {
             const proposal = await createQuillActionProposal({
               threadId: thread.id,

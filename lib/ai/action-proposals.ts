@@ -47,6 +47,20 @@ export async function createQuillActionProposal(input: {
   toolName: string;
   args: Record<string, unknown>;
 }) {
+  const recentPending = await prisma.quillActionProposal.findMany({
+    where: {
+      threadId: input.threadId,
+      userId: input.access.id,
+      toolName: input.toolName,
+      status: QuillActionStatus.pending,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+  const serializedArgs = JSON.stringify(input.args);
+  const duplicate = recentPending.find((proposal) => JSON.stringify(proposal.arguments) === serializedArgs);
+  if (duplicate) return duplicate;
+
   return prisma.quillActionProposal.create({
     data: {
       threadId: input.threadId,

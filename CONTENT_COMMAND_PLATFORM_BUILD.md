@@ -12,6 +12,8 @@ Quill can publish an approved, quality-ready schedule entry to Facebook or Insta
 
 The global `/actions` queue surfaces pending and failed Quill proposals across all chat threads. Quill also has a read-only Meta readiness tool and is instructed to verify readiness before proposing any live publish.
 
+Production reliability controls now include strict request and approval validation, duplicate-proposal suppression, recoverable malformed tool calls, atomic action execution, and owner-scoped conversation deletion.
+
 Railway startup runs pending Prisma migrations before starting Next.js, ensuring action-control schema changes are available before Quill receives traffic.
 
 This document extends the original Content Ops AI build into a world-class content creation, planning, publishing, and intelligence platform connected to the Ixara AI Command Center.

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState, useTransition } from "react";
+import { Trash2 } from "lucide-react";
 
 type ChatMessage = {
   id: string;
@@ -160,7 +161,10 @@ export function ChatShell({
           createdAt: new Date().toISOString(),
         }));
       if (proposedActions.length > 0) {
-        setActionProposals((current) => [...proposedActions, ...current]);
+        setActionProposals((current) => [
+          ...proposedActions,
+          ...current.filter((item) => !proposedActions.some((proposal) => proposal.id === item.id)),
+        ]);
       }
 
       setThreads((current) => {
@@ -228,6 +232,27 @@ export function ChatShell({
     } finally {
       setProcessingActionId(null);
     }
+  }
+
+  async function deleteThread(id: string) {
+    if (!window.confirm("Delete this conversation and its pending Quill actions?")) return;
+    const response = await fetch(`/api/chat/threads/${id}`, { method: "DELETE" });
+    const data = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      setActionError(data.error ?? "Conversation could not be deleted.");
+      return;
+    }
+
+    const remaining = threads.filter((thread) => thread.id !== id);
+    setThreads(remaining);
+    if (threadId === id) {
+      setThreadId(null);
+      setMessages([]);
+      setLastToolSummaries([]);
+      setActionProposals([]);
+      router.replace(remaining[0] ? `/chat?thread=${remaining[0].id}` : "/chat");
+    }
+    router.refresh();
   }
 
   return (
@@ -359,20 +384,28 @@ export function ChatShell({
               <p className="muted">No threads yet.</p>
             ) : (
               threads.map((thread) => (
-                <button
-                  className="chat-thread-card"
-                  data-active={thread.id === threadId}
-                  key={thread.id}
-                  onClick={() => {
-                    router.push(`/chat?thread=${thread.id}`);
-                  }}
-                  type="button"
-                >
-                  <strong>{thread.title}</strong>
-                  <p className="muted" style={{ margin: "8px 0 0" }}>
-                    {new Date(thread.updatedAt).toLocaleString()}
-                  </p>
-                </button>
+                <div className="chat-thread-row" key={thread.id}>
+                  <button
+                    className="chat-thread-card"
+                    data-active={thread.id === threadId}
+                    onClick={() => router.push(`/chat?thread=${thread.id}`)}
+                    type="button"
+                  >
+                    <strong>{thread.title}</strong>
+                    <p className="muted" style={{ margin: "8px 0 0" }}>
+                      {new Date(thread.updatedAt).toLocaleString()}
+                    </p>
+                  </button>
+                  <button
+                    aria-label={`Delete ${thread.title}`}
+                    className="chat-thread-delete"
+                    onClick={() => deleteThread(thread.id)}
+                    title="Delete conversation"
+                    type="button"
+                  >
+                    <Trash2 aria-hidden="true" size={15} />
+                  </button>
+                </div>
               ))
             )}
           </div>

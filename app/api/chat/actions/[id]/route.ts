@@ -13,9 +13,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   const body = (await request.json().catch(() => null)) as { decision?: string } | null;
+  if (body?.decision !== "approve" && body?.decision !== "reject") {
+    return NextResponse.json({ error: "Decision must be approve or reject." }, { status: 400 });
+  }
   const { id } = await context.params;
   try {
-    const proposal = body?.decision === "reject"
+    const proposal = body.decision === "reject"
       ? await rejectQuillActionProposal(id, access)
       : await executeQuillActionProposal(id, access);
     return NextResponse.json({ proposal });

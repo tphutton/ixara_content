@@ -20,8 +20,14 @@ export async function POST(request: Request) {
     | { message?: string; threadId?: string }
     | null;
 
-  if (!body?.message?.trim()) {
+  if (typeof body?.message !== "string" || !body.message.trim()) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
+  }
+  if (body.message.length > 12000) {
+    return NextResponse.json({ error: "Message must be 12,000 characters or fewer." }, { status: 413 });
+  }
+  if (body.threadId !== undefined && (typeof body.threadId !== "string" || body.threadId.length > 64)) {
+    return NextResponse.json({ error: "Invalid thread id." }, { status: 400 });
   }
 
   try {

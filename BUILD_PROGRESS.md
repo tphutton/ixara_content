@@ -13,6 +13,8 @@
 - Approval cards now preview proposed arguments, and completed or rejected outcomes are persisted back into the conversation.
 - Added `/actions` as a global per-user Quill approval queue with open actions, retry controls, and recent decision history.
 - Added a read-only Meta readiness tool so Quill verifies live blockers before proposing publication.
+- Hardened chat input and approval validation, recovered malformed tool arguments without breaking threads, and deduplicated repeated pending proposals.
+- Added user-owned conversation deletion with cascading cleanup of messages and pending actions.
 
 ## 2026-09-21: Compact workspace UI
 
