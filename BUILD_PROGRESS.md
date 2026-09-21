@@ -160,10 +160,11 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Hardened Quill long-thread context to use the latest 40 messages and made viewer access explicitly read-only.
 - [x] Added idempotent Meta delivery claims, retry diagnostics, and canonical post permalink lookup.
 - [x] Added the first Vitest regression suite for Quill history ordering and Meta delivery readiness.
+- [x] Added long-lived Meta token exchange during OAuth, visible authorization expiry, and guided reconnect controls.
 
 ## In Progress
 - [x] Add the first scheduled sync endpoint on top of the new Meta account and analytics foundation.
-- [ ] Attach the social sync endpoint to a real Railway cron schedule and add long-lived Meta token refresh support.
+- [ ] Attach the social sync endpoint to a real Railway cron schedule.
 - [ ] Extend `/planner` with channel swimlanes and gap heatmaps.
 - [x] Extend saved plans with one-click item promotion into content, blogs, and schedule entries.
 - [ ] Add guided promotion from plan item into channel variants and approvals.
@@ -178,7 +179,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [ ] Seed or complete brand profiles until core brands reach strong AI-readiness scores.
 
 ## Pending
-- [ ] Harden OAuth-based live platform connections starting with long-lived Meta token refresh.
+- [x] Harden OAuth-based live platform connections with long-lived Meta token exchange and early reconnect warnings.
 - [x] Add automated sync endpoint for connected accounts to ingest live post and performance data on a schedule.
 - [x] Add first platform publishing workflow and social-channel delivery for ready Meta schedule entries.
 - [x] Add publishing retry/failure queue and richer delivery diagnostics.
@@ -278,7 +279,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 ## Next Steps
 - Add automated coverage for Quill approvals, Meta delivery locking, OAuth callbacks, and scheduled runners.
 - Connect the protected automation and social sync runners to real scheduled triggers in Railway or another job system.
-- Add long-lived Meta token exchange/refresh and delivery reconciliation for uncertain external outcomes.
+- Add delivery reconciliation for uncertain external outcomes and account-expiry notifications.
 - Add an AI quality evaluation suite with fixed brand briefs and measurable regression thresholds.
 - Extend guided rewrite actions into blogs and plan items, then add score trends.
 - Add variant editing, approval, and promotion into publishing packages.

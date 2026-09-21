@@ -25,6 +25,12 @@ type SocialAccountsPageProps = {
   }>;
 };
 
+function tokenExpiresWithinDays(tokenExpiresAt: Date | null, days: number) {
+  return tokenExpiresAt
+    ? tokenExpiresAt.getTime() <= Date.now() + days * 24 * 60 * 60 * 1000
+    : false;
+}
+
 export default async function SocialAccountsPage({ searchParams }: SocialAccountsPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const [brandProfiles, accounts] = await Promise.all([
@@ -158,6 +164,8 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
               const deleteAction = deleteConnectedAccountAction.bind(null, account.id);
               const syncAction = syncConnectedAccountNowAction.bind(null, account.id);
               const canUseMetaFlow = metaConfigured && isMetaPlatform(account.platform);
+              const expiresSoon = tokenExpiresWithinDays(account.tokenExpiresAt, 14);
+              const needsReconnect = account.status === "needs_reauth" || account.status === "error" || expiresSoon;
 
               return (
                 <article className="quiet-row social-account-row" key={account.id}>
@@ -171,6 +179,9 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
                       <span>{account.brandProfile?.brandName ?? account.brandName ?? "No brand"}</span>
                       <span>{account.publishedPosts.length} post{account.publishedPosts.length === 1 ? "" : "s"}</span>
                       <span>Updated {formatDistanceToNow(account.updatedAt, { addSuffix: true })}</span>
+                      {account.tokenExpiresAt ? (
+                        <span>Authorization expires {formatDistanceToNow(account.tokenExpiresAt, { addSuffix: true })}</span>
+                      ) : null}
                     </div>
                     {account.lastSyncStatus ? (
                       <p className="muted">{account.lastSyncStatus}</p>
@@ -187,6 +198,11 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
                       <form action={syncAction}>
                         <button className="button button--primary" type="submit">Sync posts</button>
                       </form>
+                    ) : null}
+                    {canUseMetaFlow && account.encryptedAccessToken && needsReconnect ? (
+                      <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${account.id}`}>
+                        Reconnect Meta
+                      </Link>
                     ) : null}
                     <Link className="button button--secondary" href={`/social-accounts?edit=${account.id}`}>
                       Edit

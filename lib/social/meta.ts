@@ -153,6 +153,34 @@ export async function exchangeMetaCodeForToken(code: string) {
   return payload;
 }
 
+export async function exchangeForLongLivedMetaToken(shortLivedToken: string) {
+  const { appId, appSecret } = getMetaConfig();
+
+  if (!appId || !appSecret) {
+    throw new Error("Meta OAuth is not configured.");
+  }
+
+  const url = new URL(`${META_GRAPH_BASE}/oauth/access_token`);
+  url.searchParams.set("grant_type", "fb_exchange_token");
+  url.searchParams.set("client_id", appId);
+  url.searchParams.set("client_secret", appSecret);
+  url.searchParams.set("fb_exchange_token", shortLivedToken);
+
+  const response = await fetch(url, { method: "GET", cache: "no-store" });
+  const payload = (await response.json()) as {
+    access_token?: string;
+    token_type?: string;
+    expires_in?: number;
+    error?: { message?: string };
+  };
+
+  if (!response.ok || !payload.access_token) {
+    throw new Error(payload.error?.message ?? "Meta long-lived token exchange failed.");
+  }
+
+  return payload;
+}
+
 export async function fetchMetaPages(accessToken: string) {
   const payload = await metaFetch<{ data?: MetaPageAccount[] }>(
     "/me/accounts",

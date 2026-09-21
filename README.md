@@ -160,8 +160,8 @@ Local development:
 - `LEGACY_BLOGS_API_KEY`
 - `WORDPRESS_MEDIA_BASE_URL=https://media.ixara.tech/wp-json/wp/v2`
 - `AUTOMATION_RUNNER_SECRET`
-- `META_APP_ID` for future live Meta OAuth
-- `META_APP_SECRET` for future live Meta OAuth
+- `META_APP_ID` for live Meta OAuth and long-lived token exchange
+- `META_APP_SECRET` for live Meta OAuth and long-lived token exchange
 - `META_SCOPES` optional override for Meta permissions
 - `META_REAUTH_BUFFER_DAYS` optional number of days before expiry to mark Meta tokens for reconnect, defaulting to 3
 - `SOCIAL_ACCOUNT_ENCRYPTION_KEY` for encrypting stored social access tokens
@@ -172,7 +172,7 @@ Railway deployment:
 - Set `NEXT_PUBLIC_APP_URL` to the final Railway app URL
 - Keep `CAMPAIGNS_API_KEY`, `CLERK_SECRET_KEY`, `OPENAI_API_KEY`, and `DATABASE_URL` server-side only
 - Keep `AUTOMATION_RUNNER_SECRET` server-side only and use it for scheduled runner calls
-- Keep `META_APP_SECRET` server-side only when live Meta OAuth is added
+- Keep `META_APP_SECRET` server-side only; it is used during OAuth and long-lived token exchange
 - Keep `SOCIAL_ACCOUNT_ENCRYPTION_KEY` server-side only because it protects stored platform tokens
 
 ## Clerk Setup

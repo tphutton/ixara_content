@@ -4,8 +4,9 @@ import { ConnectedAccountStatus, SocialPlatform } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   buildStoredMetaAuth,
-  chooseBestMetaPage,
-  exchangeMetaCodeForToken,
+    chooseBestMetaPage,
+    exchangeMetaCodeForToken,
+    exchangeForLongLivedMetaToken,
   fetchMetaPages,
   isMetaConfigured,
 } from "@/lib/social/meta";
@@ -54,7 +55,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const tokenPayload = await exchangeMetaCodeForToken(code);
+    const shortLivedToken = await exchangeMetaCodeForToken(code);
+    const tokenPayload = await exchangeForLongLivedMetaToken(shortLivedToken.access_token!);
     const pages = await fetchMetaPages(tokenPayload.access_token!);
     const selectedPage = chooseBestMetaPage(account, pages);
 
