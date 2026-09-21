@@ -25,10 +25,20 @@ type ToolSummary = {
   payload: Record<string, unknown>;
 };
 
+type ActionProposal = {
+  id: string;
+  toolName: string;
+  summary: string;
+  status: "pending" | "executing" | "completed" | "rejected" | "failed";
+  error: string | null;
+  createdAt: string;
+};
+
 type ChatShellProps = {
   initialThreadId: string | null;
   initialThreads: ChatThread[];
   initialMessages: ChatMessage[];
+  initialActionProposals: ActionProposal[];
   initialPrompt?: string;
 };
 
@@ -36,6 +46,7 @@ export function ChatShell({
   initialThreadId,
   initialThreads,
   initialMessages,
+  initialActionProposals,
   initialPrompt = "",
 }: ChatShellProps) {
   const router = useRouter();
@@ -56,6 +67,9 @@ export function ChatShell({
       }))
       .slice(-6),
   );
+  const [actionProposals, setActionProposals] = useState(initialActionProposals);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [processingActionId, setProcessingActionId] = useState<string | null>(null);
 
   const selectedTitle = useMemo(() => {
     return threads.find((item) => item.id === threadId)?.title ?? "New thread";
@@ -129,6 +143,19 @@ export function ChatShell({
         confirmedAssistantMessage,
       ]);
       setLastToolSummaries(data.toolSummaries ?? []);
+      const proposedActions = (data.toolSummaries ?? [])
+        .filter((tool) => tool.payload.requiresApproval && typeof tool.payload.proposalId === "string")
+        .map((tool) => ({
+          id: String(tool.payload.proposalId),
+          toolName: tool.toolName,
+          summary: String(tool.payload.summary ?? tool.summary),
+          status: "pending" as const,
+          error: null,
+          createdAt: new Date().toISOString(),
+        }));
+      if (proposedActions.length > 0) {
+        setActionProposals((current) => [...proposedActions, ...current]);
+      }
 
       setThreads((current) => {
         const exists = current.some((item) => item.id === confirmedThreadId);
@@ -160,6 +187,32 @@ export function ChatShell({
     });
   }
 
+  async function reviewAction(id: string, decision: "approve" | "reject") {
+    setProcessingActionId(id);
+    setActionError(null);
+    try {
+      const response = await fetch(`/api/chat/actions/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision }),
+      });
+      const data = (await response.json()) as { proposal?: ActionProposal; error?: string };
+      if (!response.ok || !data.proposal) throw new Error(data.error ?? "Action review failed.");
+      setActionProposals((current) =>
+        current.map((proposal) => proposal.id === id ? {
+          ...proposal,
+          status: data.proposal?.status ?? proposal.status,
+          error: data.proposal?.error ?? null,
+        } : proposal),
+      );
+      router.refresh();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Action review failed.");
+    } finally {
+      setProcessingActionId(null);
+    }
+  }
+
   return (
     <div className="chat-workspace">
       <section className="card card--padded chat-workspace__primary">
@@ -185,7 +238,7 @@ export function ChatShell({
 
           <div className="chat-hero__meta">
             <span className="inline-chip">Active thread: {selectedTitle}</span>
-            <span className="inline-chip">Mutation-safe tool flow</span>
+            <span className="inline-chip">Approval-controlled actions</span>
           </div>
         </div>
 
@@ -246,7 +299,7 @@ export function ChatShell({
             }}
           >
             <span className="muted">
-              {initialPrompt ? "Planner prompt loaded. Edit it or send when ready." : "Database actions run only through server-side tools."}
+              {initialPrompt ? "Planner prompt loaded. Edit it or send when ready." : "Quill researches immediately and queues changes for approval."}
             </span>
             <button className="button button--primary" disabled={isPending} type="submit">
               {isPending ? "Working..." : "Send"}
@@ -275,6 +328,7 @@ export function ChatShell({
                 setThreadId(null);
                 setMessages([]);
                 setLastToolSummaries([]);
+                setActionProposals([]);
                 router.replace("/chat");
               }}
               type="button"
@@ -308,8 +362,53 @@ export function ChatShell({
         </section>
 
         <section className="card card--padded">
-          <p className="kicker">Actions taken</p>
-          <h3 style={{ marginTop: 0 }}>Latest tool results</h3>
+          <div className="section-heading">
+            <div>
+              <p className="kicker">Approval queue</p>
+              <h3 style={{ marginTop: 0 }}>Quill actions</h3>
+            </div>
+            <span className="inline-chip">
+              {actionProposals.filter((proposal) => proposal.status === "pending" || proposal.status === "failed").length} open
+            </span>
+          </div>
+
+          {actionError ? <div className="form-error">{actionError}</div> : null}
+
+          <div className="stack">
+            {actionProposals.length === 0 ? (
+              <p className="muted">Actions that change data will appear here for approval.</p>
+            ) : (
+              actionProposals.map((proposal) => {
+                const reviewable = proposal.status === "pending" || proposal.status === "failed";
+                const busy = processingActionId === proposal.id;
+                return (
+                  <article className="chat-tool-card quill-action-card" key={proposal.id}>
+                    <div className="quiet-row__title">
+                      <strong>{proposal.summary}</strong>
+                      <span className="badge">{proposal.status}</span>
+                    </div>
+                    <p className="muted">{proposal.toolName}</p>
+                    {proposal.error ? <p className="form-error">{proposal.error}</p> : null}
+                    {reviewable ? (
+                      <div className="row-actions">
+                        <button className="button button--secondary" disabled={busy} onClick={() => reviewAction(proposal.id, "reject")} type="button">
+                          Reject
+                        </button>
+                        <button className="button button--primary" disabled={busy} onClick={() => reviewAction(proposal.id, "approve")} type="button">
+                          {busy ? "Running..." : proposal.status === "failed" ? "Retry" : "Approve"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        <section className="card card--padded">
+          <p className="kicker">Tool activity</p>
+          <h3 style={{ marginTop: 0 }}>Latest results</h3>
 
           <div className="stack">
             {lastToolSummaries.length === 0 ? (

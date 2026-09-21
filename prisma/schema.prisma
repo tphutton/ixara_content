@@ -151,6 +151,14 @@ enum QualityReviewTargetType {
   content_plan_item
 }
 
+enum QuillActionStatus {
+  pending
+  executing
+  completed
+  rejected
+  failed
+}
+
 model UserAccess {
   id             String           @id @default(cuid())
   clerkUserId    String           @unique
@@ -181,8 +189,9 @@ model UserAccess {
   qualityReviewsCreated    QualityReview[]     @relation("QualityReviewCreatedBy")
   contentVariantsCreated   ContentVariant[]    @relation("ContentVariantCreatedBy")
   contentVariantsUpdated   ContentVariant[]    @relation("ContentVariantUpdatedBy")
-  chatThreads        ChatThread[]
-  actionLogs         ContentActionLog[]
+  chatThreads          ChatThread[]
+  quillActionProposals QuillActionProposal[]
+  actionLogs           ContentActionLog[]
 
   @@index([approvalStatus, role])
 }
@@ -453,10 +462,33 @@ model ChatThread {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  user     UserAccess    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages ChatMessage[]
+  user            UserAccess            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages        ChatMessage[]
+  actionProposals QuillActionProposal[]
 
   @@index([userId, updatedAt])
+}
+
+model QuillActionProposal {
+  id          String            @id @default(cuid())
+  threadId    String
+  userId      String
+  toolName    String
+  arguments   Json
+  summary     String
+  status      QuillActionStatus @default(pending)
+  result      Json?
+  error       String?
+  reviewedAt  DateTime?
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   UserAccess @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+  @@index([threadId, createdAt])
 }
 
 model ChatMessage {

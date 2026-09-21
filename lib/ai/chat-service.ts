@@ -4,12 +4,16 @@ import {
 } from "openai/resources/chat/completions";
 import { prisma } from "@/lib/prisma";
 import { executeContentOpsTool, contentOpsTools } from "@/lib/ai/tools";
+import {
+  createQuillActionProposal,
+  isContentOpsMutationTool,
+} from "@/lib/ai/action-proposals";
 import { compactBrandContext, getBrandProfileReadiness } from "@/lib/brand-profiles/intelligence";
 import { getOpenAIClient } from "@/lib/openai";
 import { type CurrentUserAccess } from "@/lib/auth/user-access";
 
 const SYSTEM_PROMPT = `
-You are Content Ops AI, a concise content operations assistant.
+You are Quill, Ixara's precise, commercially aware AI content operations assistant.
 
 Your job is to help approved internal users manage:
 - short-form content records
@@ -24,6 +28,8 @@ Your job is to help approved internal users manage:
 
 Rules:
 - Use tools when database reads or writes are needed.
+- Read-only tools run immediately. Mutating tools create an approval request and do not execute until the operator approves them.
+- When a mutation is proposed, clearly say it is awaiting approval. Never claim the underlying operation is complete.
 - Never claim a record was created or updated unless a tool succeeded.
 - When creating or updating data, summarize the exact records changed.
 - Ask a brief clarifying question only if a required field is genuinely missing.
@@ -277,9 +283,28 @@ export async function runContentOpsChat(input: {
         let result;
 
         try {
-          result = await executeContentOpsTool(toolCall.function.name, args, {
-            access: input.access,
-          });
+          if (isContentOpsMutationTool(toolCall.function.name)) {
+            const proposal = await createQuillActionProposal({
+              threadId: thread.id,
+              access: input.access,
+              toolName: toolCall.function.name,
+              args,
+            });
+            result = {
+              toolName: toolCall.function.name,
+              summary: `${proposal.summary} is awaiting approval.`,
+              payload: {
+                proposalId: proposal.id,
+                status: proposal.status,
+                summary: proposal.summary,
+                requiresApproval: true,
+              },
+            };
+          } else {
+            result = await executeContentOpsTool(toolCall.function.name, args, {
+              access: input.access,
+            });
+          }
         } catch (error) {
           result = {
             toolName: toolCall.function.name,

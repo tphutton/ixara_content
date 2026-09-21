@@ -26,18 +26,25 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
       ? selectedThreadId
       : threads[0]?.id ?? null;
 
-  const messages = activeThreadId
-    ? await prisma.chatMessage.findMany({
-        where: { threadId: activeThreadId },
-        orderBy: { createdAt: "asc" },
-      })
-    : [];
+  const [messages, actionProposals] = activeThreadId
+    ? await Promise.all([
+        prisma.chatMessage.findMany({
+          where: { threadId: activeThreadId },
+          orderBy: { createdAt: "asc" },
+        }),
+        prisma.quillActionProposal.findMany({
+          where: { threadId: activeThreadId, userId: access.id },
+          orderBy: { createdAt: "desc" },
+          take: 12,
+        }),
+      ])
+    : [[], []];
 
   return (
     <section className="page-shell">
       <WorkspaceHeader
-        title="AI Chat"
-        description="The assistant layer will execute structured content operations through safe server-side tools."
+        title="Quill"
+        description="Research content operations, prepare changes, and approve every action before it touches live workspace data."
       />
 
       <ChatShell
@@ -50,6 +57,14 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
           createdAt: message.createdAt.toISOString(),
         }))}
         initialPrompt={prompt ?? ""}
+        initialActionProposals={actionProposals.map((proposal) => ({
+          id: proposal.id,
+          toolName: proposal.toolName,
+          summary: proposal.summary,
+          status: proposal.status,
+          error: proposal.error,
+          createdAt: proposal.createdAt.toISOString(),
+        }))}
         initialThreadId={activeThreadId}
         initialThreads={threads.map((thread) => ({
           id: thread.id,

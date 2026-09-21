@@ -4,6 +4,12 @@
 
 The workspace now follows a compact operations-console pattern. Page headers, KPI strips, queue filters, tables, record rows, and asset cards prioritize scanning and repeated action. Secondary descriptions and advanced filters use tooltips or disclosure controls instead of permanent large panels. Creation and editing remain in focused pages or solid-background overlays.
 
+## Quill action safety
+
+Quill separates research from mutation. Read-only tools execute immediately, while operations that change workspace or external data create durable action proposals. Operators approve or reject proposals in chat; failed actions preserve diagnostics and can be retried. Only editors and admins can execute approved actions, and proposals are scoped to the user and conversation that created them.
+
+Railway startup runs pending Prisma migrations before starting Next.js, ensuring action-control schema changes are available before Quill receives traffic.
+
 This document extends the original Content Ops AI build into a world-class content creation, planning, publishing, and intelligence platform connected to the Ixara AI Command Center.
 
 ## Objective

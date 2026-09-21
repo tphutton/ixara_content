@@ -1,5 +1,15 @@
 # Build Progress
 
+## 2026-09-21: Quill production action controls
+
+- Added durable Quill action proposals for every mutating AI tool call.
+- Read-only research still runs immediately; creates, updates, syncs, automation runs, generation, promotion, and deletion now wait for operator approval.
+- Added approve, reject, retry, executing, completed, and failed states directly in the Quill workspace.
+- Added ownership checks, editor/admin execution enforcement, atomic action claiming, persisted results, and failure diagnostics.
+- Updated Quill's system identity and UI copy to accurately describe the approval-controlled workflow.
+- Production builds now generate the Prisma client, and application startup safely deploys pending migrations before Next.js starts.
+- The supported Node runtime range and npm 10.8.2 package manager are declared for consistent Railway builds.
+
 ## 2026-09-21: Compact workspace UI
 
 - Reworked shared page density so headers, summary metrics, panels, rows, tables, and controls use substantially less vertical space.

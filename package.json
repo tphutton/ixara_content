@@ -2,9 +2,15 @@
   "name": "content-ops-ai",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=20.20.0 <23"
+  },
   "scripts": {
     "dev": "next dev --webpack",
+    "prebuild": "prisma generate",
     "build": "next build --webpack",
+    "prestart": "prisma migrate deploy",
     "start": "next start",
     "lint": "eslint",
     "import:legacy:blogs": "node scripts/import-legacy-blogs.mjs"
