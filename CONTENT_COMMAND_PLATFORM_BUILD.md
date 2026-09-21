@@ -16,6 +16,8 @@ Production reliability controls now include strict request and approval validati
 
 Quill now ranks brand context against the current request so named brands are never displaced by alphabetical limits. Chat network failures preserve the prompt for retry, and users can rename or delete their own conversation threads.
 
+The Quill workspace is conversation-first. Approvals, thread management, and tool activity share one tabbed utility panel, while starter actions and a compact composer reduce the work needed to begin common operational tasks.
+
 Railway startup runs pending Prisma migrations before starting Next.js, ensuring action-control schema changes are available before Quill receives traffic.
 
 This document extends the original Content Ops AI build into a world-class content creation, planning, publishing, and intelligence platform connected to the Ixara AI Command Center.

@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState, useTransition } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { History, ListChecks, MessageSquareText, Pencil, Plus, Trash2 } from "lucide-react";
 
 type ChatMessage = {
   id: string;
@@ -75,6 +76,11 @@ export function ChatShell({
   const [processingActionId, setProcessingActionId] = useState<string | null>(null);
   const [renamingThread, setRenamingThread] = useState<ChatThread | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
+  const [sidePanel, setSidePanel] = useState<"actions" | "threads" | "activity">(
+    initialActionProposals.some((proposal) => proposal.status === "pending" || proposal.status === "failed")
+      ? "actions"
+      : "threads",
+  );
 
   const selectedTitle = useMemo(() => {
     return threads.find((item) => item.id === threadId)?.title ?? "New thread";
@@ -308,27 +314,29 @@ export function ChatShell({
             <div>
               <p className="kicker">Quill</p>
               <h3 style={{ margin: "0 0 8px" }}>AI content operations assistant</h3>
-              <p className="muted" style={{ margin: 0 }}>
-                Quill can create, update, organize, and summarize content operations through
-                server-side tools with full audit logging.
-              </p>
+              <p className="muted" style={{ margin: 0 }}>Content planning, creation, quality, and publishing.</p>
             </div>
           </div>
 
           <div className="chat-hero__meta">
             <span className="inline-chip">Active thread: {selectedTitle}</span>
-            <span className="inline-chip">Approval-controlled actions</span>
+            {actionProposals.some((proposal) => proposal.status === "pending" || proposal.status === "failed") ? (
+              <button className="inline-chip" onClick={() => setSidePanel("actions")} type="button">
+                {actionProposals.filter((proposal) => proposal.status === "pending" || proposal.status === "failed").length} action pending
+              </button>
+            ) : null}
           </div>
         </div>
 
         <div className="chat-log">
           {visibleMessages.length === 0 ? (
-            <div className="empty-state">
-              <h3>Start a conversation with Quill</h3>
-              <p className="muted">
-                Try “Create a draft social post for Masters weekend”, “List approved blogs for
-                golf”, or “Sync WordPress assets and show me Phuket campaign images.”
-              </p>
+            <div className="empty-state chat-empty-state">
+              <h3>What are we working on?</h3>
+              <div className="chat-suggestions">
+                <button onClick={() => setMessage("Show me what needs attention today.")} type="button">Review today</button>
+                <button onClick={() => setMessage("Which scheduled posts are ready to publish to Meta?")} type="button">Publishing readiness</button>
+                <button onClick={() => setMessage("Review the weakest content and recommend the highest-impact improvements.")} type="button">Quality review</button>
+              </div>
             </div>
           ) : (
             visibleMessages.map((entry) => (
@@ -365,8 +373,8 @@ export function ChatShell({
             disabled={isPending}
             name="message"
             onChange={(event) => setMessage(event.target.value)}
-            placeholder="Ask Quill to create, update, list, or summarize content operations."
-            rows={4}
+            placeholder="Ask Quill about a brand, plan, draft, campaign, or publishing task..."
+            rows={3}
             value={message}
           />
           <div
@@ -387,165 +395,81 @@ export function ChatShell({
         </form>
       </section>
 
-      <aside className="chat-workspace__secondary">
-        <section className="card card--padded">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <p className="kicker">Threads</p>
-              <h3 style={{ marginTop: 0 }}>Recent conversations</h3>
-            </div>
-            <button
-              className="button button--secondary"
-              onClick={() => {
-                setThreadId(null);
-                setMessages([]);
-                setLastToolSummaries([]);
-                setActionProposals([]);
-                router.replace("/chat");
-              }}
-              type="button"
-            >
-              New
-            </button>
-          </div>
+      <aside className="card chat-workspace__secondary">
+        <div className="chat-side-tabs" role="tablist" aria-label="Quill workspace panels">
+          <button data-active={sidePanel === "actions"} onClick={() => setSidePanel("actions")} role="tab" type="button">
+            <ListChecks size={16} /> Actions
+            {actionProposals.filter((proposal) => proposal.status === "pending" || proposal.status === "failed").length > 0 ? (
+              <span>{actionProposals.filter((proposal) => proposal.status === "pending" || proposal.status === "failed").length}</span>
+            ) : null}
+          </button>
+          <button data-active={sidePanel === "threads"} onClick={() => setSidePanel("threads")} role="tab" type="button">
+            <MessageSquareText size={16} /> Threads
+          </button>
+          <button data-active={sidePanel === "activity"} onClick={() => setSidePanel("activity")} role="tab" type="button">
+            <History size={16} /> Activity
+          </button>
+        </div>
 
-          <div className="stack">
-            {threads.length === 0 ? (
-              <p className="muted">No threads yet.</p>
-            ) : (
-              threads.map((thread) => (
-                <div className="chat-thread-row" key={thread.id}>
-                  <button
-                    className="chat-thread-card"
-                    data-active={thread.id === threadId}
-                    onClick={() => router.push(`/chat?thread=${thread.id}`)}
-                    type="button"
-                  >
-                    <strong>{thread.title}</strong>
-                    <p className="muted" style={{ margin: "8px 0 0" }}>
-                      {new Date(thread.updatedAt).toLocaleString()}
-                    </p>
-                  </button>
-                  <button
-                    aria-label={`Rename ${thread.title}`}
-                    className="chat-thread-rename"
-                    onClick={() => {
-                      setRenamingThread(thread);
-                      setRenameTitle(thread.title);
-                    }}
-                    title="Rename conversation"
-                    type="button"
-                  >
-                    <Pencil aria-hidden="true" size={15} />
-                  </button>
-                  <button
-                    aria-label={`Delete ${thread.title}`}
-                    className="chat-thread-delete"
-                    onClick={() => deleteThread(thread.id)}
-                    title="Delete conversation"
-                    type="button"
-                  >
-                    <Trash2 aria-hidden="true" size={15} />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        <section className="card card--padded">
-          <div className="section-heading">
-            <div>
-              <p className="kicker">Approval queue</p>
-              <h3 style={{ marginTop: 0 }}>Quill actions</h3>
-            </div>
-            <span className="inline-chip">
-              {actionProposals.filter((proposal) => proposal.status === "pending" || proposal.status === "failed").length} open
-            </span>
-          </div>
-
+        <div className="chat-side-panel">
           {actionError ? <div className="form-error">{actionError}</div> : null}
 
-          <div className="stack">
-            {actionProposals.length === 0 ? (
-              <p className="muted">Actions that change data will appear here for approval.</p>
-            ) : (
-              actionProposals.map((proposal) => {
-                const reviewable = proposal.status === "pending" || proposal.status === "failed";
-                const busy = processingActionId === proposal.id;
-                return (
-                  <article className="chat-tool-card quill-action-card" key={proposal.id}>
-                    <div className="quiet-row__title">
-                      <strong>{proposal.summary}</strong>
-                      <span className="badge">{proposal.status}</span>
-                    </div>
-                    <p className="muted">{proposal.toolName}</p>
-                    {getProposalHighlights(proposal.arguments).length > 0 ? (
-                      <dl className="quill-action-card__details">
-                        {getProposalHighlights(proposal.arguments).map(([label, value]) => (
-                          <div key={label}>
-                            <dt>{label}</dt>
-                            <dd>{value}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    ) : null}
+          {sidePanel === "threads" ? (
+            <>
+              <div className="section-heading">
+                <div><p className="kicker">Conversations</p><h3>Recent threads</h3></div>
+                <button className="button button--secondary" onClick={() => {
+                  setThreadId(null); setMessages([]); setLastToolSummaries([]); setActionProposals([]); router.replace("/chat");
+                }} type="button"><Plus size={15} /> New</button>
+              </div>
+              <div className="stack">
+                {threads.length === 0 ? <p className="muted">No conversations yet.</p> : threads.map((thread) => (
+                  <div className="chat-thread-row" key={thread.id}>
+                    <button className="chat-thread-card" data-active={thread.id === threadId} onClick={() => router.push(`/chat?thread=${thread.id}`)} type="button">
+                      <strong>{thread.title}</strong><p className="muted">{new Date(thread.updatedAt).toLocaleString()}</p>
+                    </button>
+                    <button aria-label={`Rename ${thread.title}`} className="chat-thread-rename" onClick={() => { setRenamingThread(thread); setRenameTitle(thread.title); }} title="Rename conversation" type="button"><Pencil size={15} /></button>
+                    <button aria-label={`Delete ${thread.title}`} className="chat-thread-delete" onClick={() => deleteThread(thread.id)} title="Delete conversation" type="button"><Trash2 size={15} /></button>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {sidePanel === "actions" ? (
+            <>
+              <div className="section-heading"><div><p className="kicker">Approval queue</p><h3>Proposed changes</h3></div><Link className="button button--secondary" href="/actions">View all</Link></div>
+              <div className="stack">
+                {actionProposals.length === 0 ? <p className="muted">No proposed changes in this thread.</p> : actionProposals.map((proposal) => {
+                  const reviewable = proposal.status === "pending" || proposal.status === "failed";
+                  const busy = processingActionId === proposal.id;
+                  return <article className="chat-tool-card quill-action-card" key={proposal.id}>
+                    <div className="quiet-row__title"><strong>{proposal.summary}</strong><span className="badge">{proposal.status}</span></div>
+                    {getProposalHighlights(proposal.arguments).length > 0 ? <dl className="quill-action-card__details">{getProposalHighlights(proposal.arguments).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl> : null}
                     {proposal.error ? <p className="form-error">{proposal.error}</p> : null}
-                    {reviewable ? (
-                      <div className="row-actions">
-                        <button className="button button--secondary" disabled={busy} onClick={() => reviewAction(proposal.id, "reject")} type="button">
-                          Reject
-                        </button>
-                        <button className="button button--primary" disabled={busy} onClick={() => reviewAction(proposal.id, "approve")} type="button">
-                          {busy ? "Running..." : proposal.status === "failed" ? "Retry" : "Approve"}
-                        </button>
-                      </div>
-                    ) : null}
+                    {reviewable ? <div className="row-actions">
+                      <button className="button button--secondary" disabled={busy} onClick={() => reviewAction(proposal.id, "reject")} type="button">Reject</button>
+                      <button className="button button--primary" disabled={busy} onClick={() => reviewAction(proposal.id, "approve")} type="button">{busy ? "Running..." : proposal.status === "failed" ? "Retry" : "Approve"}</button>
+                    </div> : null}
+                  </article>;
+                })}
+              </div>
+            </>
+          ) : null}
+
+          {sidePanel === "activity" ? (
+            <>
+              <div><p className="kicker">Current request</p><h3>Tool activity</h3></div>
+              <div className="stack">
+                {lastToolSummaries.length === 0 ? <p className="muted">No tool activity yet.</p> : lastToolSummaries.map((tool, index) => (
+                  <article className="chat-tool-card" key={`${tool.toolName}-${index}`}><strong>{tool.toolName}</strong><p className="muted">{tool.summary}</p>
+                    {getToolHighlights(tool.payload).length > 0 ? <div className="quiet-meta">{getToolHighlights(tool.payload).map((line) => <span key={line}>{line}</span>)}</div> : null}
                   </article>
-                );
-              })
-            )}
-          </div>
-        </section>
-
-        <section className="card card--padded">
-          <p className="kicker">Tool activity</p>
-          <h3 style={{ marginTop: 0 }}>Latest results</h3>
-
-          <div className="stack">
-            {lastToolSummaries.length === 0 ? (
-              <p className="muted">
-                Tool actions will appear here when Quill reads or updates records, assets,
-                campaigns, or brand profiles.
-              </p>
-            ) : (
-              lastToolSummaries.map((tool, index) => (
-                <article className="chat-tool-card" key={`${tool.toolName}-${index}`}>
-                  <strong>{tool.toolName}</strong>
-                  <p className="muted" style={{ margin: "8px 0 0" }}>
-                    {tool.summary}
-                  </p>
-                  {getToolHighlights(tool.payload).length > 0 ? (
-                    <div className="stack" style={{ marginTop: 10 }}>
-                      {getToolHighlights(tool.payload).map((line) => (
-                        <span className="inline-chip" key={line}>
-                          {line}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </article>
-              ))
-            )}
-          </div>
-        </section>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
       </aside>
 
       {renamingThread ? (

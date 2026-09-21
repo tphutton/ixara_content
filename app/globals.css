@@ -255,7 +255,7 @@ textarea {
 
 .chat-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
   gap: 20px;
   align-items: start;
   height: calc(100vh - 180px);
@@ -270,8 +270,7 @@ textarea {
 
 .chat-workspace__secondary {
   display: grid;
-  grid-template-rows: minmax(150px, 0.7fr) minmax(190px, 1fr) minmax(150px, 0.8fr);
-  gap: 12px;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -301,6 +300,86 @@ textarea {
   padding-right: 4px;
 }
 
+.chat-side-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-side-tabs button {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.chat-side-tabs button[data-active="true"] {
+  border-color: var(--border);
+  background: rgba(192, 28, 28, 0.12);
+  color: var(--text);
+}
+
+.chat-side-tabs button span {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.66rem;
+}
+
+.chat-side-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.chat-empty-state {
+  align-self: center;
+  padding: 24px;
+}
+
+.chat-suggestions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.chat-suggestions button {
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.58);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.chat-suggestions button:hover {
+  border-color: var(--border-strong);
+  background: rgba(192, 28, 28, 0.12);
+}
+
 .chat-hero {
   display: grid;
   gap: 16px;
@@ -318,8 +397,8 @@ textarea {
 .chat-hero__avatar {
   display: grid;
   place-items: center;
-  width: 72px;
-  height: 72px;
+  width: 52px;
+  height: 52px;
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(255, 244, 244, 0.95), rgba(255, 255, 255, 0.88));
   border: 1px solid rgba(192, 28, 28, 0.18);
@@ -1988,7 +2067,7 @@ textarea {
 
 .chat-compose textarea {
   width: 100%;
-  min-height: 116px;
+  min-height: 84px;
   padding: 14px 16px;
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 18px;
@@ -2739,11 +2818,12 @@ textarea {
   }
 
   .chat-workspace__secondary {
-    display: grid;
-    height: auto;
-    grid-template-rows: none;
-    overflow: visible;
+    height: min(520px, 70vh);
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
   }
+
+  .chat-workspace__primary { min-height: 650px; }
 
   .blog-hero,
   .blog-detail-grid,

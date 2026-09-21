@@ -17,6 +17,8 @@
 - Added user-owned conversation deletion with cascading cleanup of messages and pending actions.
 - Brand context selection now prioritizes profiles explicitly mentioned in the current request, then the most complete profiles.
 - Failed chat requests restore the original prompt for immediate retry, and conversation titles can be renamed from a solid-background dialog.
+- Simplified Quill into a conversation-first layout with one tabbed utility panel for approvals, threads, and tool activity.
+- Added direct starter actions, a clearer composer, compact conversation controls, and bounded responsive side-panel scrolling.
 
 ## 2026-09-21: Compact workspace UI
 
