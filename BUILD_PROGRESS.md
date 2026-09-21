@@ -1,5 +1,13 @@
 # Build Progress
 
+## 2026-09-21: Compact workspace UI
+
+- Reworked shared page density so headers, summary metrics, panels, rows, tables, and controls use substantially less vertical space.
+- Converted summary cards into a compact KPI strip with full descriptions available on hover.
+- Added progressive disclosure to the asset library: search remains immediate while detailed facets collapse into a filter control.
+- Increased asset and editorial list density while preserving readable metadata and existing edit/preview modals.
+- Improved responsive behavior for dense operational tables and filter controls.
+
 ## Project Overview
 Production-ready internal web application for AI-assisted content operations, built with Next.js App Router, Clerk authentication, PostgreSQL, Prisma, and the OpenAI SDK.
 

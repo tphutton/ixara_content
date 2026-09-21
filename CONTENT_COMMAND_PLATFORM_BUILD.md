@@ -1,5 +1,9 @@
 # Content Command Platform Build Plan
 
+## UX density standard
+
+The workspace now follows a compact operations-console pattern. Page headers, KPI strips, queue filters, tables, record rows, and asset cards prioritize scanning and repeated action. Secondary descriptions and advanced filters use tooltips or disclosure controls instead of permanent large panels. Creation and editing remain in focused pages or solid-background overlays.
+
 This document extends the original Content Ops AI build into a world-class content creation, planning, publishing, and intelligence platform connected to the Ixara AI Command Center.
 
 ## Objective

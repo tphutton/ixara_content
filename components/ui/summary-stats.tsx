@@ -12,10 +12,10 @@ export function SummaryStats({ items }: SummaryStatsProps) {
   return (
     <div className="summary-strip">
       {items.map((item) => (
-        <article className="card card--padded summary-tile" key={item.label}>
+        <article className="summary-tile" key={item.label} title={item.detail}>
           <p className="summary-tile__label">{item.label}</p>
           <strong>{item.value}</strong>
-          <p className="muted" style={{ margin: "10px 0 0" }}>
+          <p className="summary-tile__detail">
             {item.detail}
           </p>
         </article>

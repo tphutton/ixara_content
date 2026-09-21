@@ -122,7 +122,7 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
         </article>
       </div>
 
-      <form className="quiet-panel asset-filter-panel">
+      <form className="asset-filter-panel">
         <div className="asset-search-field">
           <Search aria-hidden="true" size={18} />
           <input
@@ -131,18 +131,58 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
             placeholder="Search title, caption, description, item, category, region, or country"
           />
         </div>
-        <FilterSelect label="Source" name="source" options={facets.sources} value={params.source} />
-        <FilterSelect label="Region" name="region" options={facets.regions} value={params.region} />
-        <FilterSelect label="Country" name="country" options={facets.countries} value={params.country} />
-        <FilterSelect label="Category" name="category" options={facets.categories} value={params.category} />
-        <FilterSelect label="Image type" name="imageType" options={facets.imageTypes} value={params.imageType} />
-        <label>
-          <span>Featured</span>
-          <select defaultValue={params.featured ?? ""} name="featured">
-            <option value="">Any</option>
-            <option value="1">Featured only</option>
-          </select>
-        </label>
+        <details
+          className="filter-disclosure"
+          open={Boolean(
+            params.region ||
+              params.country ||
+              params.category ||
+              params.imageType ||
+              params.source ||
+              params.featured,
+          )}
+        >
+          <summary>Filters</summary>
+          <div className="filter-disclosure__fields">
+            <FilterSelect
+              label="Source"
+              name="source"
+              options={facets.sources}
+              value={params.source}
+            />
+            <FilterSelect
+              label="Region"
+              name="region"
+              options={facets.regions}
+              value={params.region}
+            />
+            <FilterSelect
+              label="Country"
+              name="country"
+              options={facets.countries}
+              value={params.country}
+            />
+            <FilterSelect
+              label="Category"
+              name="category"
+              options={facets.categories}
+              value={params.category}
+            />
+            <FilterSelect
+              label="Image type"
+              name="imageType"
+              options={facets.imageTypes}
+              value={params.imageType}
+            />
+            <label>
+              <span>Featured</span>
+              <select defaultValue={params.featured ?? ""} name="featured">
+                <option value="">Any</option>
+                <option value="1">Featured only</option>
+              </select>
+            </label>
+          </div>
+        </details>
         <button className="button button--primary" type="submit">
           Filter
         </button>
