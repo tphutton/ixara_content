@@ -30,6 +30,8 @@ type ActionProposal = {
   toolName: string;
   summary: string;
   status: "pending" | "executing" | "completed" | "rejected" | "failed";
+  arguments: Record<string, unknown>;
+  result?: { summary?: string } | null;
   error: string | null;
   createdAt: string;
 };
@@ -150,6 +152,10 @@ export function ChatShell({
           toolName: tool.toolName,
           summary: String(tool.payload.summary ?? tool.summary),
           status: "pending" as const,
+          arguments:
+            tool.payload.arguments && typeof tool.payload.arguments === "object"
+              ? tool.payload.arguments as Record<string, unknown>
+              : {},
           error: null,
           createdAt: new Date().toISOString(),
         }));
@@ -205,6 +211,17 @@ export function ChatShell({
           error: data.proposal?.error ?? null,
         } : proposal),
       );
+      const outcome = decision === "reject"
+        ? `Action rejected: ${data.proposal.summary}. No changes were made.`
+        : data.proposal.result?.summary
+          ? `Approved action completed: ${data.proposal.result.summary}`
+          : `Approved action completed: ${data.proposal.summary}`;
+      setMessages((current) => [...current, {
+        id: `action-${id}-${Date.now()}`,
+        role: "assistant",
+        content: outcome,
+        createdAt: new Date().toISOString(),
+      }]);
       router.refresh();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Action review failed.");
@@ -388,6 +405,16 @@ export function ChatShell({
                       <span className="badge">{proposal.status}</span>
                     </div>
                     <p className="muted">{proposal.toolName}</p>
+                    {getProposalHighlights(proposal.arguments).length > 0 ? (
+                      <dl className="quill-action-card__details">
+                        {getProposalHighlights(proposal.arguments).map(([label, value]) => (
+                          <div key={label}>
+                            <dt>{label}</dt>
+                            <dd>{value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : null}
                     {proposal.error ? <p className="form-error">{proposal.error}</p> : null}
                     {reviewable ? (
                       <div className="row-actions">
@@ -448,4 +475,12 @@ function getToolHighlights(payload: Record<string, unknown>) {
     .slice(0, 3);
 
   return entries.map(([key, value]) => `${key}: ${String(value)}`);
+}
+
+function getProposalHighlights(args: Record<string, unknown>) {
+  const hiddenKeys = new Set(["accessToken", "token", "secret", "password"]);
+  return Object.entries(args)
+    .filter(([key, value]) => !hiddenKeys.has(key) && (typeof value === "string" || typeof value === "number" || typeof value === "boolean"))
+    .slice(0, 6)
+    .map(([key, value]) => [key.replace(/([A-Z])/g, " $1"), String(value)] as const);
 }

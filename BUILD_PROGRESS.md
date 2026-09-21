@@ -9,6 +9,8 @@
 - Updated Quill's system identity and UI copy to accurately describe the approval-controlled workflow.
 - Production builds now generate the Prisma client, and application startup safely deploys pending migrations before Next.js starts.
 - The supported Node runtime range and npm 10.8.2 package manager are declared for consistent Railway builds.
+- Added approval-controlled Meta publishing so Quill can deliver a ready schedule entry without bypassing quality, account, or authorization gates.
+- Approval cards now preview proposed arguments, and completed or rejected outcomes are persisted back into the conversation.
 
 ## 2026-09-21: Compact workspace UI
 
@@ -299,6 +301,8 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `list_connected_accounts`: Read connected social account records for future publishing and analytics sync.
 - `list_published_posts`: Read imported/synced published post records and their latest analytics snapshots.
 - `get_top_performing_posts`: Read the best-performing posts ranked by latest engagement rate.
+- `sync_social_accounts`: Sync due active Meta accounts into published-post history and analytics snapshots.
+- `publish_schedule_to_meta`: Publish one approved, quality-ready schedule entry to its matched Facebook or Instagram account after operator approval.
 - `list_automations`: Read saved automation workflows with optional status/type filters.
 - `get_automation_health`: Read automation health counts including due runs and recent failures.
 - `run_automation`: Run a specific workflow by id or trigger all due workflows.

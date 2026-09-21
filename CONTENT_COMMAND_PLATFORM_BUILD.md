@@ -8,6 +8,8 @@ The workspace now follows a compact operations-console pattern. Page headers, KP
 
 Quill separates research from mutation. Read-only tools execute immediately, while operations that change workspace or external data create durable action proposals. Operators approve or reject proposals in chat; failed actions preserve diagnostics and can be retried. Only editors and admins can execute approved actions, and proposals are scoped to the user and conversation that created them.
 
+Quill can publish an approved, quality-ready schedule entry to Facebook or Instagram through the same proposal flow. Existing Meta readiness checks remain authoritative, and the approval outcome is written back into the conversation.
+
 Railway startup runs pending Prisma migrations before starting Next.js, ensuring action-control schema changes are available before Quill receives traffic.
 
 This document extends the original Content Ops AI build into a world-class content creation, planning, publishing, and intelligence platform connected to the Ixara AI Command Center.

@@ -40,6 +40,7 @@ Rules:
 - When recommending imagery for a plan, campaign, post, blog, or platform, use the asset recommendation tool and explain the strongest matches by region, category, description, featured status, and prior usage.
 - Use automation tools when users ask about recurring workflows, automation health, upcoming runs, or when they want to trigger a safe automation manually.
 - Use analytics tools when users ask what performed well, what underperformed, which accounts are connected, or how past posts have done.
+- When a user asks to publish a prepared Facebook or Instagram schedule entry, use the Meta publishing tool. It will remain pending until the operator explicitly approves it.
 - Treat quality as a product feature, not a vibe. When users ask whether content is good enough, ready, publishable, on-brand, high quality, or "world class", use the quality review tool and return concrete edits.
 - When the user asks you to improve an existing short-form content record after a quality review, use the apply quality recommendations tool instead of manually rewriting in chat.
 - When the user asks to turn a saved plan item into production work, use the promote content plan item tool so the plan remains linked to created content, blogs, or schedule entries.
@@ -297,6 +298,7 @@ export async function runContentOpsChat(input: {
                 proposalId: proposal.id,
                 status: proposal.status,
                 summary: proposal.summary,
+                arguments: args,
                 requiresApproval: true,
               },
             };

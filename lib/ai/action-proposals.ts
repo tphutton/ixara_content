@@ -7,6 +7,7 @@ const MUTATION_TOOLS = new Set([
   "create_schedule_entry", "update_schedule_entry", "sync_wordpress_assets",
   "sync_tsadb_assets", "upsert_brand_profile", "upsert_campaign", "delete_campaign",
   "sync_social_accounts", "run_automation", "create_content_plan",
+  "publish_schedule_to_meta",
   "add_content_plan_item", "generate_content_variants", "generate_ai_content_plan",
   "review_quality", "apply_quality_recommendations", "promote_content_plan_item",
 ]);
@@ -18,6 +19,7 @@ const TOOL_LABELS: Record<string, string> = {
   sync_wordpress_assets: "Sync WordPress assets", sync_tsadb_assets: "Sync TSADB assets",
   upsert_brand_profile: "Save brand profile", upsert_campaign: "Save campaign",
   delete_campaign: "Delete campaign", sync_social_accounts: "Sync social analytics",
+  publish_schedule_to_meta: "Publish schedule to Meta",
   run_automation: "Run automation", create_content_plan: "Create content plan",
   add_content_plan_item: "Add plan item", generate_content_variants: "Generate content variants",
   generate_ai_content_plan: "Generate AI content plan", review_quality: "Run quality review",
@@ -79,10 +81,20 @@ export async function executeQuillActionProposal(id: string, access: UserAccess)
       proposal.arguments as Record<string, unknown>,
       { access },
     );
-    return prisma.quillActionProposal.update({
+    const completed = await prisma.quillActionProposal.update({
       where: { id },
       data: { status: QuillActionStatus.completed, result: toJson(result), completedAt: new Date() },
     });
+    await prisma.chatMessage.create({
+      data: {
+        threadId: proposal.threadId,
+        role: "assistant",
+        content: `Approved action completed: ${result.summary}`,
+        toolName: proposal.toolName,
+        toolPayload: toJson({ proposalId: proposal.id, result: result.payload }),
+      },
+    });
+    return completed;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Quill action failed.";
     await prisma.quillActionProposal.update({
@@ -99,8 +111,18 @@ export async function rejectQuillActionProposal(id: string, access: UserAccess) 
   if (proposal.status !== QuillActionStatus.pending && proposal.status !== QuillActionStatus.failed) {
     throw new Error(`This Quill action is already ${proposal.status}.`);
   }
-  return prisma.quillActionProposal.update({
+  const rejected = await prisma.quillActionProposal.update({
     where: { id },
     data: { status: QuillActionStatus.rejected, reviewedAt: new Date(), error: null },
   });
+  await prisma.chatMessage.create({
+    data: {
+      threadId: proposal.threadId,
+      role: "assistant",
+      content: `Action rejected: ${proposal.summary}. No changes were made.`,
+      toolName: proposal.toolName,
+      toolPayload: toJson({ proposalId: proposal.id, status: QuillActionStatus.rejected }),
+    },
+  });
+  return rejected;
 }

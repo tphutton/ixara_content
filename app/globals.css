@@ -361,6 +361,31 @@ textarea {
   margin: 0;
 }
 
+.quill-action-card__details {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.quill-action-card__details div {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.4fr) minmax(0, 1fr);
+  gap: 8px;
+  font-size: 0.76rem;
+}
+
+.quill-action-card__details dt {
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.quill-action-card__details dd {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chat-thread-card[data-active="true"] {
   border-color: rgba(192, 28, 28, 0.26);
   background: linear-gradient(180deg, rgba(255, 246, 246, 0.98), rgba(255, 255, 255, 0.92));

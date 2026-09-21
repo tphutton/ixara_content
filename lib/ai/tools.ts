@@ -43,6 +43,7 @@ import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/pr
 import { generateAiContentPlan } from "@/lib/planner/ai-plan-builder";
 import { generateContentVariants, parseVariantPlatforms } from "@/lib/content-variants/generate";
 import { runDueSocialSync } from "@/lib/social/sync-runner";
+import { publishScheduleToMeta } from "@/lib/social/meta-publish";
 
 type ToolDefinition = {
   type: "function";
@@ -1599,6 +1600,24 @@ async function syncSocialAccountsTool(args: Record<string, unknown>, context: To
   };
 }
 
+async function publishScheduleToMetaTool(args: Record<string, unknown>, context: ToolContext) {
+  const scheduleId = asRequiredString(args.scheduleId, "scheduleId");
+  const post = await publishScheduleToMeta({ scheduleId, access: context.access });
+  return {
+    toolName: "publish_schedule_to_meta",
+    summary: `Published scheduled content to ${post.platform}.`,
+    payload: {
+      id: post.id,
+      scheduleId: post.scheduleId,
+      platform: post.platform,
+      status: post.status,
+      externalPostId: post.externalPostId,
+      externalPostUrl: post.externalPostUrl,
+      publishedAt: post.publishedAt?.toISOString() ?? null,
+    },
+  };
+}
+
 async function listAutomationsTool(args: Record<string, unknown>) {
   const status = asOptionalString(args.status);
   const type = asOptionalString(args.type);
@@ -2103,6 +2122,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   list_published_posts: async (args) => listPublishedPostsTool(args),
   get_top_performing_posts: async (args) => getTopPerformingPostsTool(args),
   sync_social_accounts: syncSocialAccountsTool,
+  publish_schedule_to_meta: publishScheduleToMetaTool,
   list_automations: async (args) => listAutomationsTool(args),
   get_automation_health: async () => getAutomationHealthTool(),
   run_automation: runAutomationTool,
@@ -2691,6 +2711,21 @@ export const contentOpsTools: ToolDefinition[] = [
           limit: { type: "number" },
           staleAfterHours: { type: "number" },
         },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "publish_schedule_to_meta",
+      description: "Publish one approved, quality-ready schedule entry to its matched Facebook or Instagram account. This is a live external action and always requires operator approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          scheduleId: { type: "string" },
+        },
+        required: ["scheduleId"],
         additionalProperties: false,
       },
     },

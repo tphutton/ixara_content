@@ -62,6 +62,7 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
           toolName: proposal.toolName,
           summary: proposal.summary,
           status: proposal.status,
+          arguments: proposal.arguments as Record<string, unknown>,
           error: proposal.error,
           createdAt: proposal.createdAt.toISOString(),
         }))}
