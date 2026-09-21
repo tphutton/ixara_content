@@ -753,6 +753,9 @@ model PublishedPost {
   platformAccountName   String?
   externalPostId        String?
   externalPostUrl       String?
+  deliveryKey           String?             @unique
+  deliveryAttempts      Int                 @default(0)
+  deliveryError         String?
   titleSnapshot         String?
   captionSnapshot       String?
   mediaSnapshot         Json?

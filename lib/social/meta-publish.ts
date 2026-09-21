@@ -9,6 +9,7 @@ import {
   type ContentSchedule,
   type QualityReview,
   type UserAccess,
+  Prisma,
 } from "@prisma/client";
 import { createActionLog } from "@/lib/actions/action-log";
 import { getQualityGate } from "@/lib/quality/gates";
@@ -16,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import {
   MetaReauthRequiredError,
   assertMetaAccountReadyForSync,
+  fetchMetaPostPermalink,
   getStoredMetaToken,
   isMetaPlatform,
   metaPost,
@@ -146,6 +148,9 @@ export function getMetaPublishReadiness(schedule: ScheduleForPublish, accounts: 
   if (schedule.status === ScheduleStatus.published || schedule.publishedPosts.some((post) => post.status === PublishedPostStatus.published)) {
     reasons.push("Already published.");
   }
+  if (schedule.publishedPosts.some((post) => post.status === PublishedPostStatus.draft)) {
+    reasons.push("A Meta delivery is already in progress and must be reconciled before retrying.");
+  }
   if (!schedule.content && !schedule.blog) reasons.push("No content or blog is linked.");
   if (!schedule.approvedById) reasons.push("Schedule is not approved.");
   if (!qualityGate.ready) reasons.push(`Quality gate: ${qualityGate.label}.`);
@@ -194,13 +199,13 @@ async function publishFacebook(input: {
       caption: input.caption,
       published: "true",
     });
-    return { externalPostId: result.post_id ?? result.id, externalPostUrl: result.post_id ? `https://www.facebook.com/${result.post_id}` : null };
+    return { externalPostId: result.post_id ?? result.id };
   }
 
   const result = await metaPost<{ id?: string }>(`/${input.pageId}/feed`, input.token, {
     message: input.caption,
   });
-  return { externalPostId: result.id, externalPostUrl: result.id ? `https://www.facebook.com/${result.id}` : null };
+  return { externalPostId: result.id };
 }
 
 async function publishInstagram(input: {
@@ -222,7 +227,67 @@ async function publishInstagram(input: {
     creation_id: container.id,
   });
 
-  return { externalPostId: result.id, externalPostUrl: result.id ? `https://www.instagram.com/p/${result.id}` : null };
+  return { externalPostId: result.id };
+}
+
+async function claimMetaDelivery(input: {
+  schedule: ScheduleForPublish;
+  account: ConnectedAccount;
+  access: UserAccess;
+  caption: string;
+  mediaUrl: string | null;
+}) {
+  const deliveryKey = `meta:schedule:${input.schedule.id}`;
+
+  try {
+    const post = await prisma.publishedPost.create({
+      data: {
+        deliveryKey,
+        deliveryAttempts: 1,
+        connectedAccountId: input.account.id,
+        contentId: input.schedule.contentId,
+        blogId: input.schedule.blogId,
+        scheduleId: input.schedule.id,
+        platform: input.account.platform,
+        platformAccountName: input.account.accountName,
+        titleSnapshot: getTitle(input.schedule),
+        captionSnapshot: input.caption,
+        mediaSnapshot: input.mediaUrl ? { url: input.mediaUrl } : undefined,
+        status: PublishedPostStatus.draft,
+        createdById: input.access.id,
+        updatedById: input.access.id,
+      },
+    });
+    return post;
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+      throw error;
+    }
+  }
+
+  const existing = await prisma.publishedPost.findUniqueOrThrow({ where: { deliveryKey } });
+  if (existing.status === PublishedPostStatus.published) return existing;
+  if (existing.status === PublishedPostStatus.draft) {
+    throw new Error("This schedule already has a delivery in progress. Sync Meta before retrying so a live post is not duplicated.");
+  }
+  if (existing.status !== PublishedPostStatus.failed) {
+    throw new Error(`This schedule already has a ${existing.status} delivery record.`);
+  }
+
+  const claimed = await prisma.publishedPost.updateMany({
+    where: { id: existing.id, status: PublishedPostStatus.failed },
+    data: {
+      status: PublishedPostStatus.draft,
+      deliveryAttempts: { increment: 1 },
+      deliveryError: null,
+      updatedById: input.access.id,
+    },
+  });
+  if (claimed.count !== 1) {
+    throw new Error("This delivery is already being retried.");
+  }
+
+  return prisma.publishedPost.findUniqueOrThrow({ where: { id: existing.id } });
 }
 
 export async function publishScheduleToMeta(input: {
@@ -272,65 +337,76 @@ export async function publishScheduleToMeta(input: {
 
   const caption = getCaption(schedule);
   const mediaUrl = getMediaUrl(schedule);
-  const published =
-    readiness.platform === SocialPlatform.facebook
-      ? await publishFacebook({
-          pageId: account.externalAccountId as string,
-          token,
-          caption,
-          mediaUrl,
-        })
-      : await publishInstagram({
-          igBusinessId:
-            ((account.metadata as { instagramBusinessAccountId?: string } | null)?.instagramBusinessAccountId ??
-              account.externalAccountId) as string,
-          token,
-          caption,
-          mediaUrl: mediaUrl as string,
-        });
+  const delivery = await claimMetaDelivery({ schedule, account, access: input.access, caption, mediaUrl });
+  if (delivery.status === PublishedPostStatus.published) return delivery;
+
+  let published: { externalPostId?: string };
+  try {
+    published =
+      readiness.platform === SocialPlatform.facebook
+        ? await publishFacebook({
+            pageId: account.externalAccountId as string,
+            token,
+            caption,
+            mediaUrl,
+          })
+        : await publishInstagram({
+            igBusinessId:
+              ((account.metadata as { instagramBusinessAccountId?: string } | null)?.instagramBusinessAccountId ??
+                account.externalAccountId) as string,
+            token,
+            caption,
+            mediaUrl: mediaUrl as string,
+          });
+  } catch (error) {
+    await prisma.publishedPost.update({
+      where: { id: delivery.id },
+      data: {
+        status: PublishedPostStatus.failed,
+        deliveryError: error instanceof Error ? error.message : "Meta publishing failed.",
+        updatedById: input.access.id,
+      },
+    });
+    throw error;
+  }
 
   if (!published.externalPostId) {
     throw new Error("Meta did not return a published post ID.");
   }
 
-  const publishedPost = await prisma.publishedPost.create({
-    data: {
-      connectedAccountId: account.id,
-      contentId: schedule.contentId,
-      blogId: schedule.blogId,
-      scheduleId: schedule.id,
-      platform: account.platform,
-      platformAccountName: account.accountName,
-      externalPostId: published.externalPostId,
-      externalPostUrl: published.externalPostUrl,
-      titleSnapshot: getTitle(schedule),
-      captionSnapshot: caption,
-      mediaSnapshot: mediaUrl ? { url: mediaUrl } : undefined,
-      status: PublishedPostStatus.published,
-      publishedAt: new Date(),
-      createdById: input.access.id,
-      updatedById: input.access.id,
-    },
-  });
+  const externalPostUrl = await fetchMetaPostPermalink(
+    published.externalPostId,
+    readiness.platform,
+    token,
+  ).catch(() => null);
 
-  await prisma.contentSchedule.update({
-    where: { id: schedule.id },
-    data: { status: ScheduleStatus.published },
-  });
-
-  if (schedule.contentId) {
-    await prisma.content.update({
-      where: { id: schedule.contentId },
-      data: { status: ContentStatus.published, updatedById: input.access.id },
+  const publishedPost = await prisma.$transaction(async (tx) => {
+    const post = await tx.publishedPost.update({
+      where: { id: delivery.id },
+      data: {
+        externalPostId: published.externalPostId,
+        externalPostUrl,
+        status: PublishedPostStatus.published,
+        deliveryError: null,
+        publishedAt: new Date(),
+        updatedById: input.access.id,
+      },
     });
-  }
-
-  if (schedule.blogId) {
-    await prisma.blog.update({
-      where: { id: schedule.blogId },
-      data: { status: BlogStatus.published, updatedById: input.access.id },
-    });
-  }
+    await tx.contentSchedule.update({ where: { id: schedule.id }, data: { status: ScheduleStatus.published } });
+    if (schedule.contentId) {
+      await tx.content.update({
+        where: { id: schedule.contentId },
+        data: { status: ContentStatus.published, updatedById: input.access.id },
+      });
+    }
+    if (schedule.blogId) {
+      await tx.blog.update({
+        where: { id: schedule.blogId },
+        data: { status: BlogStatus.published, updatedById: input.access.id },
+      });
+    }
+    return post;
+  });
 
   await createActionLog({
     userId: input.access.id,
@@ -342,7 +418,7 @@ export async function publishScheduleToMeta(input: {
     afterData: {
       publishedPost,
       externalPostId: published.externalPostId,
-      externalPostUrl: published.externalPostUrl,
+      externalPostUrl,
     },
     source: "manual",
   });

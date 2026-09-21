@@ -8,6 +8,7 @@ node_modules
 dist
 coverage
 *.log
+*.tsbuildinfo
 
 # clerk configuration (can include secrets)
 /.clerk/

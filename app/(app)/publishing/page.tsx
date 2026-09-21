@@ -93,6 +93,8 @@ export default async function PublishingPage({ searchParams }: PublishingPagePro
             status: true,
             platform: true,
             externalPostUrl: true,
+            deliveryAttempts: true,
+            deliveryError: true,
             publishedAt: true,
           },
           orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
@@ -245,15 +247,19 @@ export default async function PublishingPage({ searchParams }: PublishingPagePro
                       <p className="quality-next-step">Ready for Meta delivery.</p>
                     )}
                     {latestPost ? (
-                      <div className="quiet-meta">
-                        {latestPost.externalPostUrl ? (
-                          <Link href={latestPost.externalPostUrl} target="_blank">
-                            Latest post · {latestPost.status}
-                          </Link>
-                        ) : (
-                          <span>Latest post · {latestPost.status}</span>
-                        )}
-                      </div>
+                      <>
+                        <div className="quiet-meta">
+                          {latestPost.externalPostUrl ? (
+                            <Link href={latestPost.externalPostUrl} target="_blank">
+                              Latest post · {latestPost.status}
+                            </Link>
+                          ) : (
+                            <span>Latest post · {latestPost.status}</span>
+                          )}
+                          {latestPost.deliveryAttempts > 0 ? <span>{latestPost.deliveryAttempts} attempt{latestPost.deliveryAttempts === 1 ? "" : "s"}</span> : null}
+                        </div>
+                        {latestPost.deliveryError ? <p className="field-error">{latestPost.deliveryError}</p> : null}
+                      </>
                     ) : null}
                   </div>
 

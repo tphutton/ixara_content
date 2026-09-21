@@ -191,7 +191,10 @@ Near-term integration targets:
 - `/plans` is now the durable plan layer. The intended flow is Planner/Command Center signal review -> Quill/Atlas plan draft -> operator review/edit -> plan-item quality review -> promotion into content/blog/schedule records.
 - Quality reviews now form the first editorial gate. The intended flow is draft/plan item -> production-flow guidance -> quality review -> apply recommendations -> re-review -> variants/schedule -> approve/publish.
 - `/quality` is now the operator queue for finding weak reviewed work and active items missing a review.
-- Social publishing now has a first controlled Meta delivery path and `/publishing` queue for approved schedule entries, while broader retry handling, diagnostics, publishing previews, and long-lived token refresh remain outstanding.
+- Social publishing now has a controlled Meta delivery path and `/publishing` queue for approved schedule entries; publishing previews, automatic reconciliation, and long-lived token refresh remain outstanding.
+- Meta publishing now claims each scheduled delivery before contacting Meta, records retryable failures and attempt counts, and retrieves canonical post permalinks. Uncertain partial deliveries remain locked for reconciliation rather than being automatically republished.
+- Quill now uses the latest conversation window for long threads, and viewer access is explicitly read-only for mutation requests.
+- Vitest now provides the first regression coverage for Quill history ordering and Meta publishing readiness; broader integration and browser coverage remains outstanding.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, with a dedicated Brands tab and field guidance to help operators fill readiness gaps.
 - Assets have moved beyond simple WordPress media sync: TSADB enriched image metadata can now populate the asset library, and Quill/Atlas can recommend images using region, country, category, item, description, featured status, and current workspace usage.
 - UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages.

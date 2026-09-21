@@ -53,6 +53,10 @@ Rules:
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL ?? "gpt-5-mini";
 
+export function restoreChronologicalOrder<T>(newestFirst: T[]) {
+  return [...newestFirst].reverse();
+}
+
 type StoredChatMessage = {
   id: string;
   role: "user" | "assistant" | "tool" | "system";
@@ -233,11 +237,12 @@ export async function runContentOpsChat(input: {
     },
   });
 
-  const storedMessages = await prisma.chatMessage.findMany({
+  const recentMessages = await prisma.chatMessage.findMany({
     where: { threadId: thread.id },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
     take: 40,
   });
+  const storedMessages = restoreChronologicalOrder(recentMessages);
   const brandProfileContext = await getBrandProfilePromptContext(input.message);
 
   const conversation: ChatCompletionMessageParam[] = toOpenAIMessages(
@@ -299,6 +304,9 @@ export async function runContentOpsChat(input: {
           }
           args = parsedArgs as Record<string, unknown>;
           if (isContentOpsMutationTool(toolCall.function.name)) {
+            if (input.access.role === "viewer") {
+              throw new Error("Your viewer access is read-only. Ask an editor or admin to make this change.");
+            }
             const proposal = await createQuillActionProposal({
               threadId: thread.id,
               access: input.access,

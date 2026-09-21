@@ -106,6 +106,21 @@ export async function metaPost<T>(path: string, accessToken: string, body: Recor
   return payload;
 }
 
+export async function fetchMetaPostPermalink(
+  postId: string,
+  platform: SocialPlatform,
+  accessToken: string,
+) {
+  const field = platform === SocialPlatform.instagram ? "permalink" : "permalink_url";
+  const payload = await metaFetch<{ permalink?: string; permalink_url?: string }>(
+    `/${postId}`,
+    accessToken,
+    { fields: field },
+  );
+
+  return payload.permalink ?? payload.permalink_url ?? null;
+}
+
 export async function exchangeMetaCodeForToken(code: string) {
   const { appId, appSecret, redirectUri } = getMetaConfig();
 

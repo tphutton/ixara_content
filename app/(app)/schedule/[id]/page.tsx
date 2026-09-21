@@ -55,6 +55,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
             status: true,
             platform: true,
             externalPostUrl: true,
+            deliveryAttempts: true,
+            deliveryError: true,
             publishedAt: true,
           },
           orderBy: { publishedAt: "desc" },
@@ -175,15 +177,13 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
 
             {schedule.publishedPosts.length > 0 ? (
               <div className="quiet-meta">
-                {schedule.publishedPosts.slice(0, 3).map((post) =>
-                  post.externalPostUrl ? (
-                    <Link href={post.externalPostUrl} key={post.id} target="_blank">
-                      {post.platform} · {post.status}
-                    </Link>
-                  ) : (
-                    <span key={post.id}>{post.platform} · {post.status}</span>
-                  ),
-                )}
+                {schedule.publishedPosts.slice(0, 3).map((post) => (
+                  <span key={post.id}>
+                    {post.externalPostUrl ? <Link href={post.externalPostUrl} target="_blank">{post.platform} · {post.status}</Link> : `${post.platform} · ${post.status}`}
+                    {post.deliveryAttempts > 0 ? ` · ${post.deliveryAttempts} attempt${post.deliveryAttempts === 1 ? "" : "s"}` : ""}
+                    {post.deliveryError ? ` · ${post.deliveryError}` : ""}
+                  </span>
+                ))}
               </div>
             ) : null}
 

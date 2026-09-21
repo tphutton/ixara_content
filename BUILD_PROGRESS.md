@@ -156,6 +156,10 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added `/publishing` as the first delivery queue for Meta schedule operations.
 - [x] Added saved content variants with UI generation from content detail pages.
 - [x] Added Quill/Atlas `generate_content_variants` tool.
+- [x] Added governed Quill action proposals with operator approval, retry, rejection, and a global action queue.
+- [x] Hardened Quill long-thread context to use the latest 40 messages and made viewer access explicitly read-only.
+- [x] Added idempotent Meta delivery claims, retry diagnostics, and canonical post permalink lookup.
+- [x] Added the first Vitest regression suite for Quill history ordering and Meta delivery readiness.
 
 ## In Progress
 - [x] Add the first scheduled sync endpoint on top of the new Meta account and analytics foundation.
@@ -177,7 +181,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [ ] Harden OAuth-based live platform connections starting with long-lived Meta token refresh.
 - [x] Add automated sync endpoint for connected accounts to ingest live post and performance data on a schedule.
 - [x] Add first platform publishing workflow and social-channel delivery for ready Meta schedule entries.
-- [ ] Add publishing retry/failure queue and richer delivery diagnostics.
+- [x] Add publishing retry/failure queue and richer delivery diagnostics.
 - [ ] Expand asset relationships into section-level blog media slots and publishing-ready variants.
 
 ## Database Schema Summary
@@ -272,17 +276,15 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Next.js verification is running with `--webpack` in this environment because Turbopack build panicked under sandbox port restrictions.
 
 ## Next Steps
-- Finalize deployment envs in Railway, Clerk, OpenAI, campaigns API, WordPress sync, Meta OAuth, and social token encryption.
+- Add automated coverage for Quill approvals, Meta delivery locking, OAuth callbacks, and scheduled runners.
 - Connect the protected automation and social sync runners to real scheduled triggers in Railway or another job system.
-- Add the next automation layer: more workflow types beyond weekly social content, plus deeper safety controls and operator reporting.
-- Expand the new planner cockpit with Atlas-generated weekly plans, drag-and-drop scheduling, and brand/channel coverage heatmaps.
-- Add plan-item promotion actions that create content records, blogs, and schedule entries from approved plan items.
-- Continue the UI simplification pass across high-density pages, starting with Dashboard and Planner.
-- Extend guided rewrite actions from saved recommendations into blogs and plan items, then add score trends.
-- Add bulk actions, notifications, and approval inbox patterns so operators can move faster once automation volume increases.
-- Build the first live OAuth connection flow, starting with Meta account authorization, token handling, and background analytics sync.
-- Expand the compatibility API layer only where older clients still need it, then retire legacy blog consumers once the new client paths are fully adopted.
-- Add social publishing architecture after automation is designed.
+- Add long-lived Meta token exchange/refresh and delivery reconciliation for uncertain external outcomes.
+- Add an AI quality evaluation suite with fixed brand briefs and measurable regression thresholds.
+- Extend guided rewrite actions into blogs and plan items, then add score trends.
+- Add variant editing, approval, and promotion into publishing packages.
+- Add notifications and bulk approval patterns for failed deliveries and growing automation volume.
+- Expand Planner with channel swimlanes, coverage heatmaps, and drag-and-drop scheduling.
+- Finalize and verify all production environment values in Railway.
 
 ## Quill Tool Inventory
 - `list_content`: Read short-form content records with optional status, type, brand, and limit filters.
