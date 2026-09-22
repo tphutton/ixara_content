@@ -50,6 +50,7 @@ export async function runDueSocialSync(input: RunDueSocialSyncInput = {}) {
         platform: account.platform,
         ok: true,
         syncedCount: result.syncedCount,
+        reconciledCount: result.reconciledCount,
       });
     } catch (error) {
       results.push({
@@ -66,6 +67,10 @@ export async function runDueSocialSync(input: RunDueSocialSyncInput = {}) {
     checked: accounts.length,
     succeeded: results.filter((item) => item.ok).length,
     failed: results.filter((item) => !item.ok).length,
+    reconciled: results.reduce(
+      (total, item) => total + ("reconciledCount" in item && typeof item.reconciledCount === "number" ? item.reconciledCount : 0),
+      0,
+    ),
     staleAfterHours,
     results,
   };

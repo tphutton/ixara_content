@@ -172,5 +172,7 @@ export async function syncConnectedAccountNowAction(id: string) {
   revalidatePath("/social-accounts");
   revalidatePath("/analytics");
   revalidatePath("/dashboard");
+  revalidatePath("/publishing");
+  revalidatePath("/schedule");
   redirect("/social-accounts?success=account_synced");
 }

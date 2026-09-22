@@ -195,6 +195,7 @@ Near-term integration targets:
 - Meta publishing now claims each scheduled delivery before contacting Meta, records retryable failures and attempt counts, and retrieves canonical post permalinks. Uncertain partial deliveries remain locked for reconciliation rather than being automatically republished.
 - Quill now uses the latest conversation window for long threads, and viewer access is explicitly read-only for mutation requests.
 - Vitest now provides the first regression coverage for Quill history ordering and Meta publishing readiness; broader integration and browser coverage remains outstanding.
+- Meta account sync now reconciles one unambiguous locked delivery when the live account, exact caption, and publication time align, while ambiguous outcomes remain locked for operator review.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, with a dedicated Brands tab and field guidance to help operators fill readiness gaps.
 - Assets have moved beyond simple WordPress media sync: TSADB enriched image metadata can now populate the asset library, and Quill/Atlas can recommend images using region, country, category, item, description, featured status, and current workspace usage.
 - UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages.

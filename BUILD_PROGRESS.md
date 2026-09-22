@@ -161,6 +161,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added idempotent Meta delivery claims, retry diagnostics, and canonical post permalink lookup.
 - [x] Added the first Vitest regression suite for Quill history ordering and Meta delivery readiness.
 - [x] Added long-lived Meta token exchange during OAuth, visible authorization expiry, and guided reconnect controls.
+- [x] Added conservative Meta delivery reconciliation during account sync using exact caption, account, and publication-window matching.
 
 ## In Progress
 - [x] Add the first scheduled sync endpoint on top of the new Meta account and analytics foundation.
@@ -279,7 +280,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 ## Next Steps
 - Add automated coverage for Quill approvals, Meta delivery locking, OAuth callbacks, and scheduled runners.
 - Connect the protected automation and social sync runners to real scheduled triggers in Railway or another job system.
-- Add delivery reconciliation for uncertain external outcomes and account-expiry notifications.
+- Add account-expiry notifications and an operator review flow for deliveries that cannot be reconciled automatically.
 - Add an AI quality evaluation suite with fixed brand briefs and measurable regression thresholds.
 - Extend guided rewrite actions into blogs and plan items, then add score trends.
 - Add variant editing, approval, and promotion into publishing packages.

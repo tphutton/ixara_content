@@ -1,5 +1,9 @@
 import {
+  BlogStatus,
   ConnectedAccountStatus,
+  ContentStatus,
+  PublishedPostStatus,
+  ScheduleStatus,
   SocialPlatform,
   type ConnectedAccount,
 } from "@prisma/client";
@@ -13,6 +17,33 @@ import {
   fetchInstagramMediaInsights,
   getStoredMetaToken,
 } from "@/lib/social/meta";
+
+type DeliveryCandidate = {
+  id: string;
+  captionSnapshot: string | null;
+  createdAt: Date;
+};
+
+export function chooseDeliveryReconciliationCandidate(
+  candidates: DeliveryCandidate[],
+  caption: string | null,
+  publishedAt: Date | null,
+) {
+  if (!caption || !publishedAt) return null;
+
+  const windowMs = 60 * 60 * 1000;
+  const matches = candidates
+    .filter((candidate) =>
+      candidate.captionSnapshot === caption &&
+      Math.abs(candidate.createdAt.getTime() - publishedAt.getTime()) <= windowMs,
+    )
+    .sort((a, b) =>
+      Math.abs(a.createdAt.getTime() - publishedAt.getTime()) -
+      Math.abs(b.createdAt.getTime() - publishedAt.getTime()),
+    );
+
+  return matches.length === 1 ? matches[0] : null;
+}
 
 function getInsightValue(
   insights: Array<{ name: string; values?: Array<{ value?: number | Record<string, number> }> }>,
@@ -50,36 +81,71 @@ async function upsertPublishedPostBase(input: {
     clicks?: number | null;
   };
 }) {
-  const publishedPost = await prisma.publishedPost.upsert({
+  const existingPost = await prisma.publishedPost.findUnique({
     where: {
       platform_externalPostId: {
         platform: input.account.platform,
         externalPostId: input.externalPostId,
       },
     },
-    create: {
+  });
+  const deliveryCandidates = existingPost ? [] : await prisma.publishedPost.findMany({
+    where: {
       connectedAccountId: input.account.id,
-      platform: input.account.platform,
+      status: PublishedPostStatus.draft,
+      externalPostId: null,
+      captionSnapshot: input.captionSnapshot,
+    },
+    select: { id: true, captionSnapshot: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+  const deliveryCandidate = chooseDeliveryReconciliationCandidate(
+    deliveryCandidates,
+    input.captionSnapshot,
+    input.publishedAt,
+  );
+
+  const publishedPost = await prisma.$transaction(async (tx) => {
+    const data = {
+      connectedAccountId: input.account.id,
       platformAccountName: input.account.accountName,
       externalPostId: input.externalPostId,
       externalPostUrl: input.externalPostUrl,
       titleSnapshot: input.titleSnapshot,
       captionSnapshot: input.captionSnapshot,
-      status: "published",
+      status: PublishedPostStatus.published,
       publishedAt: input.publishedAt,
       importedAt: new Date(),
       latestAnalyticsAt: new Date(),
-    },
-    update: {
-      connectedAccountId: input.account.id,
-      platformAccountName: input.account.accountName,
-      externalPostUrl: input.externalPostUrl,
-      titleSnapshot: input.titleSnapshot,
-      captionSnapshot: input.captionSnapshot,
-      latestAnalyticsAt: new Date(),
-      publishedAt: input.publishedAt,
-      updatedAt: new Date(),
-    },
+      deliveryError: null,
+    };
+
+    const post = existingPost
+      ? await tx.publishedPost.update({ where: { id: existingPost.id }, data })
+      : deliveryCandidate
+        ? await tx.publishedPost.update({ where: { id: deliveryCandidate.id }, data })
+        : await tx.publishedPost.create({
+            data: {
+              ...data,
+              platform: input.account.platform,
+            },
+          });
+
+    if (deliveryCandidate && post.scheduleId) {
+      await tx.contentSchedule.update({
+        where: { id: post.scheduleId },
+        data: { status: ScheduleStatus.published },
+      });
+      if (post.contentId) {
+        await tx.content.update({ where: { id: post.contentId }, data: { status: ContentStatus.published } });
+      }
+      if (post.blogId) {
+        await tx.blog.update({ where: { id: post.blogId }, data: { status: BlogStatus.published } });
+      }
+    }
+
+    return post;
   });
 
   const impressions = input.metrics.impressions ?? null;
@@ -106,7 +172,7 @@ async function upsertPublishedPostBase(input: {
     },
   });
 
-  return publishedPost;
+  return { publishedPost, reconciled: Boolean(deliveryCandidate) };
 }
 
 async function syncFacebookAccount(account: ConnectedAccount) {
@@ -124,11 +190,12 @@ async function syncFacebookAccount(account: ConnectedAccount) {
   const posts = await fetchFacebookPagePosts(account.externalAccountId, token);
 
   const synced = [];
+  let reconciled = 0;
 
   for (const post of posts) {
     const insights = post.insights?.data ?? [];
 
-    const publishedPost = await upsertPublishedPostBase({
+    const result = await upsertPublishedPostBase({
       account,
       externalPostId: post.id,
       titleSnapshot: post.message?.split("\n")[0]?.slice(0, 120) ?? null,
@@ -143,10 +210,11 @@ async function syncFacebookAccount(account: ConnectedAccount) {
       },
     });
 
-    synced.push(publishedPost.id);
+    synced.push(result.publishedPost.id);
+    if (result.reconciled) reconciled += 1;
   }
 
-  return synced;
+  return { synced, reconciled };
 }
 
 async function syncInstagramAccount(account: ConnectedAccount) {
@@ -167,11 +235,12 @@ async function syncInstagramAccount(account: ConnectedAccount) {
 
   const media = await fetchInstagramMedia(igBusinessId, token);
   const synced = [];
+  let reconciled = 0;
 
   for (const item of media) {
     const insights = await fetchInstagramMediaInsights(item.id, token);
 
-    const publishedPost = await upsertPublishedPostBase({
+    const result = await upsertPublishedPostBase({
       account,
       externalPostId: item.id,
       titleSnapshot: item.caption?.split("\n")[0]?.slice(0, 120) ?? null,
@@ -190,10 +259,11 @@ async function syncInstagramAccount(account: ConnectedAccount) {
       },
     });
 
-    synced.push(publishedPost.id);
+    synced.push(result.publishedPost.id);
+    if (result.reconciled) reconciled += 1;
   }
 
-  return synced;
+  return { synced, reconciled };
 }
 
 export async function syncConnectedMetaAccount(input: {
@@ -213,19 +283,22 @@ export async function syncConnectedMetaAccount(input: {
   }
 
   let syncedIds: string[] = [];
+  let reconciledCount = 0;
 
   try {
-    syncedIds =
+    const syncResult =
       account.platform === SocialPlatform.facebook
         ? await syncFacebookAccount(account)
         : await syncInstagramAccount(account);
+    syncedIds = syncResult.synced;
+    reconciledCount = syncResult.reconciled;
 
     const updatedAccount = await prisma.connectedAccount.update({
       where: { id: account.id },
       data: {
         status: ConnectedAccountStatus.active,
         lastSyncedAt: new Date(),
-        lastSyncStatus: `Synced ${syncedIds.length} post${syncedIds.length === 1 ? "" : "s"} from Meta`,
+        lastSyncStatus: `Synced ${syncedIds.length} post${syncedIds.length === 1 ? "" : "s"} from Meta${reconciledCount > 0 ? ` and reconciled ${reconciledCount} ${reconciledCount === 1 ? "delivery" : "deliveries"}` : ""}`,
       },
     });
 
@@ -245,6 +318,7 @@ export async function syncConnectedMetaAccount(input: {
 
     return {
       syncedCount: syncedIds.length,
+      reconciledCount,
       syncedPostIds: syncedIds,
       account: updatedAccount,
     };
