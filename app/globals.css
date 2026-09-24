@@ -3455,3 +3455,100 @@ html[data-theme="light"] .table th {
 html[data-theme="light"] .asset-filter-panel {
   background: rgba(255, 255, 255, 0.9);
 }
+
+html[data-theme="light"] .quiet-meta span,
+html[data-theme="light"] .quiet-meta a {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: #f1f4f7;
+  color: #465568;
+}
+
+html[data-theme="light"] .inline-chip[data-active="true"] {
+  border-color: rgba(192, 28, 28, 0.3);
+  background: rgba(192, 28, 28, 0.09);
+  color: #991b1b;
+}
+
+html[data-theme="light"] .production-flow__steps span {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: #eef1f5;
+  color: #526071;
+}
+
+html[data-theme="light"] .production-flow__steps span[data-ready="true"] {
+  border-color: rgba(13, 148, 136, 0.28);
+  background: rgba(13, 148, 136, 0.1);
+  color: #0f766e;
+}
+
+html[data-theme="light"] .calendar-day__count,
+html[data-theme="light"] .hero__eyebrow,
+html[data-theme="light"] .calendar-legend .inline-chip:first-child {
+  color: #991b1b;
+}
+
+html[data-theme="light"] .week-event__time,
+html[data-theme="light"] .calendar-legend .inline-chip:last-child {
+  color: #1d4ed8;
+}
+
+html[data-theme="light"] .week-event__platform {
+  color: #36537b;
+}
+
+html[data-theme="light"] .status-control select,
+html[data-theme="light"] .admin-access-form select,
+html[data-theme="light"] .asset-search-field,
+html[data-theme="light"] .plan-lane,
+html[data-theme="light"] .plan-card,
+html[data-theme="light"] .ai-plan-review__summary,
+html[data-theme="light"] .ai-plan-item-editor,
+html[data-theme="light"] .quality-score,
+html[data-theme="light"] .quality-command-row,
+html[data-theme="light"] .metadata-grid > div,
+html[data-theme="light"] .variant-card {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+}
+
+html[data-theme="light"] .form-error {
+  border-color: rgba(190, 18, 60, 0.24);
+  background: rgba(190, 18, 60, 0.07);
+  color: #9f1239;
+}
+
+html[data-theme="light"] .badge[data-status="active"],
+html[data-theme="light"] .badge[data-status="approved"],
+html[data-theme="light"] .badge[data-status="publish_ready"],
+html[data-theme="light"] .badge[data-status="ready"],
+html[data-theme="light"] .badge[data-status="succeeded"] {
+  color: #0f766e !important;
+}
+
+html[data-theme="light"] .badge[data-status="failed"],
+html[data-theme="light"] .badge[data-status="major_revision"] {
+  color: #be123c !important;
+}
+
+html[data-theme="light"] .badge[data-status="draft"],
+html[data-theme="light"] .badge[data-status="planned"],
+html[data-theme="light"] .badge[data-status="running"] {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme="light"] .badge[data-status="published"] {
+  color: #0369a1 !important;
+}
+
+html[data-theme="light"] .badge[data-status="paused"],
+html[data-theme="light"] .badge[data-status="pending"],
+html[data-theme="light"] .badge[data-status="review"],
+html[data-theme="light"] .badge[data-status="warning"],
+html[data-theme="light"] .badge[data-status="improve_before_publish"] {
+  color: #a16207 !important;
+}
+
+html[data-theme="light"] .badge[data-status="scheduled"] {
+  color: #7e22ce !important;
+}

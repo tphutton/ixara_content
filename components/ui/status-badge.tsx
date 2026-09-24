@@ -52,6 +52,7 @@ export function StatusBadge({ label }: StatusBadgeProps) {
   return (
     <span
       className={clsx("badge")}
+      data-status={key}
       style={{
         background: toneByStatus[key] ?? "rgba(148, 163, 184, 0.12)",
         color: textByStatus[key] ?? "#cbd5e1",

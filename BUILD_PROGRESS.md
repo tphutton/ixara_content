@@ -162,7 +162,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - [x] Added the first Vitest regression suite for Quill history ordering and Meta delivery readiness.
 - [x] Added long-lived Meta token exchange during OAuth, visible authorization expiry, and guided reconnect controls.
 - [x] Added conservative Meta delivery reconciliation during account sync using exact caption, account, and publication-window matching.
-- [x] Added persistent light/dark appearance modes with system preference fallback and an app-wide sidebar control.
+- [x] Added persistent light/dark appearance modes with system preference fallback, an app-wide sidebar control, and audited light-mode contrast for chips, badges, metadata, forms, and planning controls.
 
 ## In Progress
 - [x] Add the first scheduled sync endpoint on top of the new Meta account and analytics foundation.
