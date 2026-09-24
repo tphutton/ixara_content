@@ -6,12 +6,14 @@ type WorkspaceHeaderProps = {
   title: string;
   description: string;
   actions?: ReactNode;
+  stacked?: boolean;
 };
 
 export async function WorkspaceHeader({
   title,
   description,
   actions,
+  stacked = false,
 }: WorkspaceHeaderProps) {
   const access = await getCurrentUserAccess();
   const todayLabel = new Intl.DateTimeFormat("en-US", {
@@ -21,7 +23,7 @@ export async function WorkspaceHeader({
   }).format(new Date());
 
   return (
-    <header className="workspace-header">
+    <header className={`workspace-header${stacked ? " workspace-header--stacked" : ""}`}>
       <div>
         <h2>{title}</h2>
         <p>{description}</p>

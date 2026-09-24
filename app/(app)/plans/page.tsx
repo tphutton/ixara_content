@@ -4,6 +4,7 @@ import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SummaryStats } from "@/components/ui/summary-stats";
 import { prisma } from "@/lib/prisma";
+import { deleteContentPlanAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function PlansPage() {
   return (
     <section className="page-shell">
       <WorkspaceHeader
+        stacked
         title="Plans"
         description="A calmer planning workspace for turning AI strategy into approved content, blog, asset, and schedule work."
         actions={
@@ -85,8 +87,9 @@ export default async function PlansPage() {
             <div className="table-shell">
               <table className="table plans-table">
                 <thead><tr><th>Plan</th><th>Status</th><th>Brand</th><th>Campaign</th><th>Window</th><th>Items</th><th>Updated</th><th aria-label="Actions" /></tr></thead>
-                <tbody>{plans.map((plan) => (
-                  <tr key={plan.id}>
+                <tbody>{plans.map((plan) => {
+                  const deletePlan = deleteContentPlanAction.bind(null, plan.id);
+                  return <tr key={plan.id}>
                     <td><Link href={`/plans/${plan.id}`}><strong>{plan.title}</strong></Link><div className="table-subtext">{plan.goal ?? plan.description ?? "No goal added yet"}</div></td>
                     <td><StatusBadge label={plan.status} /></td>
                     <td>{plan.brand ?? "Not set"}</td>
@@ -94,9 +97,9 @@ export default async function PlansPage() {
                     <td>{formatWindow(plan.startDate, plan.endDate)}</td>
                     <td><strong>{plan._count.items}</strong></td>
                     <td>{format(plan.updatedAt, "MMM d, yyyy")}</td>
-                    <td><Link className="button button--secondary" href={`/plans/${plan.id}`}>Open</Link></td>
-                  </tr>
-                ))}</tbody>
+                    <td><div className="row-actions table-actions"><Link className="button button--secondary" href={`/plans/${plan.id}`}>Open</Link><form action={deletePlan}><button className="button button--secondary" type="submit">Delete</button></form></div></td>
+                  </tr>;
+                })}</tbody>
               </table>
             </div>
           )}

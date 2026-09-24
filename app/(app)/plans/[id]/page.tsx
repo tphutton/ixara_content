@@ -127,10 +127,11 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
   return (
     <section className="page-shell">
       <WorkspaceHeader
+        stacked
         title={plan.title}
         description={plan.goal ?? plan.description ?? "Plan the creative work, then turn approved items into records and schedule entries."}
         actions={
-          <div className="header-actions">
+          <>
             <Link className="button button--secondary" href="/plans">
               All plans
             </Link>
@@ -151,7 +152,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
             <Link className="button button--primary" href={`/chat?prompt=${encodeURIComponent(`Review this content plan and suggest the next best items to create. Plan id: ${plan.id}`)}`}>
               Ask Quill
             </Link>
-          </div>
+          </>
         }
       />
 
@@ -199,6 +200,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
               <table className="table plan-items-table">
                 <thead><tr><th>Work item</th><th>Status</th><th>Channel & date</th><th>Brief</th><th>Quality</th><th>Output</th><th>Next action</th><th aria-label="Actions" /></tr></thead>
                 <tbody>{filteredItems.map((item) => {
+                  const deleteItem = deleteContentPlanItemAction.bind(null, plan.id, item.id);
                   const latestReview = item.qualityReviews[0] ?? null;
                   const profile = brandProfileByName.get((item.brand ?? plan.brand ?? "").toLowerCase()) ?? null;
                   const readiness = getPlanItemBriefReadiness(item, plan, profile);
@@ -210,7 +212,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
                     <td>{latestReview ? <><strong>{latestReview.overallScore}/100</strong><div className="table-subtext">Reviewed</div></> : <span className="muted">Not reviewed</span>}</td>
                     <td>{item.schedule ? "Scheduled" : item.content ? "Content" : item.blog ? "Blog" : "Not created"}</td>
                     <td><div className="table-subtext plan-next-cell">{nextBestAction(item, readiness.ready)}</div></td>
-                    <td><Link className="button button--secondary" href={`/plans/${plan.id}?viewItem=${item.id}`}>View</Link></td>
+                    <td><div className="row-actions table-actions"><Link className="button button--secondary" href={`/plans/${plan.id}?viewItem=${item.id}`}>View</Link><form action={deleteItem}><button className="button button--secondary" type="submit">Delete</button></form></div></td>
                   </tr>;
                 })}</tbody>
               </table>

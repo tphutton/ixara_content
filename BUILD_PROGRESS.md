@@ -7,6 +7,7 @@
 - Moved full plan goals, descriptions, dates, and planning source into a solid-background Plan Brief dialog.
 - Moved item briefs, readiness gaps, quality state, linked outputs, status changes, review, promotion, editing, and deletion into a focused item detail dialog.
 - Kept the main plan surface limited to the fields operators need to scan and choose the next piece of work.
+- Stacked plan-page header commands below the title at normal control size, and added direct Delete actions beside Open/View in both plan tables.
 
 ## Active Milestone: End-to-end post readiness
 
