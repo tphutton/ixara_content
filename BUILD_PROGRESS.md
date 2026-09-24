@@ -23,6 +23,7 @@
 - Added a focused variant editor for title, platform, hook, body, CTA, and production notes.
 - Added explicit Use for publishing controls and audit logs for edits and selection changes.
 - Updated Meta readiness, schedule detail, Publishing, and Quill readiness checks to use the selected variant copy and platform when present.
+- Added an app-wide confirmation guard for all delete forms and bulk delete actions.
 
 ## 2026-09-24: Compact campaign workspace
 
