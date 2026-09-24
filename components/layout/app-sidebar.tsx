@@ -21,7 +21,10 @@ import {
   ShieldCheck,
   Send,
   Sparkles,
+  Moon,
+  Sun,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 const navGroups = [
   {
@@ -113,6 +116,9 @@ export function AppSidebar() {
           </section>
         ))}
       </nav>
+      <div className="sidebar__footer">
+        <ThemeToggle darkIcon={Moon} lightIcon={Sun} />
+      </div>
     </aside>
   );
 }
