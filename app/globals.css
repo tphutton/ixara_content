@@ -557,7 +557,7 @@ textarea {
   z-index: 1;
 }
 
-.editor-overlay--dialog {
+.editor-overlay.editor-overlay--dialog {
   grid-template-columns: 1fr;
   place-items: center;
   padding: 16px;
@@ -2153,6 +2153,16 @@ textarea {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(620px, 860px);
   overflow: hidden;
+}
+
+.editor-overlay.editor-overlay--dialog {
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+}
+
+.editor-overlay.editor-overlay--dialog > .editor-overlay__panel {
+  justify-self: center;
+  max-width: calc(100vw - 32px);
 }
 
 .editor-overlay__backdrop {
