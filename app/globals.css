@@ -3464,9 +3464,9 @@ html[data-theme="light"] .sidebar {
 }
 
 html[data-theme="light"] .sidebar__logo {
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: #020617;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 html[data-theme="light"] .nav-group__label,
@@ -3622,7 +3622,7 @@ html[data-theme="light"] ::placeholder {
   .app-shell { grid-template-columns: 216px minmax(0, 1fr); }
   .sidebar { padding: 18px 14px; }
   .sidebar__brand { gap: 6px; margin-bottom: 16px; }
-  .sidebar__logo img { max-height: 52px; object-position: left center; }
+  .sidebar__logo img { max-height: 64px; object-position: left center; }
   .sidebar__brand p { display: none; }
   .nav-groups { gap: 10px; }
   .nav-group { gap: 4px; }
