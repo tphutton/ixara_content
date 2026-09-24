@@ -7,6 +7,8 @@
 - Expanded TSADB sync capacity beyond the previous 1,000-row cap and added support for paginated responses as well as current TSADB responses that return the complete table.
 - Updated asset search and the Assets preview to surface TSADB source-record metadata and distinguish upstream record count from physical asset count.
 - Added sync audit details for source records, new physical assets, and skipped rows.
+- Converted the Assets workspace to a compact table with small previews, direct View/Delete actions, Select All, and bulk feature/unfeature/delete controls.
+- Constrained the asset preview overlay to its available viewport column so large images and metadata cannot push the panel off-screen.
 
 ## 2026-09-24: Compact campaign workspace
 

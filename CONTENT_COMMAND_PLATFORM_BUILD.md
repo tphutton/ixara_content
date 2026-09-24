@@ -22,6 +22,8 @@ Campaigns now use the same compact operating pattern: date-derived Current, Upco
 
 Assets use a non-destructive local projection of upstream media. The `Asset` record represents a physical reusable file, while `AssetSourceRecord` preserves each upstream TSADB image identity and its sales-item/context associations. Sync updates and adds records only; it does not delete local assets or upstream media.
 
+The Assets workspace uses a dense table for scanning and repeated operations. Individual and bulk local actions are available without changing upstream media, and asset previews stay contained in a focused overlay.
+
 ## Quill action safety
 
 Quill separates research from mutation. Read-only tools execute immediately, while operations that change workspace or external data create durable action proposals. Operators approve or reject proposals in chat; failed actions preserve diagnostics and can be retried. Only editors and admins can execute approved actions, and proposals are scoped to the user and conversation that created them.

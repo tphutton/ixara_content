@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Search, Sparkles, Trash2 } from "lucide-react";
 import { AssetSyncButton } from "@/components/assets/asset-sync-button";
+import { AssetTable } from "@/components/assets/asset-table";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { prisma } from "@/lib/prisma";
@@ -210,37 +211,25 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
           <p className="muted">Sync enriched images or broaden the filters to find reusable creative.</p>
         </div>
       ) : (
-        <div className="asset-grid">
-          {assets.map((asset) => (
-            <article className="asset-card" key={asset.id}>
-              <Link className="asset-card__image" href={assetLink(params, asset.id)}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img alt={asset.altText ?? asset.title} src={asset.thumbnailUrl ?? asset.fileUrl} />
-                {asset.featured ? <span className="asset-card__flag">Featured</span> : null}
-              </Link>
-              <div className="asset-card__body">
-                <div>
-                  <h3>{asset.title}</h3>
-                  <p className="muted">{asset.description ?? asset.caption ?? "No description yet"}</p>
-                </div>
-                <div className="quiet-meta">
-                  <span>{asset.source}</span>
-                  {asset._count.sourceRecords > 0 ? <span>{asset._count.sourceRecords} TSADB record{asset._count.sourceRecords === 1 ? "" : "s"}</span> : null}
-                  {asset.region ? <span>{asset.region}</span> : null}
-                  {asset.country ? <span>{asset.country}</span> : null}
-                  {asset.category ? <span>{asset.category}</span> : null}
-                  {asset.imageType ? <span>{asset.imageType}</span> : null}
-                </div>
-                <div className="asset-card__footer">
-                  <span className="muted">{usageCount(asset)} linked use{usageCount(asset) === 1 ? "" : "s"}</span>
-                  <Link className="button button--secondary" href={assetLink(params, asset.id)}>
-                    Preview
-                  </Link>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        <AssetTable
+          assets={assets.map((asset) => ({
+            id: asset.id,
+            title: asset.title,
+            previewHref: assetLink(params, asset.id),
+            thumbnailUrl: asset.thumbnailUrl,
+            fileUrl: asset.fileUrl,
+            altText: asset.altText,
+            source: asset.source,
+            description: asset.description ?? asset.caption,
+            region: asset.region,
+            country: asset.country,
+            category: asset.category,
+            imageType: asset.imageType,
+            featured: asset.featured,
+            sourceRecordCount: asset._count.sourceRecords,
+            usageCount: usageCount(asset),
+          }))}
+        />
       )}
 
       {selectedAsset ? (
