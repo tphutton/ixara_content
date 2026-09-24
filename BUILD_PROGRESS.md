@@ -32,6 +32,12 @@
 - Made Meta readiness and live publishing require that selected variant to be approved, so an unreviewed channel version cannot be posted accidentally.
 - Kept the package derived from existing Content records rather than introducing duplicate publishing data; the selected variant and canonical approval ledger remain the sources of truth.
 
+## 2026-09-24: Final package review surface
+
+- Added a compact package progress strip for context, quality, approved variant, asset, schedule approval, and account readiness.
+- Added a channel-aware final-copy preview on Schedule detail using the selected variant and its linked asset, with blog fallbacks for scheduled articles.
+- Kept the preview derived from existing records so it cannot drift from the copy that Meta readiness and publishing will use.
+
 ## 2026-09-24: Compact campaign workspace
 
 - Converted Campaigns from expanded list rows into a compact comparison table with direct Open and Delete actions.
@@ -87,7 +93,7 @@ Deferred until this journey is complete:
 - [ ] Extend guided quality fixes to blogs and plan items.
 - [x] Add variant editing, review, approval, and selection for publishing.
 - [x] Build a guided publishing-package step combining final copy, channel, account, asset, date, and campaign.
-- [ ] Add richer channel previews while retaining clear validation before a package can be marked ready to post.
+- [x] Add a channel-aware final-copy preview while retaining clear validation before a package can be marked ready to post.
 - [x] Make schedule approval and publishing readiness the final explicit workflow stage.
 - [x] Add one canonical, auditable Content approval contract across plans, production records, variants, and schedules.
 - [ ] Add a single end-to-end progress view and next-action guidance across the journey.

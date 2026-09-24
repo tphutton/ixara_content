@@ -102,6 +102,15 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
     blog: schedule.blog,
   });
   const metaReadiness = getMetaPublishReadiness(schedule, connectedAccounts);
+  const selectedVariant = schedule.content?.selectedVariant ?? null;
+  const packageSteps = [
+    { label: "Context", ready: Boolean(schedule.content?.title ?? schedule.blog?.title) },
+    { label: "Quality", ready: Boolean(schedule.content?.qualityReviews[0] && schedule.content.qualityReviews[0].overallScore >= 75) },
+    { label: "Variant", ready: Boolean(selectedVariant && selectedVariant.status === "approved") },
+    { label: "Asset", ready: Boolean(schedule.content?.primaryAsset?.fileUrl || schedule.content?.assetImage || schedule.blog?.featureAsset?.fileUrl) },
+    { label: "Approval", ready: Boolean(schedule.approvedById) },
+    { label: "Account", ready: Boolean(metaReadiness.account) },
+  ];
 
   return (
     <section className="page-shell">
@@ -163,6 +172,31 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
             ) : (
               <p className="quality-next-step">Select and approve a channel variant from the linked content record before publishing.</p>
             )}
+            <div className="publishing-package__progress" aria-label="Publishing package progress">
+              {packageSteps.map((step) => (
+                <span data-ready={step.ready} key={step.label}>{step.label}</span>
+              ))}
+            </div>
+          </section>
+
+          <section className="quiet-panel channel-preview-panel">
+            <div className="section-heading">
+              <div><p className="kicker">Channel preview</p><h3>{selectedVariant?.platform ?? schedule.channel ?? "Unassigned channel"}</h3></div>
+              <span className="inline-chip">Final copy</span>
+            </div>
+            <div className="channel-preview">
+              {(schedule.content?.primaryAsset?.fileUrl || schedule.content?.assetImage || schedule.blog?.featureAsset?.fileUrl) ? (
+                <img
+                  alt={schedule.content?.primaryAsset?.title ?? schedule.blog?.featureAsset?.title ?? "Publishing asset"}
+                  className="channel-preview__image"
+                  src={schedule.content?.primaryAsset?.fileUrl ?? schedule.content?.assetImage ?? schedule.blog?.featureAsset?.fileUrl ?? ""}
+                />
+              ) : null}
+              <div className="channel-preview__copy">
+                <p className="kicker">{schedule.brand ?? schedule.content?.brand ?? schedule.blog?.brand ?? "Brand"}</p>
+                <p>{selectedVariant ? [selectedVariant.hook, selectedVariant.body, selectedVariant.cta].filter(Boolean).join("\n\n") : schedule.content?.body ?? schedule.blog?.text1 ?? schedule.blog?.title ?? "No final copy selected yet."}</p>
+              </div>
+            </div>
           </section>
         </div>
 
