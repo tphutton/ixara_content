@@ -1,5 +1,13 @@
 # Build Progress
 
+## 2026-09-24: Plans table and detail workflow
+
+- Converted the Plans index from expanded rows into a compact table for faster comparison of status, brand, campaign, date window, item count, and recency.
+- Replaced the plan detail kanban-style board with status tabs and one filterable production table.
+- Moved full plan goals, descriptions, dates, and planning source into a solid-background Plan Brief dialog.
+- Moved item briefs, readiness gaps, quality state, linked outputs, status changes, review, promotion, editing, and deletion into a focused item detail dialog.
+- Kept the main plan surface limited to the fields operators need to scan and choose the next piece of work.
+
 ## Active Milestone: End-to-end post readiness
 
 The current build priority is one complete, easy-to-use operator journey:

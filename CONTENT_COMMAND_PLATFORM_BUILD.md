@@ -14,6 +14,8 @@ The first continuity gate is now implemented: plan items have structured product
 
 The workspace now follows a compact operations-console pattern. Page headers, KPI strips, queue filters, tables, record rows, and asset cards prioritize scanning and repeated action. Brands and Social Accounts use dense reference tables with solid-background detail dialogs, while creation and editing remain in focused overlays. Secondary descriptions and advanced filters use tooltips or disclosure controls instead of permanent large panels.
 
+Plans now follow the same pattern at both levels: the plan index is a comparison table, while plan items use status tabs and a production table. Full plan and item context, quality controls, promotion actions, and destructive actions live in focused dialogs instead of expanding the primary workspace.
+
 ## Quill action safety
 
 Quill separates research from mutation. Read-only tools execute immediately, while operations that change workspace or external data create durable action proposals. Operators approve or reject proposals in chat; failed actions preserve diagnostics and can be retried. Only editors and admins can execute approved actions, and proposals are scoped to the user and conversation that created them.
