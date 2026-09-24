@@ -252,6 +252,8 @@ model Content {
   planItems ContentPlanItem[]
   qualityReviews QualityReview[]
   variants ContentVariant[]
+  selectedVariantId String?
+  selectedVariant ContentVariant? @relation("ContentSelectedVariant", fields: [selectedVariantId], references: [id], onDelete: SetNull)
 
   @@index([status, contentType])
   @@index([brand, sport, region, country])
@@ -275,6 +277,7 @@ model ContentVariant {
   updatedAt   DateTime      @updatedAt
 
   content   Content     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  selectedFor Content[] @relation("ContentSelectedVariant")
   createdBy UserAccess? @relation("ContentVariantCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy UserAccess? @relation("ContentVariantUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 

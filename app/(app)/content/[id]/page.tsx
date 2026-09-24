@@ -15,13 +15,13 @@ import {
   reviewContentQualityAction,
 } from "../../quality/actions";
 import { deleteContentAction, updateContentAction } from "../actions";
-import { deleteContentVariantAction, generateContentVariantsAction } from "./variant-actions";
+import { deleteContentVariantAction, generateContentVariantsAction, selectContentVariantAction, updateContentVariantAction } from "./variant-actions";
 
 export const dynamic = "force-dynamic";
 
 type ContentDetailPageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ edit?: string }>;
+  searchParams?: Promise<{ edit?: string; variant?: string }>;
 };
 
 export default async function ContentDetailPage({ params, searchParams }: ContentDetailPageProps) {
@@ -69,6 +69,8 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
   const applyQualityAction = applyContentQualityRecommendationsAction.bind(null, id);
   const generateVariantsAction = generateContentVariantsAction.bind(null, id);
   const deleteVariantAction = deleteContentVariantAction.bind(null, id);
+  const updateVariantAction = updateContentVariantAction.bind(null, id);
+  const selectVariantAction = selectContentVariantAction.bind(null, id);
   const latestQualityReview = content.qualityReviews[0] ?? null;
 
   return (
@@ -127,7 +129,16 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
             </div>
           </section>
 
-          <ContentVariantsPanel action={generateVariantsAction} contentId={content.id} deleteAction={deleteVariantAction} variants={content.variants} />
+          <ContentVariantsPanel
+            action={generateVariantsAction}
+            contentId={content.id}
+            deleteAction={deleteVariantAction}
+            editVariantId={resolvedSearchParams?.variant}
+            selectAction={selectVariantAction}
+            selectedVariantId={content.selectedVariantId}
+            updateAction={updateVariantAction}
+            variants={content.variants}
+          />
         </div>
 
         <div className="stack">

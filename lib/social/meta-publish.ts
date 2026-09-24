@@ -36,6 +36,7 @@ type ScheduleForPublish = ContentSchedule & {
     assetImage: string | null;
     assetCaption: string | null;
     primaryAsset: { fileUrl: string; title: string } | null;
+    selectedVariant: { platform: string; hook: string | null; body: string | null; cta: string | null } | null;
     qualityReviews: QualityReview[];
   } | null;
   blog: {
@@ -67,8 +68,8 @@ function stripHtml(value: string | null | undefined) {
   return clean(value)?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() ?? null;
 }
 
-export function inferMetaPlatform(schedule: Pick<ContentSchedule, "channel" | "platformAccount"> & { content?: { platform: string | null } | null }) {
-  const value = [schedule.channel, schedule.platformAccount, schedule.content?.platform]
+export function inferMetaPlatform(schedule: Pick<ContentSchedule, "channel" | "platformAccount"> & { content?: { platform: string | null; selectedVariant?: { platform: string } | null } | null }) {
+  const value = [schedule.channel, schedule.platformAccount, schedule.content?.selectedVariant?.platform, schedule.content?.platform]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -111,7 +112,8 @@ export function choosePublishingAccount(schedule: ScheduleForPublish, accounts: 
 
 function getCaption(schedule: ScheduleForPublish) {
   if (schedule.content) {
-    return [schedule.content.hook, schedule.content.body, schedule.content.cta]
+    const variant = schedule.content.selectedVariant;
+    return [variant?.hook ?? schedule.content.hook, variant?.body ?? schedule.content.body, variant?.cta ?? schedule.content.cta]
       .map(stripHtml)
       .filter(Boolean)
       .join("\n\n");
@@ -300,6 +302,7 @@ export async function publishScheduleToMeta(input: {
       content: {
         include: {
           primaryAsset: { select: { fileUrl: true, title: true } },
+          selectedVariant: { select: { platform: true, hook: true, body: true, cta: true } },
           qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
         },
       },

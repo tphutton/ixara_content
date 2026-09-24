@@ -78,6 +78,7 @@ export default async function PublishingPage({ searchParams }: PublishingPagePro
         content: {
           include: {
             primaryAsset: { select: { fileUrl: true, title: true } },
+            selectedVariant: { select: { platform: true, hook: true, body: true, cta: true } },
             qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
           },
         },

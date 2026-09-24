@@ -17,6 +17,13 @@
 - Added direct Open and Delete actions beside every schedule row.
 - Preserved the existing selection-based bulk schedule editor above the table.
 
+## 2026-09-24: Selected publishing variants
+
+- Added a non-destructive selected-variant pointer to Content so the source record remains intact while one channel version becomes the publishing version.
+- Added a focused variant editor for title, platform, hook, body, CTA, and production notes.
+- Added explicit Use for publishing controls and audit logs for edits and selection changes.
+- Updated Meta readiness, schedule detail, Publishing, and Quill readiness checks to use the selected variant copy and platform when present.
+
 ## 2026-09-24: Compact campaign workspace
 
 - Converted Campaigns from expanded list rows into a compact comparison table with direct Open and Delete actions.

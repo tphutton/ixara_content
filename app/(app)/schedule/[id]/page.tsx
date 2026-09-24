@@ -33,6 +33,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
         content: {
           include: {
             primaryAsset: { select: { fileUrl: true, title: true } },
+            selectedVariant: { select: { platform: true, hook: true, body: true, cta: true } },
             qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
           },
         },
