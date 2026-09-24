@@ -26,7 +26,7 @@ The Assets workspace uses a dense table for scanning and repeated operations. In
 
 Schedule opens in a table-first workflow with Upcoming, Past, and All date tabs. Calendar views remain available for planning, while direct row actions and the existing bulk editor support operational work from the table.
 
-Content variants now have an explicit publishing handoff. Operators can edit generated channel copy in a focused modal, approve it through the existing editorial approval ledger, and select one version for the linked schedule. Meta readiness, publishing, and Quill use that selected version while preserving the original content record. The remaining core step is to package that selected version, asset, account, schedule, campaign, and approval into one final publish-ready record.
+Content variants now have an explicit publishing handoff. Operators can edit generated channel copy in a focused modal, approve it through the existing editorial approval ledger, and select one version for the linked schedule. Schedule detail now presents the selected copy, platform, asset, account, campaign, date, and approval as one derived publishing package. Meta readiness, publishing, and Quill use that selected version while preserving the original content record, and Meta publication is blocked until the variant is selected and approved.
 
 ## Quill action safety
 

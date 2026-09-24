@@ -5,6 +5,7 @@ import { EditorialApprovalPanel } from "@/components/approvals/editorial-approva
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { ScheduleForm } from "@/components/schedule/schedule-form";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { prisma } from "@/lib/prisma";
 import { ReadinessPanel } from "@/components/schedule/readiness-panel";
 import { getScheduleReadiness } from "@/lib/schedule/readiness";
@@ -33,7 +34,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
         content: {
           include: {
             primaryAsset: { select: { fileUrl: true, title: true } },
-            selectedVariant: { select: { platform: true, hook: true, body: true, cta: true } },
+            selectedVariant: { select: { platform: true, hook: true, body: true, cta: true, status: true } },
             qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
           },
         },
@@ -138,6 +139,30 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
               <div><span>Priority</span><strong>{schedule.priority ?? "Not set"}</strong></div>
             </div>
             {schedule.notes ? <p className="muted">{schedule.notes}</p> : null}
+          </section>
+
+          <section className="quiet-panel publishing-package-panel">
+            <div className="section-heading">
+              <div><p className="kicker">Publishing package</p><h3>Final version</h3></div>
+              <StatusBadge label={metaReadiness.ready ? "ready" : "blocked"} />
+            </div>
+            <div className="metadata-grid">
+              <div><span>Variant</span><strong>{schedule.content?.selectedVariant ? "Selected" : "Not selected"}</strong></div>
+              <div><span>Platform</span><strong>{schedule.content?.selectedVariant?.platform ?? schedule.channel ?? "Not set"}</strong></div>
+              <div><span>Asset</span><strong>{schedule.content?.primaryAsset?.title ?? schedule.content?.assetImage ?? "Not set"}</strong></div>
+              <div><span>Campaign</span><strong>{schedule.campaignName ?? "Not set"}</strong></div>
+              <div><span>Account</span><strong>{metaReadiness.account?.accountName ?? "Not matched"}</strong></div>
+              <div><span>Approval</span><strong>{schedule.approvedById ? "Schedule approved" : "Awaiting approval"}</strong></div>
+            </div>
+            {schedule.content?.selectedVariant ? (
+              <div className="publishing-package__copy">
+                <p className="kicker">Selected copy</p>
+                <p>{[schedule.content.selectedVariant.hook, schedule.content.selectedVariant.body, schedule.content.selectedVariant.cta].filter(Boolean).join("\n\n") || "No variant copy added"}</p>
+                <span className="inline-chip">Variant status: {schedule.content.selectedVariant.status}</span>
+              </div>
+            ) : (
+              <p className="quality-next-step">Select and approve a channel variant from the linked content record before publishing.</p>
+            )}
           </section>
         </div>
 

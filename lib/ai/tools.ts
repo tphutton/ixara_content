@@ -577,7 +577,7 @@ async function getMetaPublishingReadinessTool(args: Record<string, unknown>) {
         content: {
           include: {
             primaryAsset: { select: { fileUrl: true, title: true } },
-            selectedVariant: { select: { platform: true, hook: true, body: true, cta: true } },
+            selectedVariant: { select: { platform: true, hook: true, body: true, cta: true, status: true } },
             qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
           },
         },

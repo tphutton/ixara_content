@@ -36,7 +36,7 @@ type ScheduleForPublish = ContentSchedule & {
     assetImage: string | null;
     assetCaption: string | null;
     primaryAsset: { fileUrl: string; title: string } | null;
-    selectedVariant: { platform: string; hook: string | null; body: string | null; cta: string | null } | null;
+    selectedVariant: { platform: string; hook: string | null; body: string | null; cta: string | null; status: ContentStatus } | null;
     qualityReviews: QualityReview[];
   } | null;
   blog: {
@@ -154,6 +154,10 @@ export function getMetaPublishReadiness(schedule: ScheduleForPublish, accounts: 
     reasons.push("A Meta delivery is already in progress and must be reconciled before retrying.");
   }
   if (!schedule.content && !schedule.blog) reasons.push("No content or blog is linked.");
+  if (schedule.content && !schedule.content.selectedVariant) reasons.push("No publishing variant has been selected.");
+  if (schedule.content?.selectedVariant && schedule.content.selectedVariant.status !== ContentStatus.approved) {
+    reasons.push("Selected publishing variant is not approved.");
+  }
   if (!schedule.approvedById) reasons.push("Schedule is not approved.");
   if (!qualityGate.ready) reasons.push(`Quality gate: ${qualityGate.label}.`);
   if (!platform) reasons.push("Channel must be Facebook or Instagram for Meta publishing.");
@@ -302,7 +306,7 @@ export async function publishScheduleToMeta(input: {
       content: {
         include: {
           primaryAsset: { select: { fileUrl: true, title: true } },
-          selectedVariant: { select: { platform: true, hook: true, body: true, cta: true } },
+          selectedVariant: { select: { platform: true, hook: true, body: true, cta: true, status: true } },
           qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
         },
       },

@@ -25,6 +25,13 @@
 - Updated Meta readiness, schedule detail, Publishing, and Quill readiness checks to use the selected variant copy and platform when present.
 - Added an app-wide confirmation guard for all delete forms and bulk delete actions.
 
+## 2026-09-24: Publishing package readiness gate
+
+- Added a compact final publishing-package panel to Schedule detail with the selected variant copy, platform, asset, account, campaign, scheduled date, and approval state in one place.
+- Made Meta readiness and live publishing require an explicitly selected variant for content schedules.
+- Made Meta readiness and live publishing require that selected variant to be approved, so an unreviewed channel version cannot be posted accidentally.
+- Kept the package derived from existing Content records rather than introducing duplicate publishing data; the selected variant and canonical approval ledger remain the sources of truth.
+
 ## 2026-09-24: Compact campaign workspace
 
 - Converted Campaigns from expanded list rows into a compact comparison table with direct Open and Delete actions.
@@ -79,9 +86,9 @@ Deferred until this journey is complete:
 - [x] Upgrade promoted plan items into complete production briefs with inherited context and readiness checks.
 - [ ] Extend guided quality fixes to blogs and plan items.
 - [x] Add variant editing, review, approval, and selection for publishing.
-- [ ] Build a guided publishing-package step combining final copy, channel, account, asset, date, and campaign.
-- [ ] Add channel previews and clear validation before a package can be marked ready to post.
-- [ ] Make schedule approval and publishing readiness the final explicit workflow stage.
+- [x] Build a guided publishing-package step combining final copy, channel, account, asset, date, and campaign.
+- [ ] Add richer channel previews while retaining clear validation before a package can be marked ready to post.
+- [x] Make schedule approval and publishing readiness the final explicit workflow stage.
 - [x] Add one canonical, auditable Content approval contract across plans, production records, variants, and schedules.
 - [ ] Add a single end-to-end progress view and next-action guidance across the journey.
 
@@ -379,7 +386,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Add account-expiry notifications and an operator review flow for deliveries that cannot be reconciled automatically.
 - Add an AI quality evaluation suite with fixed brand briefs and measurable regression thresholds.
 - Extend guided rewrite actions into blogs and plan items, then add score trends.
-- Build the guided publishing package and final readiness gate around the selected variant, asset, account, schedule, campaign, and approval.
+- Add richer channel previews and a single end-to-end progress view around the selected variant, asset, account, schedule, campaign, and approval.
 - Add notifications and bulk approval patterns for failed deliveries and growing automation volume.
 - Expand Planner with channel swimlanes, coverage heatmaps, and drag-and-drop scheduling.
 - Finalize and verify all production environment values in Railway.
