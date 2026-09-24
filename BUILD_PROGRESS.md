@@ -1,5 +1,13 @@
 # Build Progress
 
+## 2026-09-24: Compact campaign workspace
+
+- Converted Campaigns from expanded list rows into a compact comparison table with direct Open and Delete actions.
+- Added Current, Upcoming, and Past tabs derived from campaign start and end dates, with end dates treated as inclusive.
+- Added a secondary status filter without adding another permanent toolbar row.
+- Replaced the always-open campaign edit form with a compact read-only detail page and a solid-background Edit Campaign overlay.
+- Kept campaign briefs, market context, linked media, dates, and service identifiers available without overwhelming the primary list.
+
 ## 2026-09-24: Canonical editorial approvals
 
 - Added a Content-owned editorial approval ledger for plans, plan items, content, blogs, channel variants, and schedule entries.
