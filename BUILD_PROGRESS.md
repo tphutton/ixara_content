@@ -77,7 +77,7 @@ Deferred until this journey is complete:
 - [x] Recommend assets using brand, campaign, geography, category, and content context.
 - [x] Upgrade promoted plan items into complete production briefs with inherited context and readiness checks.
 - [ ] Extend guided quality fixes to blogs and plan items.
-- [ ] Add variant editing, review, approval, and selection for publishing.
+- [x] Add variant editing, review, approval, and selection for publishing.
 - [ ] Build a guided publishing-package step combining final copy, channel, account, asset, date, and campaign.
 - [ ] Add channel previews and clear validation before a package can be marked ready to post.
 - [ ] Make schedule approval and publishing readiness the final explicit workflow stage.
@@ -378,7 +378,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Add account-expiry notifications and an operator review flow for deliveries that cannot be reconciled automatically.
 - Add an AI quality evaluation suite with fixed brand briefs and measurable regression thresholds.
 - Extend guided rewrite actions into blogs and plan items, then add score trends.
-- Add variant editing, approval, and promotion into publishing packages.
+- Build the guided publishing package and final readiness gate around the selected variant, asset, account, schedule, campaign, and approval.
 - Add notifications and bulk approval patterns for failed deliveries and growing automation volume.
 - Expand Planner with channel swimlanes, coverage heatmaps, and drag-and-drop scheduling.
 - Finalize and verify all production environment values in Railway.
