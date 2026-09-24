@@ -38,7 +38,15 @@ export async function syncTsadbAssetsAction(formData: FormData) {
     targetType: "asset",
     targetId: ownerId ?? salesItemId ?? "tsadb",
     summary: `Synced ${result.count} enriched TSADB image asset${result.count === 1 ? "" : "s"}`,
-    afterData: { count: result.count, skipped: result.skipped, ownerId, salesItemId, limit },
+    afterData: {
+      count: result.count,
+      sourceRecordCount: result.sourceRecordCount,
+      newAssets: result.newAssets,
+      skipped: result.skipped,
+      ownerId,
+      salesItemId,
+      limit,
+    },
     source: "manual",
   });
 

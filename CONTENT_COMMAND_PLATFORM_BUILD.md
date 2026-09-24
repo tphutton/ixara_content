@@ -20,6 +20,8 @@ Plans now follow the same pattern at both levels: the plan index is a comparison
 
 Campaigns now use the same compact operating pattern: date-derived Current, Upcoming, and Past tabs lead into a comparison table with direct record actions. Campaign details are read-first, while the full configuration form opens in a focused solid-background editor overlay.
 
+Assets use a non-destructive local projection of upstream media. The `Asset` record represents a physical reusable file, while `AssetSourceRecord` preserves each upstream TSADB image identity and its sales-item/context associations. Sync updates and adds records only; it does not delete local assets or upstream media.
+
 ## Quill action safety
 
 Quill separates research from mutation. Read-only tools execute immediately, while operations that change workspace or external data create durable action proposals. Operators approve or reject proposals in chat; failed actions preserve diagnostics and can be retried. Only editors and admins can execute approved actions, and proposals are scoped to the user and conversation that created them.

@@ -40,6 +40,11 @@ type SyncTsadbImagesOptions = {
   limit?: number;
 };
 
+type TsadbImagePage = {
+  images: TsadbImage[];
+  total: number | null;
+};
+
 const tsadbApiBaseUrl =
   process.env.TSADB_API_BASE_URL?.replace(/\/$/, "") ??
   process.env.CAMPAIGNS_API_BASE_URL?.replace(/\/$/, "") ??
@@ -81,21 +86,23 @@ async function tsadbRequest<T>(path: string) {
   return response.json() as Promise<T>;
 }
 
-function pickImagesFromResponse(response: unknown): TsadbImage[] {
-  if (Array.isArray(response)) return response as TsadbImage[];
+function pickImagePage(response: unknown): TsadbImagePage {
+  if (Array.isArray(response)) return { images: response as TsadbImage[], total: null };
 
   if (response && typeof response === "object") {
     const record = response as Record<string, unknown>;
-    if (Array.isArray(record.images)) return record.images as TsadbImage[];
-    if (Array.isArray(record.data)) return record.data as TsadbImage[];
+    const total = asInteger(record.total ?? (record.pagination as Record<string, unknown> | undefined)?.total);
+    if (Array.isArray(record.images)) return { images: record.images as TsadbImage[], total };
+    if (Array.isArray(record.data)) return { images: record.data as TsadbImage[], total };
     if (record.data && typeof record.data === "object") {
       const nested = record.data as Record<string, unknown>;
-      if (Array.isArray(nested.images)) return nested.images as TsadbImage[];
-      if (Array.isArray(nested.data)) return nested.data as TsadbImage[];
+      const nestedTotal = asInteger(nested.total ?? (nested.pagination as Record<string, unknown> | undefined)?.total) ?? total;
+      if (Array.isArray(nested.images)) return { images: nested.images as TsadbImage[], total: nestedTotal };
+      if (Array.isArray(nested.data)) return { images: nested.data as TsadbImage[], total: nestedTotal };
     }
   }
 
-  return [];
+  return { images: [], total: null };
 }
 
 function asString(value: unknown) {
@@ -191,58 +198,133 @@ function mapTsadbImageToAsset(row: TsadbImage) {
   };
 }
 
+function mapTsadbImageToSourceRecord(row: TsadbImage, assetId: string) {
+  const fileUrl = asString(row.image_link);
+  const externalId = asString(row.image_id) ?? asString(row.id) ?? fileUrl;
+  if (!fileUrl || !externalId) return null;
+
+  return {
+    assetId,
+    source: AssetSource.tsadb,
+    externalId,
+    fileUrl,
+    caption: asString(row.caption),
+    description: asString(row.image_description),
+    itemName: asString(row.item_name),
+    itemId: asString(row.sales_item_id_uuid) ?? asString(row.sales_item_id) ?? asString(row.item_id),
+    itemType: asString(row.item_type),
+    category: asString(row.category),
+    region: asString(row.region),
+    country: asString(row.country),
+    imageType: asString(row.image_type),
+    ownerId: asString(row.owner_id),
+    facilityId: asString(row.facility_id),
+    wordpressAttachmentId: asInteger(row.wordpress_attachment_id),
+    featured: asBoolean(row.featured),
+    metadata: row as object,
+    sourceCreatedAt: asDate(row.created_at),
+    sourceUpdatedAt: asDate(row.updated_at),
+    syncedAt: new Date(),
+  };
+}
+
 async function fetchTsadbImages(options: SyncTsadbImagesOptions = {}) {
   const ownerId = asString(options.ownerId) ?? asString(process.env.TSADB_IMAGES_OWNER_ID);
   const salesItemId = asString(options.salesItemId) ?? asString(process.env.TSADB_IMAGES_SALES_ITEM_ID);
-  const limit = Math.min(Math.max(options.limit ?? 1000, 1), 1000);
+  const limit = Math.min(Math.max(options.limit ?? 5000, 1), 5000);
 
   if (ownerId) {
     const response = await tsadbRequest<unknown>(`/ixara_connect/images/organization/${encodeURIComponent(ownerId)}`);
-    return pickImagesFromResponse(response).slice(0, limit);
+    return pickImagePage(response).images.slice(0, limit);
   }
 
   if (salesItemId) {
     const response = await tsadbRequest<unknown>(`/ixara_connect/images/sales_item/${encodeURIComponent(salesItemId)}`);
-    return pickImagesFromResponse(response).slice(0, limit);
+    return pickImagePage(response).images.slice(0, limit);
   }
 
-  const response = await tsadbRequest<unknown>(`/tables/images?limit=${limit}`);
-  return pickImagesFromResponse(response).slice(0, limit);
+  const pageSize = 250;
+  const images: TsadbImage[] = [];
+  let offset = 0;
+
+  while (images.length < limit) {
+    const response = await tsadbRequest<unknown>(`/tables/images?limit=${pageSize}&offset=${offset}`);
+    const page = pickImagePage(response);
+    if (page.images.length === 0) break;
+
+    // Some TSADB deployments return the complete table regardless of limit/offset.
+    // Keep that response, but avoid repeatedly requesting the same full payload.
+    if (page.images.length > pageSize) {
+      images.push(...page.images);
+      break;
+    }
+
+    images.push(...page.images);
+    offset += page.images.length;
+    if ((page.total !== null && offset >= page.total) || page.images.length < pageSize) break;
+  }
+
+  return images.slice(0, limit);
 }
 
 async function upsertTsadbAsset(row: TsadbImage) {
   const data = mapTsadbImageToAsset(row);
-  if (!data) return null;
+  const externalId = data?.externalId;
+  if (!data || !externalId) return null;
 
-  const existing = await prisma.asset.findFirst({
-    where: {
-      OR: [
-        { source: AssetSource.tsadb, externalId: data.externalId },
-        { fileUrl: data.fileUrl },
-        data.wordpressAttachmentId ? { wordpressAttachmentId: data.wordpressAttachmentId } : undefined,
-      ].filter(Boolean) as Array<Record<string, unknown>>,
-    },
+  const existingSourceRecord = await prisma.assetSourceRecord.findUnique({
+    where: { source_externalId: { source: AssetSource.tsadb, externalId } },
+    select: { assetId: true },
+  });
+  const existing = existingSourceRecord
+    ? await prisma.asset.findUnique({ where: { id: existingSourceRecord.assetId } })
+    : await prisma.asset.findFirst({
+        where: {
+          OR: [
+            { source: AssetSource.tsadb, externalId },
+            { fileUrl: data.fileUrl },
+            data.wordpressAttachmentId ? { wordpressAttachmentId: data.wordpressAttachmentId } : undefined,
+          ].filter(Boolean) as Array<Record<string, unknown>>,
+        },
+      });
+
+  const sourceRecord = mapTsadbImageToSourceRecord(row, existing?.id ?? "pending");
+  if (!sourceRecord) return null;
+
+  const assetData = existing
+    ? {
+        ...data,
+        source: existing.source,
+        externalId: existing.externalId,
+        tags: [...new Set([...existing.tags, ...data.tags])],
+        featured: existing.featured || data.featured,
+      }
+    : data;
+
+  const asset = existing
+    ? await prisma.asset.update({ where: { id: existing.id }, data: assetData })
+    : await prisma.asset.create({ data: assetData });
+
+  await prisma.assetSourceRecord.upsert({
+    where: { source_externalId: { source: AssetSource.tsadb, externalId } },
+    create: { ...sourceRecord, assetId: asset.id },
+    update: { ...sourceRecord, assetId: asset.id },
   });
 
-  if (existing) {
-    return prisma.asset.update({
-      where: { id: existing.id },
-      data,
-    });
-  }
-
-  return prisma.asset.create({ data });
+  return { asset, createdAsset: !existing };
 }
 
 export async function syncTsadbImages(options: SyncTsadbImagesOptions = {}) {
   const images = await fetchTsadbImages(options);
   const synced: Asset[] = [];
   let skipped = 0;
+  let newAssets = 0;
 
   for (const row of images) {
-    const asset = await upsertTsadbAsset(row);
-    if (asset) {
-      synced.push(asset);
+    const result = await upsertTsadbAsset(row);
+    if (result) {
+      synced.push(result.asset);
+      if (result.createdAsset) newAssets += 1;
     } else {
       skipped += 1;
     }
@@ -250,6 +332,8 @@ export async function syncTsadbImages(options: SyncTsadbImagesOptions = {}) {
 
   return {
     count: synced.length,
+    sourceRecordCount: synced.length,
+    newAssets,
     skipped,
     assets: synced,
   };

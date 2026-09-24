@@ -31,7 +31,7 @@ type AssetsPageProps = {
 export default async function AssetsPage({ searchParams }: AssetsPageProps) {
   const params = searchParams ? await searchParams : {};
   const where = buildAssetWhere(params);
-  const [assets, allAssets, totalAssets, tsadbAssets, featuredAssets, selectedAsset] = await Promise.all([
+  const [assets, allAssets, totalAssets, tsadbAssets, tsadbSourceRecords, featuredAssets, selectedAsset] = await Promise.all([
     prisma.asset.findMany({
       where,
       orderBy: [{ featured: "desc" }, { syncedAt: "desc" }, { updatedAt: "desc" }],
@@ -44,6 +44,7 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
             contentLinks: true,
             blogLinks: true,
             campaignLinks: true,
+            sourceRecords: true,
           },
         },
       },
@@ -59,7 +60,15 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
       take: 2000,
     }),
     prisma.asset.count(),
-    prisma.asset.count({ where: { source: "tsadb" } }),
+    prisma.asset.count({
+      where: {
+        OR: [
+          { source: "tsadb" },
+          { sourceRecords: { some: { source: "tsadb" } } },
+        ],
+      },
+    }),
+    prisma.assetSourceRecord.count({ where: { source: "tsadb" } }),
     prisma.asset.count({ where: { featured: true } }),
     params.asset
       ? prisma.asset.findUnique({
@@ -73,6 +82,10 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
                 blogLinks: true,
                 campaignLinks: true,
               },
+            },
+            sourceRecords: {
+              where: { source: "tsadb" },
+              orderBy: { updatedAt: "desc" },
             },
           },
         })
@@ -113,7 +126,7 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
         <article className="quiet-panel">
           <p className="kicker">Enriched</p>
           <strong className="asset-stat">{tsadbAssets}</strong>
-          <p className="muted">TSADB images with region, category, item, and description context.</p>
+          <p className="muted">{tsadbSourceRecords} upstream TSADB image records linked to {tsadbAssets} local assets.</p>
         </article>
         <article className="quiet-panel">
           <p className="kicker">Featured</p>
@@ -212,6 +225,7 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
                 </div>
                 <div className="quiet-meta">
                   <span>{asset.source}</span>
+                  {asset._count.sourceRecords > 0 ? <span>{asset._count.sourceRecords} TSADB record{asset._count.sourceRecords === 1 ? "" : "s"}</span> : null}
                   {asset.region ? <span>{asset.region}</span> : null}
                   {asset.country ? <span>{asset.country}</span> : null}
                   {asset.category ? <span>{asset.category}</span> : null}
@@ -272,6 +286,18 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
                     <div><span>Orientation</span><strong>{selectedAsset.orientation ?? "Unknown"}</strong></div>
                     <div><span>Synced</span><strong>{selectedAsset.syncedAt ? formatDistanceToNow(selectedAsset.syncedAt, { addSuffix: true }) : "Unknown"}</strong></div>
                   </div>
+                  {selectedAsset.sourceRecords.length > 0 ? (
+                    <div className="asset-source-records">
+                      <p className="kicker">TSADB source records</p>
+                      <div className="quiet-meta">
+                        {selectedAsset.sourceRecords.map((record) => (
+                          <span key={record.id}>
+                            {[record.itemName, record.category, record.region, record.country].filter(Boolean).join(" · ") || record.externalId}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="row-actions">
                     <Link className="button button--secondary" href={selectedAsset.fileUrl} target="_blank">
                       Open original
@@ -323,7 +349,8 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
                 </label>
                 <label className="field">
                   <span className="field__label">Limit</span>
-                  <input defaultValue="1000" min="1" name="limit" type="number" />
+                  <input defaultValue="5000" min="1" name="limit" type="number" />
+                  <span className="field__hint">The sync is additive and will preserve every upstream image record. Use 5000 for a complete library refresh.</span>
                 </label>
                 <div className="form-actions">
                   <SubmitButton label="Sync enriched images" pendingLabel="Syncing images..." />
@@ -366,8 +393,12 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
 
 function buildAssetWhere(params: Awaited<NonNullable<AssetsPageProps["searchParams"]>>) {
   const q = clean(params.q);
+  const source = clean(params.source);
   const where: Prisma.AssetWhereInput = {
-    source: clean(params.source) ? (clean(params.source) as never) : undefined,
+    source: source && source !== "tsadb" ? (source as never) : undefined,
+    AND: source === "tsadb"
+      ? [{ OR: [{ source: "tsadb" as const }, { sourceRecords: { some: { source: "tsadb" as const } } }] }]
+      : undefined,
     region: clean(params.region) ?? undefined,
     country: clean(params.country) ?? undefined,
     category: clean(params.category) ?? undefined,
@@ -386,6 +417,12 @@ function buildAssetWhere(params: Awaited<NonNullable<AssetsPageProps["searchPara
           { region: { contains: q, mode: "insensitive" } },
           { country: { contains: q, mode: "insensitive" } },
           { tags: { has: q } },
+          { sourceRecords: { some: { caption: { contains: q, mode: "insensitive" } } } },
+          { sourceRecords: { some: { description: { contains: q, mode: "insensitive" } } } },
+          { sourceRecords: { some: { itemName: { contains: q, mode: "insensitive" } } } },
+          { sourceRecords: { some: { category: { contains: q, mode: "insensitive" } } } },
+          { sourceRecords: { some: { region: { contains: q, mode: "insensitive" } } } },
+          { sourceRecords: { some: { country: { contains: q, mode: "insensitive" } } } },
         ]
       : undefined,
   };

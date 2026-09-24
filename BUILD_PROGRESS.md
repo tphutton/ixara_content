@@ -1,5 +1,13 @@
 # Build Progress
 
+## 2026-09-24: Non-destructive TSADB asset catalog
+
+- Added an additive `AssetSourceRecord` layer so every TSADB image identity, sales-item association, and metadata record can be preserved even when multiple records share one physical WordPress URL.
+- Kept existing local assets and upstream media untouched; source records are only created or updated during sync and are never removed by synchronization.
+- Expanded TSADB sync capacity beyond the previous 1,000-row cap and added support for paginated responses as well as current TSADB responses that return the complete table.
+- Updated asset search and the Assets preview to surface TSADB source-record metadata and distinguish upstream record count from physical asset count.
+- Added sync audit details for source records, new physical assets, and skipped rows.
+
 ## 2026-09-24: Compact campaign workspace
 
 - Converted Campaigns from expanded list rows into a compact comparison table with direct Open and Delete actions.

@@ -650,6 +650,7 @@ model Asset {
   contentLinks         ContentAsset[]
   blogLinks            BlogAsset[]
   campaignLinks        CampaignAsset[]
+  sourceRecords        AssetSourceRecord[]
 
   @@unique([source, externalId])
   @@index([source, syncedAt])
@@ -657,6 +658,41 @@ model Asset {
   @@index([category, itemType, imageType])
   @@index([wordpressAttachmentId])
   @@index([featured])
+}
+
+model AssetSourceRecord {
+  id                    String      @id @default(cuid())
+  assetId               String
+  source                AssetSource
+  externalId            String
+  fileUrl               String
+  caption               String?
+  description           String?
+  itemName               String?
+  itemId                 String?
+  itemType               String?
+  category               String?
+  region                 String?
+  country                String?
+  imageType              String?
+  ownerId                String?
+  facilityId             String?
+  wordpressAttachmentId Int?
+  featured               Boolean     @default(false)
+  metadata               Json?
+  sourceCreatedAt        DateTime?
+  sourceUpdatedAt        DateTime?
+  syncedAt               DateTime     @default(now())
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([source, externalId])
+  @@index([assetId])
+  @@index([itemId])
+  @@index([region, country, category])
+  @@index([wordpressAttachmentId])
 }
 
 model ContentAsset {

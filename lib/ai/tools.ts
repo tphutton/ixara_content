@@ -1018,7 +1018,7 @@ async function syncWordPressAssetsTool(context: ToolContext) {
 async function syncTsadbAssetsTool(args: Record<string, unknown>, context: ToolContext) {
   const ownerId = asOptionalString(args.ownerId);
   const salesItemId = asOptionalString(args.salesItemId);
-  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 1000) : 1000;
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 5000) : 5000;
   const result = await syncTsadbImages({ ownerId, salesItemId, limit });
 
   await createActionLog({
@@ -1027,15 +1027,25 @@ async function syncTsadbAssetsTool(args: Record<string, unknown>, context: ToolC
     targetType: "asset",
     targetId: ownerId ?? salesItemId ?? "tsadb",
     summary: `AI synced ${result.count} enriched TSADB asset${result.count === 1 ? "" : "s"}`,
-    afterData: { count: result.count, skipped: result.skipped, ownerId, salesItemId, limit },
+    afterData: {
+      count: result.count,
+      sourceRecordCount: result.sourceRecordCount,
+      newAssets: result.newAssets,
+      skipped: result.skipped,
+      ownerId,
+      salesItemId,
+      limit,
+    },
     source: "ai",
   });
 
   return {
     toolName: "sync_tsadb_assets",
-    summary: `Synced ${result.count} enriched TSADB asset${result.count === 1 ? "" : "s"}.`,
+    summary: `Synced ${result.sourceRecordCount} TSADB source record${result.sourceRecordCount === 1 ? "" : "s"} and linked ${result.newAssets} new physical asset${result.newAssets === 1 ? "" : "s"}.`,
     payload: {
       count: result.count,
+      sourceRecordCount: result.sourceRecordCount,
+      newAssets: result.newAssets,
       skipped: result.skipped,
       items: result.assets.slice(0, 10).map((asset) => ({
         id: asset.id,
