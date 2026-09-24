@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import type { ScheduleStatus } from "@prisma/client";
-import { bulkUpdateScheduleAction } from "@/app/(app)/schedule/actions";
+import { bulkUpdateScheduleAction, deleteScheduleAction } from "@/app/(app)/schedule/actions";
 import { scheduleStatusOptions } from "@/lib/constants/options";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -159,7 +159,7 @@ export function BulkScheduleTable({ rows, availableBrands }: BulkScheduleTablePr
       ) : null}
 
       <div className="card table-shell">
-        <table className="table">
+        <table className="table schedule-table">
           <thead>
             <tr>
               <th>
@@ -173,11 +173,13 @@ export function BulkScheduleTable({ rows, availableBrands }: BulkScheduleTablePr
               <th>Approval</th>
               <th>Readiness</th>
               <th>Status</th>
+              <th aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr data-selected={selectedIds.includes(row.id)} key={row.id}>
+            {rows.map((row) => {
+              const deleteSchedule = deleteScheduleAction.bind(null, row.id);
+              return <tr data-selected={selectedIds.includes(row.id)} key={row.id}>
                 <td>
                   <input
                     aria-label={`Select ${row.title}`}
@@ -200,8 +202,16 @@ export function BulkScheduleTable({ rows, availableBrands }: BulkScheduleTablePr
                 <td>
                   <StatusBadge label={row.status} />
                 </td>
-              </tr>
-            ))}
+                <td>
+                  <div className="row-actions table-actions">
+                    <Link className="button button--secondary" href={`/schedule/${row.id}`}>Open</Link>
+                    <form action={deleteSchedule}>
+                      <button className="button button--secondary" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>;
+            })}
           </tbody>
         </table>
       </div>

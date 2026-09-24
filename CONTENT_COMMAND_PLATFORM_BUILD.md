@@ -24,6 +24,8 @@ Assets use a non-destructive local projection of upstream media. The `Asset` rec
 
 The Assets workspace uses a dense table for scanning and repeated operations. Individual and bulk local actions are available without changing upstream media, and asset previews stay contained in a focused overlay.
 
+Schedule opens in a table-first workflow with Upcoming, Past, and All date tabs. Calendar views remain available for planning, while direct row actions and the existing bulk editor support operational work from the table.
+
 ## Quill action safety
 
 Quill separates research from mutation. Read-only tools execute immediately, while operations that change workspace or external data create durable action proposals. Operators approve or reject proposals in chat; failed actions preserve diagnostics and can be retried. Only editors and admins can execute approved actions, and proposals are scoped to the user and conversation that created them.

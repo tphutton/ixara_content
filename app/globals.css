@@ -1574,6 +1574,16 @@ textarea {
   min-width: 1180px;
 }
 
+.schedule-period-tabs {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.schedule-table {
+  min-width: 1120px;
+}
+
 .campaign-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);

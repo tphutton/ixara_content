@@ -27,6 +27,7 @@ type SchedulePageProps = {
     month?: string;
     week?: string;
     brand?: string;
+    period?: string;
   }>;
 };
 
@@ -41,13 +42,15 @@ const queueOptions = [
 export default async function SchedulePage({ searchParams }: SchedulePageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const queue = resolvedSearchParams?.queue ?? "all";
-  const rawView = resolvedSearchParams?.view ?? "month";
+  const rawView = resolvedSearchParams?.view ?? "table";
   const view = rawView === "calendar" ? "month" : rawView;
+  const period = resolvedSearchParams?.period === "past" ? "past" : resolvedSearchParams?.period === "all" ? "all" : "upcoming";
   const monthParam = resolvedSearchParams?.month ?? format(startOfMonth(new Date()), "yyyy-MM");
   const weekParam =
     resolvedSearchParams?.week ?? format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const brandFilter = resolvedSearchParams?.brand ?? "all";
   const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekEnd = new Date(now);
   weekEnd.setDate(weekEnd.getDate() + 7);
   const parsedMonth = new Date(`${monthParam}-01T00:00:00`);
@@ -132,35 +135,29 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     ),
   ).sort((a, b) => a.localeCompare(b));
 
-  const filteredRows = brandScopedRows.filter((row) => {
-    if (queue === "ready") {
-      return row.readiness.isReady;
-    }
+  const periodRows = brandScopedRows.filter((row) => {
+    if (period === "past") return row.scheduledFor < todayStart;
+    if (period === "upcoming") return row.scheduledFor >= todayStart;
+    return true;
+  });
 
-    if (queue === "attention") {
-      return !row.readiness.isReady;
-    }
-
-    if (queue === "approved") {
-      return Boolean(row.approvedById);
-    }
-
-    if (queue === "week") {
-      return row.scheduledFor >= now && row.scheduledFor <= weekEnd;
-    }
-
+  const filteredRows = periodRows.filter((row) => {
+    if (queue === "ready") return row.readiness.isReady;
+    if (queue === "attention") return !row.readiness.isReady;
+    if (queue === "approved") return Boolean(row.approvedById);
+    if (queue === "week") return row.scheduledFor >= now && row.scheduledFor <= weekEnd;
     return true;
   });
 
   const queueSummary = {
-    all: brandScopedRows.length,
-    ready: brandScopedRows.filter((row) => row.readiness.isReady).length,
-    attention: brandScopedRows.filter((row) => !row.readiness.isReady).length,
-    approved: brandScopedRows.filter((row) => row.approvedById).length,
-    week: brandScopedRows.filter((row) => row.scheduledFor >= now && row.scheduledFor <= weekEnd)
+    all: periodRows.length,
+    ready: periodRows.filter((row) => row.readiness.isReady).length,
+    attention: periodRows.filter((row) => !row.readiness.isReady).length,
+    approved: periodRows.filter((row) => row.approvedById).length,
+    week: periodRows.filter((row) => row.scheduledFor >= now && row.scheduledFor <= weekEnd)
       .length,
   };
-  const scheduledCount = brandScopedRows.filter((row) => row.status === "scheduled").length;
+  const scheduledCount = periodRows.filter((row) => row.status === "scheduled").length;
   const activeCampaigns = campaigns.filter((campaign) => campaign.campaign_status === "active").length;
 
   function buildScheduleHref(next: {
@@ -169,6 +166,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     month?: string;
     week?: string;
     brand?: string;
+    period?: string;
   }) {
     const params = new URLSearchParams();
     const resolvedQueue = next.queue ?? queue;
@@ -176,6 +174,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
     const resolvedMonth = next.month ?? monthParam;
     const resolvedWeek = next.week ?? weekParam;
     const resolvedBrand = next.brand ?? brandFilter;
+    const resolvedPeriod = next.period ?? period;
 
     if (resolvedQueue !== "all") {
       params.set("queue", resolvedQueue);
@@ -192,6 +191,10 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
       params.set("brand", resolvedBrand);
     }
 
+    if (resolvedPeriod !== "upcoming") {
+      params.set("period", resolvedPeriod);
+    }
+
     return `/schedule?${params.toString()}`;
   }
 
@@ -200,6 +203,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
       <WorkspaceHeader
         title="Schedule"
         description="Publishing operations for content and blog records across channels, brands, and regions."
+        actions={<Link className="button button--primary" href="/schedule/new">Create schedule entry</Link>}
       />
 
       <div className="stack">
@@ -234,6 +238,17 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
           <CampaignApiNotice message={campaignsResponse.error ?? "Campaign API is unavailable."} />
         ) : null}
 
+        <nav aria-label="Schedule date range" className="plan-status-tabs schedule-period-tabs">
+          {(["upcoming", "past", "all"] as const).map((tab) => {
+            const count = tab === "upcoming"
+              ? brandScopedRows.filter((row) => row.scheduledFor >= todayStart).length
+              : tab === "past"
+                ? brandScopedRows.filter((row) => row.scheduledFor < todayStart).length
+                : brandScopedRows.length;
+            return <Link data-active={period === tab} href={buildScheduleHref({ period: tab })} key={tab}>{tab}<span>{count}</span></Link>;
+          })}
+        </nav>
+
         <div className="toolbar">
           <div className="toolbar__group">
             <Link className="button button--primary" href="/schedule/new">
@@ -241,6 +256,13 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
             </Link>
           </div>
           <div className="toolbar__group">
+            <Link
+              className="button button--secondary"
+              data-active={view === "table"}
+              href={buildScheduleHref({ view: "table" })}
+            >
+              Table view
+            </Link>
             <Link
               className="button button--secondary"
               data-active={view === "month"}
@@ -254,13 +276,6 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
               href={buildScheduleHref({ view: "week" })}
             >
               Week view
-            </Link>
-            <Link
-              className="button button--secondary"
-              data-active={view === "table"}
-              href={buildScheduleHref({ view: "table" })}
-            >
-              Table view
             </Link>
           </div>
           <div className="toolbar__group">

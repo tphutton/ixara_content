@@ -10,6 +10,13 @@
 - Converted the Assets workspace to a compact table with small previews, direct View/Delete actions, Select All, and bulk feature/unfeature/delete controls.
 - Constrained the asset preview overlay to its available viewport column so large images and metadata cannot push the panel off-screen.
 
+## 2026-09-24: Table-first schedule workspace
+
+- Made the Schedule page open on a compact table view, with Month and Week retained as secondary planning views.
+- Added Upcoming, Past, and All date tabs based on each schedule entry's scheduled date.
+- Added direct Open and Delete actions beside every schedule row.
+- Preserved the existing selection-based bulk schedule editor above the table.
+
 ## 2026-09-24: Compact campaign workspace
 
 - Converted Campaigns from expanded list rows into a compact comparison table with direct Open and Delete actions.
