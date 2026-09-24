@@ -1617,6 +1617,37 @@ textarea {
   flex-wrap: wrap;
 }
 
+.editorial-approval {
+  gap: 10px;
+}
+
+.editorial-approval--compact {
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: rgba(2, 6, 23, 0.3);
+}
+
+.editorial-approval__decision,
+.editorial-approval__request {
+  gap: 8px;
+}
+
+.editorial-approval .field input {
+  min-height: 36px;
+}
+
+.approval-history summary {
+  padding: 8px 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.approval-history .quiet-list {
+  margin-top: 6px;
+}
+
 .ai-plan-review {
   display: grid;
   gap: 16px;

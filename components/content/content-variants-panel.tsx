@@ -1,14 +1,16 @@
-import type { ContentVariant } from "@prisma/client";
+import { EditorialApprovalTargetType, type ContentVariant } from "@prisma/client";
+import { EditorialApprovalPanel } from "@/components/approvals/editorial-approval-panel";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 type ContentVariantsPanelProps = {
   action: () => Promise<void>;
+  contentId: string;
   deleteAction: (variantId: string) => Promise<void>;
   variants: ContentVariant[];
 };
 
-export function ContentVariantsPanel({ action, deleteAction, variants }: ContentVariantsPanelProps) {
+export function ContentVariantsPanel({ action, contentId, deleteAction, variants }: ContentVariantsPanelProps) {
   return (
     <section className="quiet-panel">
       <div className="section-heading">
@@ -45,6 +47,7 @@ export function ContentVariantsPanel({ action, deleteAction, variants }: Content
               {variant.body ? <p className="muted">{variant.body}</p> : null}
               {variant.cta ? <span className="inline-chip">{variant.cta}</span> : null}
               {variant.notes ? <p className="quality-next-step">{variant.notes}</p> : null}
+              <details className="approval-history"><summary>Approval</summary><EditorialApprovalPanel compact path={`/content/${contentId}`} targetId={variant.id} targetType={EditorialApprovalTargetType.content_variant} /></details>
             </article>
           ))}
         </div>

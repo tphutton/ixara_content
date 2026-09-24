@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EditorialApprovalTargetType } from "@prisma/client";
+import { EditorialApprovalPanel } from "@/components/approvals/editorial-approval-panel";
 import { BlogForm } from "@/components/blogs/blog-form";
 import { BlogDetailOverview } from "@/components/blogs/blog-detail-overview";
 import { ProductionFlowPanel } from "@/components/content/production-flow-panel";
@@ -89,6 +91,7 @@ export default async function BlogDetailPage({
         </div>
 
         <div className="stack">
+          <EditorialApprovalPanel path={`/blogs/${id}`} targetId={blog.id} targetType={EditorialApprovalTargetType.blog} />
           <ProductionFlowPanel
             kind="blog"
             recordId={blog.id}

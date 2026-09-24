@@ -159,6 +159,23 @@ enum QuillActionStatus {
   failed
 }
 
+enum EditorialApprovalTargetType {
+  content_plan
+  content_plan_item
+  content
+  blog
+  content_variant
+  schedule
+}
+
+enum EditorialApprovalDecision {
+  pending
+  approved
+  changes_requested
+  rejected
+  revoked
+}
+
 model UserAccess {
   id             String           @id @default(cuid())
   clerkUserId    String           @unique
@@ -192,6 +209,8 @@ model UserAccess {
   chatThreads          ChatThread[]
   quillActionProposals QuillActionProposal[]
   actionLogs           ContentActionLog[]
+  editorialApprovalsRequested EditorialApproval[] @relation("EditorialApprovalRequestedBy")
+  editorialApprovalsDecided   EditorialApproval[] @relation("EditorialApprovalDecidedBy")
 
   @@index([approvalStatus, role])
 }
@@ -526,6 +545,27 @@ model ContentActionLog {
 
   @@index([userId, createdAt])
   @@index([targetType, targetId])
+}
+
+model EditorialApproval {
+  id             String                      @id @default(cuid())
+  targetType     EditorialApprovalTargetType
+  targetId       String
+  decision       EditorialApprovalDecision   @default(pending)
+  requestComment String?
+  decisionComment String?
+  requestedById  String
+  decidedById    String?
+  requestedAt    DateTime                    @default(now())
+  decidedAt      DateTime?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  requestedBy UserAccess  @relation("EditorialApprovalRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  decidedBy   UserAccess? @relation("EditorialApprovalDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId, createdAt])
+  @@index([decision, createdAt])
 }
 
 model BrandProfile {

@@ -10,6 +10,8 @@ Near-term implementation should prioritize continuity, readiness validation, pro
 
 The first continuity gate is now implemented: plan items have structured production-brief fields, inherit effective plan and brand context, expose readiness gaps on the production board, and cannot be promoted until the shared readiness contract passes.
 
+Content now owns the canonical editorial approval ledger for plans, plan items, content, blogs, variants, and schedules. Existing record statuses remain synchronized for compatibility, while request/decision history provides the durable contract that Content UI, Quill, and later MCP/AI Command integrations should share. MCP approval requests should orchestrate this contract rather than maintain an independent editorial decision.
+
 ## UX density standard
 
 The workspace now follows a compact operations-console pattern. Page headers, KPI strips, queue filters, tables, record rows, and asset cards prioritize scanning and repeated action. Brands and Social Accounts use dense reference tables with solid-background detail dialogs, while creation and editing remain in focused overlays. Secondary descriptions and advanced filters use tooltips or disclosure controls instead of permanent large panels.
@@ -159,7 +161,7 @@ Status: planned
 - [x] Add first platform publishing workflow for approved, quality-ready Facebook and Instagram schedule entries.
 - [x] Add `/publishing` delivery queue for ready, blocked, failed, and published Meta schedule entries.
 - [ ] Add publishing previews per channel.
-- [ ] Add publishing approval gates.
+- [x] Add publishing approval gates backed by the shared Content editorial approval ledger.
 - [ ] Add failure/retry queue.
 - [x] Track published post IDs, URLs, snapshots, and status back to schedule/content/blog records for the first Meta publish path.
 - [ ] Expand publishing delivery status with retry history and failure diagnostics.

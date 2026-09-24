@@ -1,6 +1,6 @@
 "use server";
 
-import { ScheduleStatus } from "@prisma/client";
+import { EditorialApprovalDecision, EditorialApprovalTargetType, ScheduleStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createActionLog } from "@/lib/actions/action-log";
@@ -12,8 +12,8 @@ import {
   parseRequiredDate,
 } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
-import { getQualityGate } from "@/lib/quality/gates";
 import { publishScheduleToMeta } from "@/lib/social/meta-publish";
+import { decideEditorialApproval, requestEditorialApproval, revokeEditorialApproval } from "@/lib/approvals/editorial-approvals";
 
 type BulkScheduleActionState = {
   error: string | null;
@@ -170,55 +170,8 @@ export async function deleteScheduleAction(id: string) {
 
 export async function approveScheduleAction(id: string, formData?: FormData) {
   const access = await requireEditorialUserAccess();
-  const before = await prisma.contentSchedule.findUniqueOrThrow({
-    where: { id },
-    include: {
-      content: {
-        include: {
-          qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
-        },
-      },
-      blog: {
-        include: {
-          qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
-        },
-      },
-    },
-  });
-  const latestReview = before.content?.qualityReviews[0] ?? before.blog?.qualityReviews[0] ?? null;
-  const qualityGate = getQualityGate(latestReview);
-  const qualityOverride = formData?.get("qualityOverride") === "true";
-
-  if (qualityGate.blocking && !qualityOverride) {
-    throw new Error(`Quality gate blocked approval: ${qualityGate.reasons.join(" ")}`);
-  }
-
-  const schedule = await prisma.contentSchedule.update({
-    where: { id },
-    data: {
-      approvedById: access.id,
-      status:
-        before.status === ScheduleStatus.planned ? ScheduleStatus.ready : before.status,
-    },
-  });
-
-  await createActionLog({
-    userId: access.id,
-    actionType: "approve",
-    targetType: "schedule",
-    targetId: schedule.id,
-    summary: qualityGate.ready
-      ? "Approved schedule entry for publishing queue"
-      : `Approved schedule entry with quality warning: ${qualityGate.label}`,
-    beforeData: before,
-    afterData: {
-      ...schedule,
-      qualityGate,
-      qualityOverride,
-      qualityReviewId: latestReview?.id ?? null,
-    },
-    source: "manual",
-  });
+  const approval = await requestEditorialApproval({ type: EditorialApprovalTargetType.schedule, id, access, comment: formData ? String(formData.get("comment") ?? "") : null });
+  await decideEditorialApproval({ approvalId: approval.id, decision: EditorialApprovalDecision.approved, access });
 
   revalidatePath("/schedule");
   revalidatePath(`/schedule/${id}`);
@@ -226,25 +179,7 @@ export async function approveScheduleAction(id: string, formData?: FormData) {
 
 export async function clearScheduleApprovalAction(id: string) {
   const access = await requireEditorialUserAccess();
-  const before = await prisma.contentSchedule.findUniqueOrThrow({ where: { id } });
-
-  const schedule = await prisma.contentSchedule.update({
-    where: { id },
-    data: {
-      approvedById: null,
-    },
-  });
-
-  await createActionLog({
-    userId: access.id,
-    actionType: "update",
-    targetType: "schedule",
-    targetId: schedule.id,
-    summary: "Cleared schedule approval",
-    beforeData: before,
-    afterData: schedule,
-    source: "manual",
-  });
+  await revokeEditorialApproval({ type: EditorialApprovalTargetType.schedule, id, access });
 
   revalidatePath("/schedule");
   revalidatePath(`/schedule/${id}`);
@@ -344,19 +279,7 @@ export async function bulkUpdateScheduleAction(
     data.brand = brand;
   }
 
-  if (approvalAction === "approve") {
-    data.approvedById = access.id;
-
-    if (!data.status) {
-      data.status = ScheduleStatus.ready;
-    }
-  }
-
-  if (approvalAction === "clear") {
-    data.approvedById = null;
-  }
-
-  if (Object.keys(data).length === 0) {
+  if (Object.keys(data).length === 0 && approvalAction === "none") {
     return {
       error: "Choose at least one field to update.",
       success: null,
@@ -367,10 +290,19 @@ export async function bulkUpdateScheduleAction(
     where: { id: { in: scheduleIds } },
   });
 
-  await prisma.contentSchedule.updateMany({
-    where: { id: { in: scheduleIds } },
-    data,
-  });
+  if (Object.keys(data).length > 0) {
+    await prisma.contentSchedule.updateMany({ where: { id: { in: scheduleIds } }, data });
+  }
+
+  for (const scheduleId of scheduleIds) {
+    if (approvalAction === "approve") {
+      const approval = await requestEditorialApproval({ type: EditorialApprovalTargetType.schedule, id: scheduleId, access, comment: "Bulk schedule approval" });
+      await decideEditorialApproval({ approvalId: approval.id, decision: EditorialApprovalDecision.approved, access });
+    }
+    if (approvalAction === "clear") {
+      await revokeEditorialApproval({ type: EditorialApprovalTargetType.schedule, id: scheduleId, access, comment: "Bulk approval cleared" });
+    }
+  }
 
   await Promise.all(
     beforeRows.map((beforeRow) =>

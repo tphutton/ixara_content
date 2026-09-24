@@ -1,5 +1,15 @@
 # Build Progress
 
+## 2026-09-24: Canonical editorial approvals
+
+- Added a Content-owned editorial approval ledger for plans, plan items, content, blogs, channel variants, and schedule entries.
+- Approval records preserve request notes, decision notes, requester, reviewer, timestamps, target type, target ID, current decision, and full decision history.
+- Added request, approve, request-changes, reject, reapproval, and revoke flows to the relevant Content workspaces.
+- Approval execution enforces target-specific production-brief and quality gates before synchronizing existing record statuses.
+- Replaced the bespoke schedule approval panel and routed individual and bulk schedule approval through the canonical service used by publishing readiness.
+- Added migration backfill so existing approved plans, plan items, content, blogs, variants, and schedules retain their approval state.
+- Kept MCP integration deferred: AI Command can later consume and execute this Content-owned contract without becoming a competing editorial source of truth.
+
 ## 2026-09-24: Plans table and detail workflow
 
 - Converted the Plans index from expanded rows into a compact table for faster comparison of status, brand, campaign, date window, item count, and recency.
@@ -38,6 +48,7 @@ Deferred until this journey is complete:
 - [ ] Build a guided publishing-package step combining final copy, channel, account, asset, date, and campaign.
 - [ ] Add channel previews and clear validation before a package can be marked ready to post.
 - [ ] Make schedule approval and publishing readiness the final explicit workflow stage.
+- [x] Add one canonical, auditable Content approval contract across plans, production records, variants, and schedules.
 - [ ] Add a single end-to-end progress view and next-action guidance across the journey.
 
 Structured production briefs now capture objective, audience, key message, CTA, tone, channel, and asset direction. Readiness uses plan goals and matching brand defaults where appropriate, is visible on the production board, and is enforced in the shared promotion service used by operators, Quill, and external actions. Promotion preserves the effective context in generated content/blog fields and source prompts.

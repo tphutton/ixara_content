@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EditorialApprovalTargetType } from "@prisma/client";
+import { EditorialApprovalPanel } from "@/components/approvals/editorial-approval-panel";
 import { ContentForm } from "@/components/content/content-form";
 import { ContentVariantsPanel } from "@/components/content/content-variants-panel";
 import { ProductionFlowPanel } from "@/components/content/production-flow-panel";
@@ -125,10 +127,11 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
             </div>
           </section>
 
-          <ContentVariantsPanel action={generateVariantsAction} deleteAction={deleteVariantAction} variants={content.variants} />
+          <ContentVariantsPanel action={generateVariantsAction} contentId={content.id} deleteAction={deleteVariantAction} variants={content.variants} />
         </div>
 
         <div className="stack">
+          <EditorialApprovalPanel path={`/content/${id}`} targetId={content.id} targetType={EditorialApprovalTargetType.content} />
           <ProductionFlowPanel
             kind="content"
             recordId={content.id}

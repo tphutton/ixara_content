@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EditorialApprovalTargetType } from "@prisma/client";
+import { EditorialApprovalPanel } from "@/components/approvals/editorial-approval-panel";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { ScheduleForm } from "@/components/schedule/schedule-form";
 import { prisma } from "@/lib/prisma";
 import { ReadinessPanel } from "@/components/schedule/readiness-panel";
 import { getScheduleReadiness } from "@/lib/schedule/readiness";
-import { getQualityGate } from "@/lib/quality/gates";
 import { getMetaPublishReadiness } from "@/lib/social/meta-publish";
 import {
-  approveScheduleAction,
-  clearScheduleApprovalAction,
   deleteScheduleAction,
   publishScheduleToMetaAction,
   updateScheduleAction,
@@ -91,8 +90,6 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
 
   const updateAction = updateScheduleAction.bind(null, id);
   const deleteAction = deleteScheduleAction.bind(null, id);
-  const approveAction = approveScheduleAction.bind(null, id);
-  const clearApprovalAction = clearScheduleApprovalAction.bind(null, id);
   const publishAction = publishScheduleToMetaAction.bind(null, id);
   const readiness = getScheduleReadiness({
     channel: schedule.channel,
@@ -102,9 +99,6 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
     content: schedule.content,
     blog: schedule.blog,
   });
-  const latestQualityReview =
-    schedule.content?.qualityReviews[0] ?? schedule.blog?.qualityReviews[0] ?? null;
-  const qualityGate = getQualityGate(latestQualityReview);
   const metaReadiness = getMetaPublishReadiness(schedule, connectedAccounts);
 
   return (
@@ -209,62 +203,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
             </div>
           </section>
 
-          <article className="card card--padded">
-            <p className="kicker">Approval</p>
-            <h3 style={{ marginTop: 0 }}>
-              {schedule.approvedBy
-                ? `Approved by ${schedule.approvedBy.fullName ?? schedule.approvedBy.email}`
-                : "Not approved yet"}
-            </h3>
-            <p className="muted">
-              Use approval to mark which schedule entries are safe for later automation and
-              publishing queues.
-            </p>
-            <div className="quality-approval-warning" data-ready={qualityGate.ready}>
-              <strong>{qualityGate.ready ? "Quality gate passed" : "Quality gate warning"}</strong>
-              <p className="muted">
-                {qualityGate.ready
-                  ? qualityGate.label
-                  : qualityGate.reasons.join(" ")}
-              </p>
-              {latestQualityReview ? (
-                <Link
-                  className="button button--secondary"
-                  href={
-                    schedule.contentId
-                      ? `/content/${schedule.contentId}`
-                      : schedule.blogId
-                        ? `/blogs/${schedule.blogId}`
-                        : "/schedule"
-                  }
-                >
-                  Open quality review
-                </Link>
-              ) : null}
-            </div>
-
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
-              {schedule.approvedById ? (
-                <form action={clearApprovalAction}>
-                  <SubmitButton
-                    label="Clear approval"
-                    pendingLabel="Clearing approval..."
-                    variant="secondary"
-                  />
-                </form>
-              ) : (
-                <form action={approveAction}>
-                  {!qualityGate.ready ? (
-                    <input name="qualityOverride" type="hidden" value="true" />
-                  ) : null}
-                  <SubmitButton
-                    label={qualityGate.ready ? "Approve for queue" : "Approve with warning"}
-                    pendingLabel="Approving..."
-                  />
-                </form>
-              )}
-            </div>
-          </article>
+          <EditorialApprovalPanel path={`/schedule/${id}`} targetId={schedule.id} targetType={EditorialApprovalTargetType.schedule} />
         </div>
       </div>
 

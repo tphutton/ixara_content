@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { ContentPlanItemStatus, type ContentPlanItem } from "@prisma/client";
+import { ContentPlanItemStatus, EditorialApprovalTargetType, type ContentPlanItem } from "@prisma/client";
+import { EditorialApprovalPanel } from "@/components/approvals/editorial-approval-panel";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { PlanForm } from "@/components/plans/plan-form";
 import { PlanItemForm } from "@/components/plans/plan-item-form";
@@ -231,6 +232,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
               <div><p className="kicker">Description</p><p>{plan.description ?? "No description added."}</p></div>
               <div className="metadata-grid"><div><span>Brand</span><strong>{plan.brand ?? "Not set"}</strong></div><div><span>Campaign</span><strong>{plan.campaignName ?? "Not set"}</strong></div><div><span>Starts</span><strong>{formatDate(plan.startDate)}</strong></div><div><span>Ends</span><strong>{formatDate(plan.endDate)}</strong></div></div>
               {plan.sourcePrompt ? <div><p className="kicker">Planning source</p><p className="muted">{plan.sourcePrompt}</p></div> : null}
+              <EditorialApprovalPanel compact path={`/plans/${plan.id}?brief=1`} targetId={plan.id} targetType={EditorialApprovalTargetType.content_plan} />
             </div>
             <div className="editor-overlay__footer form-actions"><Link className="button button--primary" href={`/plans/${plan.id}?edit=1`}>Edit plan</Link></div>
           </section>
@@ -256,6 +258,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
               <div className="plan-detail-grid"><div><p className="kicker">Objective</p><p>{readiness.effective.objective ?? "Not set"}</p></div><div><p className="kicker">Audience</p><p>{readiness.effective.targetAudience ?? "Not set"}</p></div><div><p className="kicker">Key message</p><p>{readiness.effective.keyMessage ?? "Not set"}</p></div><div><p className="kicker">CTA & tone</p><p>{readiness.effective.callToAction ?? "No CTA"} · {readiness.effective.tone ?? "No tone"}</p></div></div>
               <div><p className="kicker">Asset direction</p><p>{viewingItem.assetRequest ?? "No asset direction added."}</p></div>
               <div><p className="kicker">Next action</p><p className="quality-next-step">{nextBestAction(viewingItem, readiness.ready)}</p></div>
+              <EditorialApprovalPanel compact path={`/plans/${plan.id}?viewItem=${viewingItem.id}`} targetId={viewingItem.id} targetType={EditorialApprovalTargetType.content_plan_item} />
               <form action={updateStatus} className="status-control"><select name="status" defaultValue={viewingItem.status} aria-label={`Status for ${viewingItem.title}`}>{allStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select><button className="button button--secondary" type="submit">Update status</button></form>
               <div className="toolbar__group">{viewingItem.content ? <Link className="button button--secondary" href={`/content/${viewingItem.content.id}`}>Open content</Link> : null}{viewingItem.blog ? <Link className="button button--secondary" href={`/blogs/${viewingItem.blog.id}`}>Open blog</Link> : null}{viewingItem.schedule ? <Link className="button button--secondary" href={`/schedule/${viewingItem.schedule.id}`}>Open schedule</Link> : null}</div>
             </div>
