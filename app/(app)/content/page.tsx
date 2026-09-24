@@ -2,6 +2,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { prisma } from "@/lib/prisma";
+import { deleteContentAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -152,11 +153,13 @@ export default async function ContentPage({ searchParams }: ContentPageProps) {
                   <th>Region</th>
                   <th>Readiness</th>
                   <th>Status</th>
+                  <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row) => (
-                  <tr key={row.id}>
+                {filteredRows.map((row) => {
+                  const deleteContent = deleteContentAction.bind(null, row.id);
+                  return <tr key={row.id}>
                     <td>
                       <Link href={`/content/${row.id}`}>{row.title}</Link>
                     </td>
@@ -170,8 +173,16 @@ export default async function ContentPage({ searchParams }: ContentPageProps) {
                     <td>
                       <StatusBadge label={row.status} />
                     </td>
-                  </tr>
-                ))}
+                    <td>
+                      <div className="row-actions table-actions">
+                        <Link className="button button--secondary" href={`/content/${row.id}`}>Open</Link>
+                        <form action={deleteContent}>
+                          <button className="button button--secondary" type="submit">Delete</button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>;
+                })}
               </tbody>
             </table>
           </div>

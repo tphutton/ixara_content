@@ -7,6 +7,7 @@
 - Added a secondary status filter without adding another permanent toolbar row.
 - Replaced the always-open campaign edit form with a compact read-only detail page and a solid-background Edit Campaign overlay.
 - Kept campaign briefs, market context, linked media, dates, and service identifiers available without overwhelming the primary list.
+- Added direct Open and Delete actions to the compact Content table for faster queue management.
 
 ## 2026-09-24: Canonical editorial approvals
 
