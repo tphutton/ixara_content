@@ -82,10 +82,6 @@ export function ChatShell({
       : "threads",
   );
 
-  const selectedTitle = useMemo(() => {
-    return threads.find((item) => item.id === threadId)?.title ?? "New thread";
-  }, [threadId, threads]);
-
   const visibleMessages = useMemo(
     () => messages.filter((entry) => entry.role !== "tool"),
     [messages],
@@ -301,33 +297,6 @@ export function ChatShell({
   return (
     <div className="chat-workspace">
       <section className="card card--padded chat-workspace__primary">
-        <div className="chat-hero">
-          <div className="chat-hero__identity">
-            <div className="chat-hero__avatar">
-              <Image
-                alt="Quill avatar"
-                height={64}
-                src="https://media.ixara.tech/wp-content/uploads/2026/03/5df61a5e-b2be-4944-95b9-ea0f663002fc.webp"
-                width={64}
-              />
-            </div>
-            <div>
-              <p className="kicker">Quill</p>
-              <h3 style={{ margin: "0 0 8px" }}>AI content operations assistant</h3>
-              <p className="muted" style={{ margin: 0 }}>Content planning, creation, quality, and publishing.</p>
-            </div>
-          </div>
-
-          <div className="chat-hero__meta">
-            <span className="inline-chip">Active thread: {selectedTitle}</span>
-            {actionProposals.some((proposal) => proposal.status === "pending" || proposal.status === "failed") ? (
-              <button className="inline-chip" onClick={() => setSidePanel("actions")} type="button">
-                {actionProposals.filter((proposal) => proposal.status === "pending" || proposal.status === "failed").length} action pending
-              </button>
-            ) : null}
-          </div>
-        </div>
-
         <div className="chat-log">
           {visibleMessages.length === 0 ? (
             <div className="empty-state chat-empty-state">

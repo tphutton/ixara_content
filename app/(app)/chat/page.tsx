@@ -1,5 +1,4 @@
 import { ChatShell } from "@/components/chat/chat-shell";
-import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { requireApprovedUserAccess } from "@/lib/auth/user-access";
 import { prisma } from "@/lib/prisma";
 
@@ -41,12 +40,7 @@ export default async function ChatPage({ searchParams }: ChatPageProps) {
     : [[], []];
 
   return (
-    <section className="page-shell">
-      <WorkspaceHeader
-        title="Quill"
-        description="Research content operations, prepare changes, and approve every action before it touches live workspace data."
-      />
-
+    <section className="chat-page">
       <ChatShell
         initialMessages={messages.map((message) => ({
           id: message.id,

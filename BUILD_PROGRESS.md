@@ -1,5 +1,13 @@
 # Build Progress
 
+## 2026-09-24: Compact reference tables and full-height Quill
+
+- Converted Brands into a dense management table with readiness, audience, market, knowledge, and update signals available at a glance.
+- Added solid-background brand detail dialogs so deeper positioning, offers, proof, and AI context gaps no longer expand the list page.
+- Converted Social Accounts into a compact operational table with connection, sync, market, and publishing activity signals.
+- Added a focused social-account detail dialog while retaining the existing create and edit flows.
+- Removed Quill's duplicate page and hero headings and made the desktop conversation workspace fill the available viewport height.
+
 ## 2026-09-21: Quill production action controls
 
 - Added durable Quill action proposals for every mutating AI tool call.

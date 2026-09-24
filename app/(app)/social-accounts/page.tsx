@@ -22,6 +22,7 @@ type SocialAccountsPageProps = {
     success?: string;
     new?: string;
     edit?: string;
+    view?: string;
   }>;
 };
 
@@ -55,6 +56,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
   const metaConfigured = isMetaConfigured();
   const creatingAccount = resolvedSearchParams?.new === "1";
   const editingAccount = accounts.find((account) => account.id === resolvedSearchParams?.edit) ?? null;
+  const viewingAccount = accounts.find((account) => account.id === resolvedSearchParams?.view) ?? null;
 
   return (
     <section className="page-shell">
@@ -140,16 +142,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
         </div>
       </section>
 
-      <section className="quiet-panel">
-        <div className="section-heading">
-          <div>
-          <p className="kicker">Registered accounts</p>
-            <h3>Live account control</h3>
-          </div>
-          <span className="inline-chip">{accounts.length} total</span>
-        </div>
-
-        {accounts.length === 0 ? (
+      {accounts.length === 0 ? (
           <div className="empty-state empty-state--quiet">
             <h3>No accounts yet</h3>
             <p className="muted">
@@ -158,37 +151,26 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
             </p>
           </div>
         ) : (
-          <div className="quiet-list">
+          <div className="table-shell">
+            <table className="table social-account-table">
+              <thead>
+                <tr><th>Account</th><th>Platform</th><th>Brand & market</th><th>Status</th><th>Activity</th><th>Last sync</th><th aria-label="Actions" /></tr>
+              </thead>
+              <tbody>
             {accounts.map((account) => {
-              const disconnectAction = disconnectConnectedAccountAction.bind(null, account.id);
-              const deleteAction = deleteConnectedAccountAction.bind(null, account.id);
               const syncAction = syncConnectedAccountNowAction.bind(null, account.id);
               const canUseMetaFlow = metaConfigured && isMetaPlatform(account.platform);
               const expiresSoon = tokenExpiresWithinDays(account.tokenExpiresAt, 14);
-              const needsReconnect = account.status === "needs_reauth" || account.status === "error" || expiresSoon;
 
               return (
-                <article className="quiet-row social-account-row" key={account.id}>
-                  <div className="quiet-row__main">
-                    <div className="quiet-row__title">
-                      <strong>{account.accountName}</strong>
-                      <StatusBadge label={account.status} />
-                    </div>
-                    <div className="quiet-meta">
-                      <span>{account.platform}</span>
-                      <span>{account.brandProfile?.brandName ?? account.brandName ?? "No brand"}</span>
-                      <span>{account.publishedPosts.length} post{account.publishedPosts.length === 1 ? "" : "s"}</span>
-                      <span>Updated {formatDistanceToNow(account.updatedAt, { addSuffix: true })}</span>
-                      {account.tokenExpiresAt ? (
-                        <span>Authorization expires {formatDistanceToNow(account.tokenExpiresAt, { addSuffix: true })}</span>
-                      ) : null}
-                    </div>
-                    {account.lastSyncStatus ? (
-                      <p className="muted">{account.lastSyncStatus}</p>
-                    ) : null}
-                  </div>
-
-                  <div className="row-actions">
+                <tr key={account.id}>
+                  <td><Link href={`/social-accounts?view=${account.id}`}><strong>{account.accountName}</strong></Link><div className="table-subtext">{account.accountHandle ?? "No handle"}</div></td>
+                  <td>{account.platform}</td>
+                  <td><strong>{account.brandProfile?.brandName ?? account.brandName ?? "No brand"}</strong><div className="table-subtext">{[account.region, account.country].filter(Boolean).join(", ") || "No market set"}</div></td>
+                  <td><StatusBadge label={account.status} />{expiresSoon ? <div className="table-subtext">Authorization expires soon</div> : null}</td>
+                  <td><strong>{account.publishedPosts.length} post{account.publishedPosts.length === 1 ? "" : "s"}</strong><div className="table-subtext">Updated {formatDistanceToNow(account.updatedAt, { addSuffix: true })}</div></td>
+                  <td>{account.lastSyncedAt ? formatDistanceToNow(account.lastSyncedAt, { addSuffix: true }) : "Never"}<div className="table-subtext">{account.lastSyncStatus ?? "No sync result"}</div></td>
+                  <td><div className="row-actions table-actions">
                     {canUseMetaFlow && !account.encryptedAccessToken ? (
                       <Link className="button button--primary" href={`/api/social/meta/start?accountId=${account.id}`}>
                         Connect Meta
@@ -199,27 +181,45 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
                         <button className="button button--primary" type="submit">Sync posts</button>
                       </form>
                     ) : null}
-                    {canUseMetaFlow && account.encryptedAccessToken && needsReconnect ? (
-                      <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${account.id}`}>
-                        Reconnect Meta
-                      </Link>
-                    ) : null}
-                    <Link className="button button--secondary" href={`/social-accounts?edit=${account.id}`}>
-                      Edit
+                    <Link className="button button--secondary" href={`/social-accounts?view=${account.id}`}>
+                      View
                     </Link>
-                    <form action={disconnectAction}>
-                      <button className="button button--secondary" type="submit">Disconnect</button>
-                    </form>
-                    <form action={deleteAction}>
-                      <button className="button button--secondary" type="submit">Delete</button>
-                    </form>
-                  </div>
-                </article>
+                  </div></td>
+                </tr>
               );
             })}
+              </tbody>
+            </table>
           </div>
         )}
-      </section>
+
+      {viewingAccount ? (() => {
+        const canUseMetaFlow = metaConfigured && isMetaPlatform(viewingAccount.platform);
+        const expiresSoon = tokenExpiresWithinDays(viewingAccount.tokenExpiresAt, 14);
+        const needsReconnect = viewingAccount.status === "needs_reauth" || viewingAccount.status === "error" || expiresSoon;
+        const disconnectAction = disconnectConnectedAccountAction.bind(null, viewingAccount.id);
+        const deleteAction = deleteConnectedAccountAction.bind(null, viewingAccount.id);
+        const syncAction = syncConnectedAccountNowAction.bind(null, viewingAccount.id);
+        return <div className="editor-overlay editor-overlay--dialog">
+          <div className="editor-overlay__backdrop"><Link aria-label="Close account details" href="/social-accounts" /></div>
+          <section className="editor-overlay__panel account-detail-panel">
+            <div className="editor-overlay__header"><div><p className="kicker">Social account</p><h3>{viewingAccount.accountName}</h3><div className="toolbar__group"><StatusBadge label={viewingAccount.status} /><span className="inline-chip">{viewingAccount.platform}</span></div></div><Link className="button button--secondary" href="/social-accounts">Close</Link></div>
+            <div className="editor-overlay__content stack">
+              <div className="metadata-grid"><div><span>Handle</span><strong>{viewingAccount.accountHandle ?? "Not set"}</strong></div><div><span>Brand</span><strong>{viewingAccount.brandProfile?.brandName ?? viewingAccount.brandName ?? "Not set"}</strong></div><div><span>Market</span><strong>{[viewingAccount.region, viewingAccount.country].filter(Boolean).join(", ") || "Not set"}</strong></div><div><span>Published posts</span><strong>{viewingAccount.publishedPosts.length}</strong></div></div>
+              <div><p className="kicker">Connection</p><p><strong>External account ID:</strong> {viewingAccount.externalAccountId ?? "Not connected"}</p><p><strong>Permissions:</strong> {viewingAccount.scopes.join(", ") || "None recorded"}</p><p><strong>Authorization:</strong> {viewingAccount.tokenExpiresAt ? `${expiresSoon ? "Expires soon, " : "Expires "}${formatDistanceToNow(viewingAccount.tokenExpiresAt, { addSuffix: true })}` : "No expiry recorded"}</p></div>
+              <div><p className="kicker">Latest sync</p><p>{viewingAccount.lastSyncStatus ?? "This account has not reported a sync result."}</p><p className="muted">{viewingAccount.lastSyncedAt ? `Synced ${formatDistanceToNow(viewingAccount.lastSyncedAt, { addSuffix: true })}` : "Never synced"}</p></div>
+            </div>
+            <div className="editor-overlay__footer form-actions">
+              <Link className="button button--primary" href={`/social-accounts?edit=${viewingAccount.id}`}>Edit account</Link>
+              {canUseMetaFlow && !viewingAccount.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Connect Meta</Link> : null}
+              {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <form action={syncAction}><button className="button button--secondary" type="submit">Sync posts</button></form> : null}
+              {canUseMetaFlow && viewingAccount.encryptedAccessToken && needsReconnect ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Reconnect Meta</Link> : null}
+              <form action={disconnectAction}><button className="button button--secondary" type="submit">Disconnect</button></form>
+              <form action={deleteAction}><button className="button button--secondary" type="submit">Delete</button></form>
+            </div>
+          </section>
+        </div>;
+      })() : null}
 
       {creatingAccount ? (
         <div className="editor-overlay">

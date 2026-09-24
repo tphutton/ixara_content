@@ -295,6 +295,16 @@ textarea {
   min-height: 680px;
 }
 
+.chat-page {
+  height: calc(100vh - 40px);
+  min-height: 0;
+}
+
+.chat-page .chat-workspace {
+  height: 100%;
+  min-height: 0;
+}
+
 .chat-workspace__primary,
 .chat-workspace__secondary {
   height: 100%;
@@ -309,7 +319,7 @@ textarea {
 
 .chat-workspace__primary {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(255, 251, 251, 0.98), rgba(255, 255, 255, 0.9)),
@@ -602,6 +612,40 @@ textarea {
 
 .table tbody tr[data-selected="true"] {
   background: rgba(192, 28, 28, 0.06);
+}
+
+.brand-table,
+.social-account-table {
+  min-width: 1080px;
+}
+
+.table-subtext {
+  max-width: 280px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.table-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.brand-detail-panel,
+.account-detail-panel {
+  z-index: 1;
+  width: min(760px, calc(100vw - 32px));
+  height: auto;
+  max-height: calc(100vh - 32px);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
 }
 
 .muted {
@@ -2849,6 +2893,10 @@ textarea {
     grid-template-columns: 1fr;
     height: auto;
     min-height: 0;
+  }
+
+  .chat-page {
+    height: auto;
   }
 
   .chat-workspace__secondary {

@@ -2,7 +2,7 @@
 
 ## UX density standard
 
-The workspace now follows a compact operations-console pattern. Page headers, KPI strips, queue filters, tables, record rows, and asset cards prioritize scanning and repeated action. Secondary descriptions and advanced filters use tooltips or disclosure controls instead of permanent large panels. Creation and editing remain in focused pages or solid-background overlays.
+The workspace now follows a compact operations-console pattern. Page headers, KPI strips, queue filters, tables, record rows, and asset cards prioritize scanning and repeated action. Brands and Social Accounts use dense reference tables with solid-background detail dialogs, while creation and editing remain in focused overlays. Secondary descriptions and advanced filters use tooltips or disclosure controls instead of permanent large panels.
 
 ## Quill action safety
 
@@ -16,7 +16,7 @@ Production reliability controls now include strict request and approval validati
 
 Quill now ranks brand context against the current request so named brands are never displaced by alphabetical limits. Chat network failures preserve the prompt for retry, and users can rename or delete their own conversation threads.
 
-The Quill workspace is conversation-first. Approvals, thread management, and tool activity share one tabbed utility panel, while starter actions and a compact composer reduce the work needed to begin common operational tasks.
+The Quill workspace is conversation-first and fills the available desktop viewport without introductory headings pushing the composer below the fold. Approvals, thread management, and tool activity share one tabbed utility panel, while starter actions and a compact composer reduce the work needed to begin common operational tasks.
 
 Railway startup runs pending Prisma migrations before starting Next.js, ensuring action-control schema changes are available before Quill receives traffic.
 
