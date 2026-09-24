@@ -1,5 +1,13 @@
 # Content Command Platform Build Plan
 
+## Current Delivery Focus
+
+The active milestone is the complete operator path from initial context to a post-ready package:
+
+`brand/campaign -> plan -> production brief -> draft -> quality -> variants -> asset -> schedule -> approval -> ready to post`
+
+Near-term implementation should prioritize continuity, readiness validation, progressive disclosure, and obvious next actions across this path. Command Center signal expansion, advanced analytics, broad collaboration features, full-system test hardening, and Railway cron configuration remain planned but are intentionally sequenced after the end-to-end content journey is complete. Detailed execution status is maintained in `BUILD_PROGRESS.md`.
+
 ## UX density standard
 
 The workspace now follows a compact operations-console pattern. Page headers, KPI strips, queue filters, tables, record rows, and asset cards prioritize scanning and repeated action. Brands and Social Accounts use dense reference tables with solid-background detail dialogs, while creation and editing remain in focused overlays. Secondary descriptions and advanced filters use tooltips or disclosure controls instead of permanent large panels.

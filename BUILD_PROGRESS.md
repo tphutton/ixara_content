@@ -1,5 +1,36 @@
 # Build Progress
 
+## Active Milestone: End-to-end post readiness
+
+The current build priority is one complete, easy-to-use operator journey:
+
+`brand and campaign context -> plan -> brief -> draft -> quality review -> channel variants -> asset selection -> schedule -> approval -> ready to post`
+
+Work in this milestone will focus on closing gaps between these existing stages, preserving context as records move forward, and making the next action obvious at every step. The milestone is complete when an operator can begin with a campaign or planning brief and reach a validated, channel-specific, asset-backed, approved publishing package without leaving the guided workflow.
+
+Deferred until this journey is complete:
+
+- Wider Command Center and business-signal integrations.
+- Full production regression and browser testing beyond checks needed while building each step.
+- Railway cron wiring for automations and social analytics sync.
+- Advanced analytics intelligence, collaboration, and notification features.
+
+### Milestone checklist
+
+- [x] Capture brand, campaign, dates, channels, goals, markets, and guidance in AI planning briefs.
+- [x] Save generated plans and review their items in a production board.
+- [x] Promote plan items into content, blog, or schedule records.
+- [x] Run persisted quality reviews and apply recommendations to short-form content.
+- [x] Generate saved platform-specific variants from short-form content.
+- [x] Recommend assets using brand, campaign, geography, category, and content context.
+- [ ] Upgrade promoted plan items into complete production briefs with inherited context and readiness checks.
+- [ ] Extend guided quality fixes to blogs and plan items.
+- [ ] Add variant editing, review, approval, and selection for publishing.
+- [ ] Build a guided publishing-package step combining final copy, channel, account, asset, date, and campaign.
+- [ ] Add channel previews and clear validation before a package can be marked ready to post.
+- [ ] Make schedule approval and publishing readiness the final explicit workflow stage.
+- [ ] Add a single end-to-end progress view and next-action guidance across the journey.
+
 ## 2026-09-24: Compact reference tables and full-height Quill
 
 - Converted Brands into a dense management table with readiness, audience, market, knowledge, and update signals available at a glance.
