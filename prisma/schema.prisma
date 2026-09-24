@@ -391,6 +391,11 @@ model ContentPlanItem {
   status       ContentPlanItemStatus @default(planned)
   title        String
   brief        String?
+  objective    String?
+  targetAudience String?
+  keyMessage   String?
+  callToAction String?
+  tone         String?
   channel      String?
   scheduledFor DateTime?
   brand        String?

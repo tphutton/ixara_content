@@ -12,12 +12,31 @@ import {
   applyBrandRulesToBlog,
   applyBrandRulesToContent,
 } from "@/lib/brand-profiles/rules";
+import {
+  getEffectiveProductionBrief,
+  getPlanItemBriefReadiness,
+} from "@/lib/plans/brief-readiness";
 import { prisma } from "@/lib/prisma";
 
 export type PlanPromotionTarget = "content" | "blog" | "schedule";
 
-function promotionPrompt(planTitle: string, itemTitle: string) {
-  return `Promoted from content plan "${planTitle}" item "${itemTitle}".`;
+function promotionPrompt(input: {
+  planTitle: string;
+  itemTitle: string;
+  objective: string | null;
+  audience: string | null;
+  keyMessage: string | null;
+  callToAction: string | null;
+  tone: string | null;
+}) {
+  return [
+    `Promoted from content plan "${input.planTitle}" item "${input.itemTitle}".`,
+    input.objective ? `Objective: ${input.objective}` : null,
+    input.audience ? `Audience: ${input.audience}` : null,
+    input.keyMessage ? `Key message: ${input.keyMessage}` : null,
+    input.callToAction ? `Call to action: ${input.callToAction}` : null,
+    input.tone ? `Tone: ${input.tone}` : null,
+  ].filter(Boolean).join("\n");
 }
 
 async function createContentFromItem(input: {
@@ -26,6 +45,11 @@ async function createContentFromItem(input: {
     id: string;
     title: string;
     brief: string | null;
+    objective: string | null;
+    targetAudience: string | null;
+    keyMessage: string | null;
+    callToAction: string | null;
+    tone: string | null;
     channel: string | null;
     brand: string | null;
     sport: string | null;
@@ -35,29 +59,38 @@ async function createContentFromItem(input: {
   };
   access: UserAccess;
   source: "manual" | "ai";
+  effective: ReturnType<typeof getEffectiveProductionBrief>;
 }) {
   const prepared = {
     title: input.item.title,
     body: input.item.brief,
-    hook: null,
-    cta: null,
+    hook: input.effective.keyMessage,
+    cta: input.effective.callToAction,
     contentType: ContentType.social_post,
     platform: input.item.channel,
     status: ContentStatus.draft,
-    campaignName: input.item.campaignName,
-    brand: input.item.brand,
+    campaignName: input.effective.campaignName,
+    brand: input.effective.brand,
     sport: input.item.sport,
     region: input.item.region,
     country: input.item.country,
     tags: [],
-    targetAudience: null,
-    tone: null,
+    targetAudience: input.effective.targetAudience,
+    tone: input.effective.tone,
     websites: [],
     assetImage: null,
     assetCaption: null,
     primaryAssetId: null,
     aiGenerated: true,
-    sourcePrompt: promotionPrompt(input.planTitle, input.item.title),
+    sourcePrompt: promotionPrompt({
+      planTitle: input.planTitle,
+      itemTitle: input.item.title,
+      objective: input.effective.objective,
+      audience: input.effective.targetAudience,
+      keyMessage: input.effective.keyMessage,
+      callToAction: input.effective.callToAction,
+      tone: input.effective.tone,
+    }),
     createdById: input.access.id,
     updatedById: input.access.id,
   };
@@ -88,6 +121,11 @@ async function createBlogFromItem(input: {
     id: string;
     title: string;
     brief: string | null;
+    objective: string | null;
+    targetAudience: string | null;
+    keyMessage: string | null;
+    callToAction: string | null;
+    tone: string | null;
     brand: string | null;
     sport: string | null;
     region: string | null;
@@ -96,16 +134,17 @@ async function createBlogFromItem(input: {
   };
   access: UserAccess;
   source: "manual" | "ai";
+  effective: ReturnType<typeof getEffectiveProductionBrief>;
 }) {
   const prepared = {
     title: input.item.title,
-    brand: input.item.brand,
+    brand: input.effective.brand,
     postDate: null,
     authorName: null,
     authorImage: null,
     featureImage: null,
     featureAssetId: null,
-    text1: input.item.brief,
+    text1: [input.effective.keyMessage, input.item.brief].filter(Boolean).join("\n\n") || null,
     image1: null,
     image1Caption: null,
     text2: null,
@@ -130,7 +169,7 @@ async function createBlogFromItem(input: {
     image8: null,
     image8Caption: null,
     websites: [],
-    category: input.item.campaignName,
+    category: input.effective.campaignName,
     tags: [],
     authorBio: null,
     status: BlogStatus.draft,
@@ -139,7 +178,15 @@ async function createBlogFromItem(input: {
     country: input.item.country,
     sources: [],
     aiGenerated: true,
-    sourcePrompt: promotionPrompt(input.planTitle, input.item.title),
+    sourcePrompt: promotionPrompt({
+      planTitle: input.planTitle,
+      itemTitle: input.item.title,
+      objective: input.effective.objective,
+      audience: input.effective.targetAudience,
+      keyMessage: input.effective.keyMessage,
+      callToAction: input.effective.callToAction,
+      tone: input.effective.tone,
+    }),
     createdById: input.access.id,
     updatedById: input.access.id,
   };
@@ -182,6 +229,21 @@ export async function promoteContentPlanItem(input: {
 
   let content = item.content;
   let blog = item.blog;
+  const brand = item.brand ?? item.plan.brand;
+  const profile = brand
+    ? await prisma.brandProfile.findFirst({
+        where: { brandName: { equals: brand, mode: "insensitive" } },
+        select: { targetAudience: true, defaultTone: true, preferredCTAs: true },
+      })
+    : null;
+  const effective = getEffectiveProductionBrief(item, item.plan, profile);
+  const briefReadiness = getPlanItemBriefReadiness(item, item.plan, profile);
+
+  if (!briefReadiness.ready) {
+    throw new Error(
+      `Complete the production brief before promotion. Missing: ${briefReadiness.missing.map((gap) => gap.label).join(", ")}.`,
+    );
+  }
 
   if (input.target === "content" && !content) {
     content = await createContentFromItem({
@@ -189,6 +251,7 @@ export async function promoteContentPlanItem(input: {
       item,
       access: input.access,
       source: input.source,
+      effective,
     });
   }
 
@@ -198,6 +261,7 @@ export async function promoteContentPlanItem(input: {
       item,
       access: input.access,
       source: input.source,
+      effective,
     });
   }
 
@@ -209,6 +273,7 @@ export async function promoteContentPlanItem(input: {
           item,
           access: input.access,
           source: input.source,
+          effective,
         });
       } else {
         content = await createContentFromItem({
@@ -216,6 +281,7 @@ export async function promoteContentPlanItem(input: {
           item,
           access: input.access,
           source: input.source,
+          effective,
         });
       }
     }
@@ -247,12 +313,12 @@ export async function promoteContentPlanItem(input: {
         scheduledFor: item.scheduledFor as Date,
         channel: item.channel,
         status: ScheduleStatus.planned,
-        campaignName: item.campaignName,
-        brand: item.brand,
+        campaignName: effective.campaignName,
+        brand: effective.brand,
         sport: item.sport,
         region: item.region,
         country: item.country,
-        notes: `Promoted from plan "${item.plan.title}". ${item.brief ?? ""}`.trim(),
+        notes: `Promoted from plan "${item.plan.title}". ${effective.objective ? `Objective: ${effective.objective}. ` : ""}${item.brief ?? ""}`.trim(),
         createdById: input.access.id,
       },
     });

@@ -8,6 +8,8 @@ The active milestone is the complete operator path from initial context to a pos
 
 Near-term implementation should prioritize continuity, readiness validation, progressive disclosure, and obvious next actions across this path. Command Center signal expansion, advanced analytics, broad collaboration features, full-system test hardening, and Railway cron configuration remain planned but are intentionally sequenced after the end-to-end content journey is complete. Detailed execution status is maintained in `BUILD_PROGRESS.md`.
 
+The first continuity gate is now implemented: plan items have structured production-brief fields, inherit effective plan and brand context, expose readiness gaps on the production board, and cannot be promoted until the shared readiness contract passes.
+
 ## UX density standard
 
 The workspace now follows a compact operations-console pattern. Page headers, KPI strips, queue filters, tables, record rows, and asset cards prioritize scanning and repeated action. Brands and Social Accounts use dense reference tables with solid-background detail dialogs, while creation and editing remain in focused overlays. Secondary descriptions and advanced filters use tooltips or disclosure controls instead of permanent large panels.

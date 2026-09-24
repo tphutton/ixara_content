@@ -6,6 +6,7 @@ import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { PlanForm } from "@/components/plans/plan-form";
 import { PlanItemForm } from "@/components/plans/plan-item-form";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { getPlanItemBriefReadiness } from "@/lib/plans/brief-readiness";
 import { prisma } from "@/lib/prisma";
 import { reviewPlanItemQualityAction } from "../../quality/actions";
 import {
@@ -57,9 +58,12 @@ function filterHref(planId: string, key: string, value?: string | null) {
   return `/plans/${planId}${params.size ? `?${params.toString()}` : ""}`;
 }
 
-function nextBestAction(item: ContentPlanItem & { qualityReviews: Array<{ overallScore: number }> }) {
+function nextBestAction(
+  item: ContentPlanItem & { qualityReviews: Array<{ overallScore: number }> },
+  briefReady: boolean,
+) {
   if (item.status === ContentPlanItemStatus.blocked) return "Resolve blocker or rewrite the brief.";
-  if (!item.brief && !item.assetRequest) return "Add a stronger brief before promotion.";
+  if (!briefReady) return "Complete the production brief before promotion.";
   if (item.qualityReviews.length === 0) return "Run quality review.";
   if (item.qualityReviews[0].overallScore < 75) return "Improve the item from quality feedback.";
   if (!item.contentId && !item.blogId) return item.itemType === "blog" ? "Promote into blog draft." : "Promote into content draft.";
@@ -89,7 +93,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
       },
     }),
     prisma.brandProfile.findMany({
-      select: { id: true, brandName: true },
+      select: { id: true, brandName: true, targetAudience: true, defaultTone: true, preferredCTAs: true },
       orderBy: { brandName: "asc" },
     }),
   ]);
@@ -103,6 +107,9 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
   const addItem = addContentPlanItemAction.bind(null, plan.id);
   const editingItem = editingItemId ? plan.items.find((item) => item.id === editingItemId) : null;
   const updateItem = editingItem ? updateContentPlanItemAction.bind(null, plan.id, editingItem.id) : null;
+  const brandProfileByName = new Map(
+    brandProfiles.map((profile) => [profile.brandName.toLowerCase(), profile]),
+  );
 
   const activeStatus = allStatuses.includes(resolvedSearchParams?.status as ContentPlanItemStatus)
     ? resolvedSearchParams?.status
@@ -236,6 +243,8 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
                           const promoteItem = promoteContentPlanItemAction.bind(null, plan.id, item.id);
                           const latestReview = item.qualityReviews[0] ?? null;
                           const canSchedule = Boolean(item.scheduledFor);
+                          const profile = brandProfileByName.get((item.brand ?? plan.brand ?? "").toLowerCase()) ?? null;
+                          const briefReadiness = getPlanItemBriefReadiness(item, plan, profile);
 
                           return (
                             <article className="plan-card" key={item.id}>
@@ -257,9 +266,16 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
                                 {item.blog ? <Link href={`/blogs/${item.blog.id}`}>Blog</Link> : null}
                                 {item.schedule ? <Link href={`/schedule/${item.schedule.id}`}>Schedule</Link> : null}
                                 {latestReview ? <span>Quality {latestReview.overallScore}/100</span> : <span>Not reviewed</span>}
+                                <span>{briefReadiness.score}% brief</span>
                               </div>
 
-                              <div className="plan-next-action">{nextBestAction(item)}</div>
+                              {!briefReadiness.ready ? (
+                                <div className="plan-brief-gaps" title={briefReadiness.missing.map((gap) => gap.label).join(", ")}>
+                                  Missing: {briefReadiness.missing.slice(0, 3).map((gap) => gap.label).join(", ")}{briefReadiness.missing.length > 3 ? ` +${briefReadiness.missing.length - 3}` : ""}
+                                </div>
+                              ) : null}
+
+                              <div className="plan-next-action">{nextBestAction(item, briefReadiness.ready)}</div>
 
                               <form action={updateStatus} className="status-control status-control--compact">
                                 <select name="status" defaultValue={item.status} aria-label={`Status for ${item.title}`}>
@@ -290,7 +306,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
                                 </form>
                               </div>
 
-                              <form action={promoteItem} className="plan-promote-actions">
+                              {briefReadiness.ready ? <form action={promoteItem} className="plan-promote-actions">
                                 {!item.content ? (
                                   <button className="button button--secondary" name="target" type="submit" value="content">
                                     Content
@@ -306,7 +322,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
                                     Schedule
                                   </button>
                                 ) : null}
-                              </form>
+                              </form> : <Link className="button button--primary" href={`/plans/${plan.id}?editItem=${item.id}`}>Complete brief</Link>}
                             </article>
                           );
                         })

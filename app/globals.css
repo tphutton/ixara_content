@@ -1431,6 +1431,16 @@ textarea {
   font-size: 0.86rem;
 }
 
+.plan-brief-gaps {
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--text);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
 .status-control--compact {
   justify-content: stretch;
 }

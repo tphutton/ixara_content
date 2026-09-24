@@ -111,6 +111,11 @@ function planItemPrompt(record: ContentPlanItem) {
     `Channel: ${record.channel ?? "not set"}`,
     `Scheduled for: ${record.scheduledFor?.toISOString() ?? "not set"}`,
     `Brief: ${record.brief ?? "not set"}`,
+    `Objective: ${record.objective ?? "not set"}`,
+    `Target audience: ${record.targetAudience ?? "not set"}`,
+    `Key message: ${record.keyMessage ?? "not set"}`,
+    `Call to action: ${record.callToAction ?? "not set"}`,
+    `Tone: ${record.tone ?? "not set"}`,
     `Asset request: ${record.assetRequest ?? "not set"}`,
   ].join("\n");
 }

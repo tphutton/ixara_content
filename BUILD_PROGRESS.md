@@ -23,13 +23,15 @@ Deferred until this journey is complete:
 - [x] Run persisted quality reviews and apply recommendations to short-form content.
 - [x] Generate saved platform-specific variants from short-form content.
 - [x] Recommend assets using brand, campaign, geography, category, and content context.
-- [ ] Upgrade promoted plan items into complete production briefs with inherited context and readiness checks.
+- [x] Upgrade promoted plan items into complete production briefs with inherited context and readiness checks.
 - [ ] Extend guided quality fixes to blogs and plan items.
 - [ ] Add variant editing, review, approval, and selection for publishing.
 - [ ] Build a guided publishing-package step combining final copy, channel, account, asset, date, and campaign.
 - [ ] Add channel previews and clear validation before a package can be marked ready to post.
 - [ ] Make schedule approval and publishing readiness the final explicit workflow stage.
 - [ ] Add a single end-to-end progress view and next-action guidance across the journey.
+
+Structured production briefs now capture objective, audience, key message, CTA, tone, channel, and asset direction. Readiness uses plan goals and matching brand defaults where appropriate, is visible on the production board, and is enforced in the shared promotion service used by operators, Quill, and external actions. Promotion preserves the effective context in generated content/blog fields and source prompts.
 
 ## 2026-09-24: Compact reference tables and full-height Quill
 

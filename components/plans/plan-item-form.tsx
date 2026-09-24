@@ -56,6 +56,33 @@ export function PlanItemForm({ action, plan, item, brandProfiles = [], submitLab
 
       <div className="form-grid form-grid--2">
         <label className="field">
+          <span className="field__label">Objective</span>
+          <textarea name="objective" rows={3} defaultValue={item?.objective ?? plan.goal ?? ""} placeholder="What should this content achieve?" />
+        </label>
+        <label className="field">
+          <span className="field__label">Target audience</span>
+          <textarea name="targetAudience" rows={3} defaultValue={item?.targetAudience ?? ""} placeholder="Who is this for, and what do they need?" />
+        </label>
+      </div>
+
+      <label className="field">
+        <span className="field__label">Key message</span>
+        <textarea name="keyMessage" rows={3} defaultValue={item?.keyMessage ?? ""} placeholder="The single idea the audience should remember." />
+      </label>
+
+      <div className="form-grid form-grid--2">
+        <label className="field">
+          <span className="field__label">Call to action</span>
+          <input name="callToAction" defaultValue={item?.callToAction ?? ""} placeholder="Book, enquire, read, download, or visit" />
+        </label>
+        <label className="field">
+          <span className="field__label">Tone</span>
+          <input name="tone" defaultValue={item?.tone ?? ""} placeholder="Confident, useful, concise" />
+        </label>
+      </div>
+
+      <div className="form-grid form-grid--2">
+        <label className="field">
           <span className="field__label">Channel</span>
           <input name="channel" defaultValue={item?.channel ?? ""} placeholder="LinkedIn" />
         </label>

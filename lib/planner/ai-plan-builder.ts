@@ -16,6 +16,11 @@ export type AiPlanItem = {
   itemType?: string;
   status?: string;
   brief?: string | null;
+  objective?: string | null;
+  targetAudience?: string | null;
+  keyMessage?: string | null;
+  callToAction?: string | null;
+  tone?: string | null;
   channel?: string | null;
   scheduledFor?: string | null;
   brand?: string | null;
@@ -106,7 +111,7 @@ Return only valid JSON with:
 title, description, goal, brand, campaignName, startDate, endDate, items.
 
 items must be an array of ${itemCount} work units. Each item must include:
-title, itemType, status, brief, channel, scheduledFor, brand, sport, region, country, campaignName, assetRequest.
+title, itemType, status, brief, objective, targetAudience, keyMessage, callToAction, tone, channel, scheduledFor, brand, sport, region, country, campaignName, assetRequest.
 
 Allowed itemType values: ${Object.values(ContentPlanItemType).join(", ")}.
 Allowed status values: ${Object.values(ContentPlanItemStatus).join(", ")}.
@@ -130,6 +135,7 @@ Planning standards:
 - For "variants", plan platform adaptations from strong existing content.
 - Otherwise prioritize urgent blockers, campaign windows, under-covered brands/channels, and quality/readiness gaps.
 - Make every item specific enough for an operator to promote into content, blog, or schedule work.
+- Every item must state a concrete objective, target audience, key message, call to action, and tone. Do not repeat generic plan-level wording.
 - Include asset requests when media context is missing.
 - Use scheduledFor only when a credible timing suggestion is available inside the operator date range, or in the next 14 days if no range was supplied.
 - Do not invent facts outside the signals below.
@@ -246,6 +252,11 @@ export async function saveAiContentPlanPreview(access: UserAccess, preview: AiPl
           itemType: parseItemType(item.itemType),
           status: parseItemStatus(item.status),
           brief: asOptionalString(item.brief),
+          objective: asOptionalString(item.objective) ?? parsed.goal,
+          targetAudience: asOptionalString(item.targetAudience),
+          keyMessage: asOptionalString(item.keyMessage),
+          callToAction: asOptionalString(item.callToAction),
+          tone: asOptionalString(item.tone),
           channel: asOptionalString(item.channel),
           scheduledFor: asDate(item.scheduledFor),
           brand: asOptionalString(item.brand) ?? parsed.brand,
