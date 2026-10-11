@@ -1619,6 +1619,19 @@ textarea {
   width: min(1040px, calc(100vw - 40px));
 }
 
+.production-status-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 520px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.production-status-inline strong {
+  color: var(--text);
+}
+
 .video-production-overview,
 .video-shot-row {
   border: 1px solid var(--border);

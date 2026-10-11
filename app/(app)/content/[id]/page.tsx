@@ -6,12 +6,14 @@ import { ContentForm } from "@/components/content/content-form";
 import { ContentVariantsPanel } from "@/components/content/content-variants-panel";
 import { EditorialActivityPanel } from "@/components/editorial/editorial-activity-panel";
 import { ProductionFlowPanel } from "@/components/content/production-flow-panel";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { QualityReviewPanel } from "@/components/quality/quality-review-panel";
 import { BrandRuleGuide } from "@/components/settings/brand-rule-guide";
 import { prisma } from "@/lib/prisma";
 import { listEditorialActivity } from "@/lib/editorial/record-history";
+import { getUnifiedProductionStatus } from "@/lib/production/status";
 import {
   applyContentQualityRecommendationsAction,
   reviewContentQualityAction,
@@ -87,6 +89,24 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
   const latestQualityReview = content.qualityReviews[0] ?? null;
   const productionItem = content.planItems.find((item) => item.videoBrief) ?? null;
   const productionBrief = productionItem?.videoBrief ?? null;
+  const productionJobs = productionBrief
+    ? await prisma.mediaGenerationJob.findMany({
+        where: {
+          OR: [
+            { targetType: "video_brief", targetId: productionBrief.id },
+            { targetType: "video_shot", targetId: { in: productionBrief.shots.map((shot) => shot.id) } },
+          ],
+        },
+        select: { status: true },
+      })
+    : [];
+  const unifiedProductionStatus = getUnifiedProductionStatus({
+    contentStatus: content.status,
+    briefStatus: productionBrief?.status,
+    shotStatuses: productionBrief?.shots.map((shot) => shot.status),
+    generationStatuses: productionJobs.map((job) => job.status),
+    scheduleStatus: content.schedules[0]?.status,
+  });
   const productionSections = productionBrief
     ? Array.from(productionBrief.shots.reduce((groups, shot) => {
         const section = shot.purpose?.split(" · ")[0] ?? "sequence";
@@ -137,6 +157,7 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
             </div>
             {productionBrief ? (
               <div className="form-actions">
+                <div className="production-status-inline"><StatusBadge label={unifiedProductionStatus.tone} /><span><strong>{unifiedProductionStatus.label}</strong> · {unifiedProductionStatus.summary}</span></div>
                 <Link className="button button--secondary" href={`/content/${id}?production=1`}>
                   View production plan
                 </Link>

@@ -207,6 +207,7 @@ Status: in progress
 Status: started
 
 - [x] Store structured video briefs and shot-level production detail.
+- [x] Derive a unified production status across briefs, shots, generation jobs, content, and schedule.
 - [x] Allow approval-gated targeted Quill edits to video briefs and shots.
 - [ ] Add provider-neutral media generation jobs with idempotency, cost, and retry state.
 - [x] Add provider-neutral media generation jobs with idempotency, cost, and retry state.

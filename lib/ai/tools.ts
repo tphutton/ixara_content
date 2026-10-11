@@ -48,6 +48,7 @@ import { queueVideoGeneration } from "@/lib/media/generation-jobs";
 import { generateContentVariants, parseVariantPlatforms } from "@/lib/content-variants/generate";
 import { runDueSocialSync } from "@/lib/social/sync-runner";
 import { getMetaPublishReadiness, publishScheduleToMeta } from "@/lib/social/meta-publish";
+import { getUnifiedProductionStatus } from "@/lib/production/status";
 
 type ToolDefinition = {
   type: "function";
@@ -2313,6 +2314,44 @@ async function queueVideoGenerationTool(args: Record<string, unknown>, context: 
   };
 }
 
+async function getProductionStatusTool(args: Record<string, unknown>) {
+  const planItemId = asRequiredString(args.planItemId, "planItemId");
+  const item = await prisma.contentPlanItem.findUniqueOrThrow({
+    where: { id: planItemId },
+    include: { videoBrief: { include: { shots: { orderBy: { sortOrder: "asc" } } } }, content: { select: { status: true } }, schedule: { select: { status: true } } },
+  });
+  if (!item.videoBrief) throw new Error("This plan item does not have a video production brief.");
+  const jobs = await prisma.mediaGenerationJob.findMany({
+    where: {
+      OR: [
+        { targetType: "video_brief", targetId: item.videoBrief.id },
+        { targetType: "video_shot", targetId: { in: item.videoBrief.shots.map((shot) => shot.id) } },
+      ],
+    },
+    select: { id: true, status: true, provider: true, targetType: true, targetId: true, error: true, externalTaskId: true },
+    orderBy: { updatedAt: "desc" },
+  });
+  const status = getUnifiedProductionStatus({
+    contentStatus: item.content?.status,
+    briefStatus: item.videoBrief.status,
+    shotStatuses: item.videoBrief.shots.map((shot) => shot.status),
+    generationStatuses: jobs.map((job) => job.status),
+    scheduleStatus: item.schedule?.status,
+  });
+  return {
+    toolName: "get_production_status",
+    summary: `${status.label}: ${status.summary}`,
+    payload: {
+      planItemId,
+      title: item.title,
+      status,
+      briefStatus: item.videoBrief.status,
+      shotCount: item.videoBrief.shots.length,
+      jobs,
+    },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -2354,6 +2393,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   add_editorial_comment: addEditorialCommentTool,
   resolve_editorial_comment: resolveEditorialCommentTool,
   queue_video_generation: queueVideoGenerationTool,
+  get_production_status: async (args) => getProductionStatusTool(args),
   get_quality_summary: async () => getQualitySummaryTool(),
   review_quality: reviewQualityTool,
   apply_quality_recommendations: applyQualityRecommendationsTool,
@@ -3215,6 +3255,19 @@ export const contentOpsTools: ToolDefinition[] = [
           shotId: { type: "string", description: "Optional approved shot id for single-shot generation." },
           guidance: { type: "string" },
         },
+        required: ["planItemId"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_production_status",
+      description: "Read the unified production status for a video plan item across its brief, shots, generation jobs, content, and schedule.",
+      parameters: {
+        type: "object",
+        properties: { planItemId: { type: "string" } },
         required: ["planItemId"],
         additionalProperties: false,
       },

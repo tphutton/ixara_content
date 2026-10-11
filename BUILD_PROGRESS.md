@@ -463,4 +463,5 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `add_editorial_comment`: Add a review comment or change request to a content, brief, or shot record.
 - `resolve_editorial_comment`: Resolve a review comment or change request after it is addressed.
 - `queue_video_generation`: Queue an approved full brief or shot for a tracked provider job; the provider runner is intentionally separate from approval.
+- `get_production_status`: Read one unified production status across brief, shots, generation jobs, content, and schedule.
 - The protected `/api/media/generation/run-due` endpoint now submits queued Runway jobs, polls active tasks, records failures, and preserves returned output URLs for the durable asset-ingestion step.
