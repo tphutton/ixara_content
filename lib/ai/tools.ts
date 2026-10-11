@@ -44,6 +44,7 @@ import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/pr
 import { generateAiContentPlan } from "@/lib/planner/ai-plan-builder";
 import { generateVideoBrief } from "@/lib/planner/video-brief-builder";
 import { updateVideoBrief } from "@/lib/planner/video-brief-editor";
+import { queueVideoGeneration } from "@/lib/media/generation-jobs";
 import { generateContentVariants, parseVariantPlatforms } from "@/lib/content-variants/generate";
 import { runDueSocialSync } from "@/lib/social/sync-runner";
 import { getMetaPublishReadiness, publishScheduleToMeta } from "@/lib/social/meta-publish";
@@ -2297,6 +2298,21 @@ async function resolveEditorialCommentTool(args: Record<string, unknown>, contex
   };
 }
 
+async function queueVideoGenerationTool(args: Record<string, unknown>, context: ToolContext) {
+  const job = await queueVideoGeneration({
+    accessId: context.access.id,
+    planItemId: asRequiredString(args.planItemId, "planItemId"),
+    provider: asOptionalString(args.provider) ?? undefined,
+    shotId: asOptionalString(args.shotId) ?? undefined,
+    guidance: asOptionalString(args.guidance),
+  });
+  return {
+    toolName: "queue_video_generation",
+    summary: `Queued ${job.provider} media generation (${job.id}).`,
+    payload: { id: job.id, provider: job.provider, targetType: job.targetType, targetId: job.targetId, status: job.status },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -2337,6 +2353,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   update_video_brief: updateVideoBriefTool,
   add_editorial_comment: addEditorialCommentTool,
   resolve_editorial_comment: resolveEditorialCommentTool,
+  queue_video_generation: queueVideoGenerationTool,
   get_quality_summary: async () => getQualitySummaryTool(),
   review_quality: reviewQualityTool,
   apply_quality_recommendations: applyQualityRecommendationsTool,
@@ -3181,6 +3198,24 @@ export const contentOpsTools: ToolDefinition[] = [
         type: "object",
         properties: { commentId: { type: "string" } },
         required: ["commentId"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "queue_video_generation",
+      description: "Queue an approved video brief or approved shot for provider generation. This creates a tracked job but does not call the provider until a generation runner is configured.",
+      parameters: {
+        type: "object",
+        properties: {
+          planItemId: { type: "string" },
+          provider: { type: "string", description: "Provider name, currently runway-ready by default." },
+          shotId: { type: "string", description: "Optional approved shot id for single-shot generation." },
+          guidance: { type: "string" },
+        },
+        required: ["planItemId"],
         additionalProperties: false,
       },
     },

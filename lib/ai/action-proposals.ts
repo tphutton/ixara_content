@@ -8,7 +8,7 @@ const MUTATION_TOOLS = new Set([
   "sync_tsadb_assets", "upsert_brand_profile", "upsert_campaign", "delete_campaign",
   "sync_social_accounts", "run_automation", "create_content_plan",
   "publish_schedule_to_meta",
-  "add_content_plan_item", "generate_content_variants", "generate_video_brief", "update_video_brief", "add_editorial_comment", "resolve_editorial_comment", "generate_ai_content_plan",
+  "add_content_plan_item", "generate_content_variants", "generate_video_brief", "update_video_brief", "add_editorial_comment", "resolve_editorial_comment", "queue_video_generation", "generate_ai_content_plan",
   "review_quality", "apply_quality_recommendations", "promote_content_plan_item",
 ]);
 
@@ -26,6 +26,7 @@ const TOOL_LABELS: Record<string, string> = {
   update_video_brief: "Edit video storyboard",
   add_editorial_comment: "Add editorial comment",
   resolve_editorial_comment: "Resolve editorial comment",
+  queue_video_generation: "Queue video generation",
   generate_ai_content_plan: "Generate AI content plan", review_quality: "Run quality review",
   apply_quality_recommendations: "Apply quality recommendations",
   promote_content_plan_item: "Promote plan item",

@@ -69,6 +69,15 @@ enum AssetSource {
   manual
 }
 
+enum MediaGenerationStatus {
+  queued
+  submitted
+  running
+  succeeded
+  failed
+  cancelled
+}
+
 enum AutomationType {
   weekly_social_content
   blog_post_generation
@@ -232,6 +241,7 @@ model UserAccess {
   contentVariantsUpdated   ContentVariant[]    @relation("ContentVariantUpdatedBy")
   videoBriefsCreated       VideoBrief[]       @relation("VideoBriefCreatedBy")
   videoBriefsUpdated       VideoBrief[]       @relation("VideoBriefUpdatedBy")
+  mediaGenerationJobs     MediaGenerationJob[] @relation("MediaGenerationJobCreatedBy")
   chatThreads          ChatThread[]
   quillActionProposals QuillActionProposal[]
   actionLogs           ContentActionLog[]
@@ -526,6 +536,32 @@ model VideoShot {
   @@index([videoBriefId, status])
 }
 
+model MediaGenerationJob {
+  id              String                @id @default(cuid())
+  provider        String
+  targetType      String
+  targetId        String
+  input           Json
+  status          MediaGenerationStatus @default(queued)
+  externalTaskId  String?
+  outputAssetId   String?
+  error           String?
+  attempts        Int                   @default(0)
+  costCents       Int?
+  createdById     String?
+  submittedAt     DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  createdBy   UserAccess? @relation("MediaGenerationJobCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  outputAsset Asset?      @relation("GeneratedMediaAsset", fields: [outputAssetId], references: [id], onDelete: SetNull)
+
+  @@index([status, updatedAt])
+  @@index([provider, targetType, targetId])
+  @@index([externalTaskId])
+}
+
 model QualityReview {
   id              String                  @id @default(cuid())
   targetType      QualityReviewTargetType
@@ -775,6 +811,7 @@ model Asset {
   blogLinks            BlogAsset[]
   campaignLinks        CampaignAsset[]
   sourceRecords        AssetSourceRecord[]
+  generatedMediaJobs   MediaGenerationJob[] @relation("GeneratedMediaAsset")
 
   @@unique([source, externalId])
   @@index([source, syncedAt])

@@ -209,6 +209,7 @@ Status: started
 - [x] Store structured video briefs and shot-level production detail.
 - [x] Allow approval-gated targeted Quill edits to video briefs and shots.
 - [ ] Add provider-neutral media generation jobs with idempotency, cost, and retry state.
+- [x] Add provider-neutral media generation jobs with idempotency, cost, and retry state.
 - [ ] Add Runway adapter, polling, and owned output storage before URLs expire.
 - [ ] Add shot-to-asset mapping, rights metadata, and missing-asset blockers.
 - [ ] Add timeline validation, voiceover timing, and final assembly/export.
