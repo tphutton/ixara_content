@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EditorialApprovalTargetType } from "@prisma/client";
+import { ContentPlanItemType, EditorialApprovalTargetType } from "@prisma/client";
 import { EditorialApprovalPanel } from "@/components/approvals/editorial-approval-panel";
 import { ContentForm } from "@/components/content/content-form";
 import { ContentVariantsPanel } from "@/components/content/content-variants-panel";
@@ -21,13 +21,14 @@ export const dynamic = "force-dynamic";
 
 type ContentDetailPageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ edit?: string; variant?: string }>;
+  searchParams?: Promise<{ edit?: string; variant?: string; production?: string }>;
 };
 
 export default async function ContentDetailPage({ params, searchParams }: ContentDetailPageProps) {
   const { id } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const isEditing = resolvedSearchParams?.edit === "1";
+  const isViewingProduction = resolvedSearchParams?.production === "1";
   const [content, assets, brandProfiles] = await Promise.all([
     prisma.content.findUnique({
       where: { id },
@@ -35,6 +36,12 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
         qualityReviews: { orderBy: { createdAt: "desc" }, take: 5 },
         schedules: { select: { id: true, scheduledFor: true, status: true }, orderBy: { scheduledFor: "asc" } },
         variants: { orderBy: { createdAt: "desc" }, take: 12 },
+        planItems: {
+          where: { itemType: ContentPlanItemType.video },
+          include: { videoBrief: { include: { shots: { orderBy: { sortOrder: "asc" } } } }, plan: { select: { id: true, title: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        },
       },
     }),
     prisma.asset.findMany({
@@ -72,6 +79,18 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
   const updateVariantAction = updateContentVariantAction.bind(null, id);
   const selectVariantAction = selectContentVariantAction.bind(null, id);
   const latestQualityReview = content.qualityReviews[0] ?? null;
+  const productionItem = content.planItems.find((item) => item.videoBrief) ?? null;
+  const productionBrief = productionItem?.videoBrief ?? null;
+  const productionSections = productionBrief
+    ? Array.from(productionBrief.shots.reduce((groups, shot) => {
+        const section = shot.purpose?.split(" · ")[0] ?? "sequence";
+        const current = groups.get(section) ?? { section, duration: 0, shots: 0 };
+        current.duration += shot.durationSeconds;
+        current.shots += 1;
+        groups.set(section, current);
+        return groups;
+      }, new Map<string, { section: string; duration: number; shots: number }>()).values())
+    : [];
 
   return (
     <section className="page-shell">
@@ -110,6 +129,14 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
               <span>{content.brand ?? "No brand"}</span>
               <span>{content.campaignName ?? "No campaign"}</span>
             </div>
+            {productionBrief ? (
+              <div className="form-actions">
+                <Link className="button button--secondary" href={`/content/${id}?production=1`}>
+                  View production plan
+                </Link>
+                <span className="muted">{productionBrief.shots.length} shots · {productionBrief.durationSeconds}s · {productionBrief.aspectRatio}</span>
+              </div>
+            ) : null}
           </section>
 
           <section className="quiet-panel">
@@ -209,6 +236,38 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
               </form>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {isViewingProduction && productionBrief && productionItem ? (
+        <div className="editor-overlay editor-overlay--dialog">
+          <div className="editor-overlay__backdrop"><Link aria-label="Close production plan" href={`/content/${id}`} /></div>
+          <section className="editor-overlay__panel video-production-modal">
+            <div className="editor-overlay__header">
+              <div>
+                <p className="kicker">Production plan · {productionItem.plan.title}</p>
+                <h3>{content.title}</h3>
+                <div className="toolbar__group"><span className="inline-chip">{productionBrief.durationSeconds}s</span><span className="inline-chip">{productionBrief.aspectRatio}</span><span className="inline-chip">{productionBrief.targetPlatforms.join(", ")}</span></div>
+              </div>
+              <Link className="button button--secondary" href={`/content/${id}`}>Close</Link>
+            </div>
+            <div className="editor-overlay__content stack">
+              <section className="video-production-overview">
+                <div><p className="kicker">Concept</p><p>{productionBrief.concept}</p></div>
+                <div className="video-production-overview__grid"><div><p className="kicker">Voiceover / delivery</p><p className="preserve-lines">{productionBrief.voiceover ?? "Not set"}</p></div><div><p className="kicker">Audio direction</p><p className="preserve-lines">{productionBrief.audioDirection ?? "Not set"}</p></div><div><p className="kicker">Visual direction</p><p className="preserve-lines">{productionBrief.visualDirection ?? "Not set"}</p></div><div><p className="kicker">Generation strategy</p><p className="preserve-lines">{productionBrief.generationStrategy ?? "Not set"}</p></div></div>
+              </section>
+              <div className="video-section-strip">{productionSections.map((section) => <div key={section.section}><span>{section.section.replaceAll("_", " ")}</span><strong>{section.duration}s</strong><small>{section.shots} shot{section.shots === 1 ? "" : "s"}</small></div>)}</div>
+              <div className="video-shot-list">
+                {productionBrief.shots.map((shot) => (
+                  <article className="video-shot-row" key={shot.id}>
+                    <div className="video-shot-row__index">{shot.sortOrder + 1}</div>
+                    <div className="video-shot-row__time"><strong>{shot.durationSeconds}s</strong><span>{shot.status}</span></div>
+                    <div className="video-shot-row__body"><div className="section-heading"><div><p className="kicker">{shot.purpose?.split(" · ")[0]?.replaceAll("_", " ") ?? "Sequence"}</p><h4>{shot.title}</h4></div></div><p className="preserve-lines">{shot.prompt}</p><details><summary>Production detail</summary><div className="video-shot-detail"><p><strong>Camera / composition:</strong> {shot.cameraDirection ?? "Not set"}</p><p className="preserve-lines"><strong>Visual and sound:</strong> {shot.visualDetails ?? "Not set"}</p>{shot.voiceover ? <p><strong>Voiceover:</strong> {shot.voiceover}</p> : null}</div></details></div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
         </div>
       ) : null}
     </section>

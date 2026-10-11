@@ -46,6 +46,13 @@
 - Added a compact storyboard view to plan-item detail, including shot timing, prompts, format, platforms, and generation status.
 - Added the Prisma migration for the new video planning records. Runway task execution, durable media downloads, composition, and video-aware Meta delivery remain separate next phases.
 
+## 2026-10-11: KSF001 pilot content package
+
+- Added the `Kit Does Sports` brand profile with the pilot's character, voice, visual rules, historical boundaries, disclosure guidance, and source references.
+- Added the `Kit Does Sports Launch` campaign and seeded the KSF001 pilot content record and linked video plan item.
+- Imported the canonical 55-second narration and all 24 proposed shots from the Quill content record into the structured video brief, including timing, section, prompts, composition, sound, asset direction, and fiction boundaries.
+- Added a scrollable Content production-plan modal so operators can review the pilot's sections and shot details without media clutter; generation assets can be attached later.
+
 ## 2026-09-24: Compact campaign workspace
 
 - Converted Campaigns from expanded list rows into a compact comparison table with direct Open and Delete actions.
