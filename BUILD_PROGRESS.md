@@ -464,5 +464,6 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `resolve_editorial_comment`: Resolve a review comment or change request after it is addressed.
 - `queue_video_generation`: Queue an approved full brief or shot for a tracked provider job; the provider runner is intentionally separate from approval.
 - `get_production_status`: Read one unified production status across brief, shots, generation jobs, content, and schedule.
+- `get_performance_insights`: Build cautious brand/channel benchmarks from the latest synced analytics snapshots for planning.
 - The protected `/api/media/generation/run-due` endpoint now submits queued Runway jobs, polls active tasks, records failures, and preserves returned output URLs for the durable asset-ingestion step.
 - Meta publishing now detects video Assets, uses Facebook video delivery or Instagram Reel containers, and waits for Instagram processing before publishing.

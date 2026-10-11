@@ -187,6 +187,7 @@ Status: planned
 Status: planned
 
 - [ ] Add top posts by brand, channel, topic, hook, and format.
+- [x] Add current brand/channel performance benchmarks for Quill planning signals.
 - [ ] Add best-time and cadence suggestions.
 - [ ] Add topic cluster performance.
 - [ ] Add campaign performance summaries.

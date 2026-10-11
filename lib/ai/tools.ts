@@ -1666,6 +1666,64 @@ async function getTopPerformingPostsTool(args: Record<string, unknown>) {
   };
 }
 
+async function getPerformanceInsightsTool(args: Record<string, unknown>) {
+  const brandFilter = asOptionalString(args.brand)?.toLowerCase();
+  const platformInput = asOptionalString(args.platform);
+  const platform = platformInput
+    ? parseEnumValue(platformInput, Object.values(SocialPlatform), SocialPlatform.instagram)
+    : undefined;
+  const posts = await prisma.publishedPost.findMany({
+    where: { platform: platform ?? undefined },
+    include: {
+      content: { select: { title: true, brand: true } },
+      blog: { select: { title: true, brand: true } },
+      analyticsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 },
+    },
+    take: 500,
+  });
+  const measured = posts
+    .map((post) => ({
+      post,
+      snapshot: post.analyticsSnapshots[0] ?? null,
+      brand: post.content?.brand ?? post.blog?.brand ?? "Unassigned",
+    }))
+    .filter((entry) => entry.snapshot && (!brandFilter || entry.brand.toLowerCase() === brandFilter));
+  const groups = new Map<string, typeof measured>();
+  for (const entry of measured) {
+    const key = `${entry.brand} · ${entry.post.platform}`;
+    const current = groups.get(key) ?? [];
+    current.push(entry);
+    groups.set(key, current);
+  }
+  const benchmarks = [...groups.entries()].map(([key, entries]) => {
+    const average = (selector: (snapshot: NonNullable<typeof entries[number]["snapshot"]>) => number | null) => {
+      const values = entries.map((entry) => selector(entry.snapshot!)).filter((value): value is number => value != null);
+      return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+    };
+    const top = [...entries].sort((a, b) => (b.snapshot?.engagementRate ?? -1) - (a.snapshot?.engagementRate ?? -1))[0];
+    return {
+      group: key,
+      brand: top.brand,
+      platform: top.post.platform,
+      sampleSize: entries.length,
+      averageEngagementRate: average((snapshot) => snapshot.engagementRate),
+      averageImpressions: average((snapshot) => snapshot.impressions),
+      averageEngagements: average((snapshot) => snapshot.engagements),
+      topPost: top.post.titleSnapshot ?? top.post.content?.title ?? top.post.blog?.title ?? null,
+      signal: entries.length < 3 ? "Small sample: treat as directional." : "Use this as a current planning benchmark.",
+    };
+  }).sort((a, b) => (b.averageEngagementRate ?? -1) - (a.averageEngagementRate ?? -1));
+  return {
+    toolName: "get_performance_insights",
+    summary: `Built ${benchmarks.length} performance benchmark${benchmarks.length === 1 ? "" : "s"} from ${measured.length} measured post${measured.length === 1 ? "" : "s"}.`,
+    payload: {
+      measuredPosts: measured.length,
+      benchmarks,
+      recommendations: benchmarks.slice(0, 3).map((benchmark) => `Use ${benchmark.group} as a benchmark; its strongest current post is ${benchmark.topPost ?? "unlabelled"}.`),
+    },
+  };
+}
+
 async function syncSocialAccountsTool(args: Record<string, unknown>, context: ToolContext) {
   const result = await runDueSocialSync({
     limit: typeof args.limit === "number" ? args.limit : undefined,
@@ -2378,6 +2436,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   list_connected_accounts: async (args) => listConnectedAccountsTool(args),
   list_published_posts: async (args) => listPublishedPostsTool(args),
   get_top_performing_posts: async (args) => getTopPerformingPostsTool(args),
+  get_performance_insights: async (args) => getPerformanceInsightsTool(args),
   sync_social_accounts: syncSocialAccountsTool,
   publish_schedule_to_meta: publishScheduleToMetaTool,
   list_automations: async (args) => listAutomationsTool(args),
@@ -2974,6 +3033,21 @@ export const contentOpsTools: ToolDefinition[] = [
         properties: {
           platform: { type: "string" },
           limit: { type: "number" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_performance_insights",
+      description: "Build current performance benchmarks by brand and channel from the latest synced analytics snapshots, with cautious planning signals.",
+      parameters: {
+        type: "object",
+        properties: {
+          brand: { type: "string" },
+          platform: { type: "string" },
         },
         additionalProperties: false,
       },
