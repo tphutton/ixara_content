@@ -398,6 +398,9 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `/api/social/sync-due` can be called with `Authorization: Bearer <AUTOMATION_RUNNER_SECRET>` or `x-automation-secret` to sync stale active Meta accounts into published posts and analytics snapshots.
 - Meta accounts with expired or near-expired tokens are marked `needs_reauth`; adjust the reconnect buffer with `META_REAUTH_BUFFER_DAYS`.
 - `npm run import:legacy:blogs` now fetches the deprecated TechSport blogs API and upserts into the current Prisma `Blog` model using preserved legacy identifiers.
+- Editorial history now stores immutable record snapshots for content, video briefs, and individual video shots, while Quill-targeted storyboard edits remain approval-gated.
+- Content detail pages now include a compact editorial workspace for threaded review notes, change requests, resolution, and version visibility.
+- The editorial persistence migration `20261011100000_add_editorial_history` has been applied to the configured Railway PostgreSQL database.
 - Blog editing is now split into review and edit modes so editors can inspect article readiness, metadata, and section coverage before opening the update panel.
 - Quill now stores assistant tool-call records before tool outputs, which prevents OpenAI history validation errors on subsequent thread messages.
 - Prisma is pinned to `6.14.x` because the local Node runtime is `20.18.2`, while Prisma `7.x` requires Node `20.19+`.
@@ -409,6 +412,7 @@ The product direction is now expanding into a planner-first Content Command Plat
 - Add account-expiry notifications and an operator review flow for deliveries that cannot be reconciled automatically.
 - Add an AI quality evaluation suite with fixed brand briefs and measurable regression thresholds.
 - Extend guided rewrite actions into blogs and plan items, then add score trends.
+- Add media generation jobs, provider adapters, and owned storage for generated outputs.
 - Add richer channel previews and a single end-to-end progress view around the selected variant, asset, account, schedule, campaign, and approval.
 - Add notifications and bulk approval patterns for failed deliveries and growing automation volume.
 - Expand Planner with channel swimlanes, coverage heatmaps, and drag-and-drop scheduling.
@@ -455,3 +459,6 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `generate_ai_content_plan`: Generate and save a 14-day AI content plan from current planner signals.
 - `generate_content_variants`: Generate and save platform-specific variants for an existing content record.
 - `generate_video_brief`: Generate an approval-gated storyboard and production brief for a video plan item without starting external rendering.
+- `update_video_brief`: Apply approval-gated targeted edits to a storyboard and its individual shots, with version snapshots.
+- `add_editorial_comment`: Add a review comment or change request to a content, brief, or shot record.
+- `resolve_editorial_comment`: Resolve a review comment or change request after it is addressed.

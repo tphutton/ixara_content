@@ -194,13 +194,25 @@ Status: planned
 
 ## Phase 7: Collaboration And Governance
 
-Status: planned
+Status: in progress
 
-- [ ] Add comments on content, blogs, schedule entries, briefs, and campaigns.
+- [x] Add comments and change requests on content records, with target fields ready for briefs and shots.
 - [ ] Add approval inbox and bulk approval flows.
 - [ ] Add notifications for blockers, due reviews, failed publishes, and automation runs.
-- [ ] Add visible record-level audit trails.
+- [x] Add visible content record version history and editorial activity.
 - [ ] Add permission refinement for creator, editor, approver, admin, and viewer roles.
+
+## Phase 8: Production Media Pipeline
+
+Status: started
+
+- [x] Store structured video briefs and shot-level production detail.
+- [x] Allow approval-gated targeted Quill edits to video briefs and shots.
+- [ ] Add provider-neutral media generation jobs with idempotency, cost, and retry state.
+- [ ] Add Runway adapter, polling, and owned output storage before URLs expire.
+- [ ] Add shot-to-asset mapping, rights metadata, and missing-asset blockers.
+- [ ] Add timeline validation, voiceover timing, and final assembly/export.
+- [ ] Add video-aware previews and channel-specific adaptations.
 
 ## Atlas / Command Center Integration
 
@@ -228,6 +240,8 @@ Near-term integration targets:
 - The content workspace now supports persistent light and dark modes, defaults to the device preference for first-time users, and keeps the full Ixara logo on a contrast-safe black field.
 - Brand profiles now have enough structure to become the core AI memory layer for brand-safe generation, with a dedicated Brands tab and field guidance to help operators fill readiness gaps.
 - Assets have moved beyond simple WordPress media sync: TSADB enriched image metadata can now populate the asset library, and Quill/Atlas can recommend images using region, country, category, item, description, featured status, and current workspace usage.
+- Quill can now propose targeted storyboard edits and editorial comments rather than only generating full briefs; all of these mutations still require operator approval.
+- Content records now expose version history and review notes, forming the shared foundation for future Command Center approvals and production jobs.
 - UI simplification has started with the plan workspace and modal editing on content, schedule, plan, and settings pages.
 - The next UI simplification pass has moved Dashboard, Social Accounts, Analytics, Automations, Assets, Content, Blogs, Campaigns, Admin approvals, and AI plan generation toward quieter command panels, row actions, focused overlays, and review-before-save flows. Deeper Planner swimlanes, Settings, and creation/detail pages still need the same polish.
 - `tsconfig.tsbuildinfo` is an untracked generated file and should not be committed unless intentionally needed.

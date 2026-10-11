@@ -15,6 +15,7 @@ import {
   type UserAccess,
 } from "@prisma/client";
 import { createActionLog } from "@/lib/actions/action-log";
+import { createEditorialComment, resolveEditorialComment } from "@/lib/editorial/record-history";
 import { syncTsadbImages } from "@/lib/assets/tsadb-images";
 import { runBlogPostAutomation } from "@/lib/automation/generate-blog-posts";
 import { getAutomationHealthSummary, runDueAutomations } from "@/lib/automation/runner";
@@ -42,6 +43,7 @@ import { getQualityCommandSummary } from "@/lib/quality/summary";
 import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/promotion";
 import { generateAiContentPlan } from "@/lib/planner/ai-plan-builder";
 import { generateVideoBrief } from "@/lib/planner/video-brief-builder";
+import { updateVideoBrief } from "@/lib/planner/video-brief-editor";
 import { generateContentVariants, parseVariantPlatforms } from "@/lib/content-variants/generate";
 import { runDueSocialSync } from "@/lib/social/sync-runner";
 import { getMetaPublishReadiness, publishScheduleToMeta } from "@/lib/social/meta-publish";
@@ -2220,6 +2222,81 @@ async function generateVideoBriefTool(args: Record<string, unknown>, context: To
   };
 }
 
+async function updateVideoBriefTool(args: Record<string, unknown>, context: ToolContext) {
+  const shotEdits = Array.isArray(args.shotEdits)
+    ? args.shotEdits.filter((value): value is Record<string, unknown> => Boolean(value && typeof value === "object"))
+        .map((edit) => ({
+          shotId: asRequiredString(edit.shotId, "shotEdits[].shotId"),
+          title: asOptionalString(edit.title) ?? undefined,
+          durationSeconds: typeof edit.durationSeconds === "number" ? edit.durationSeconds : undefined,
+          purpose: edit.purpose !== undefined ? asOptionalString(edit.purpose) : undefined,
+          prompt: edit.prompt !== undefined ? asOptionalString(edit.prompt) ?? "" : undefined,
+          cameraDirection: edit.cameraDirection !== undefined ? asOptionalString(edit.cameraDirection) : undefined,
+          visualDetails: edit.visualDetails !== undefined ? asOptionalString(edit.visualDetails) : undefined,
+          onScreenText: edit.onScreenText !== undefined ? asOptionalString(edit.onScreenText) : undefined,
+          voiceover: edit.voiceover !== undefined ? asOptionalString(edit.voiceover) : undefined,
+          status: asOptionalString(edit.status) as "planned" | "approved" | "generating" | "ready" | "needs_changes" | undefined,
+        }))
+    : [];
+  const brief = await updateVideoBrief({
+    accessId: context.access.id,
+    planItemId: asRequiredString(args.planItemId, "planItemId"),
+    concept: args.concept !== undefined ? asOptionalString(args.concept) ?? "" : undefined,
+    script: args.script !== undefined ? asOptionalString(args.script) : undefined,
+    voiceover: args.voiceover !== undefined ? asOptionalString(args.voiceover) : undefined,
+    onScreenText: args.onScreenText !== undefined ? asOptionalString(args.onScreenText) : undefined,
+    audioDirection: args.audioDirection !== undefined ? asOptionalString(args.audioDirection) : undefined,
+    visualDirection: args.visualDirection !== undefined ? asOptionalString(args.visualDirection) : undefined,
+    generationStrategy: args.generationStrategy !== undefined ? asOptionalString(args.generationStrategy) : undefined,
+    durationSeconds: typeof args.durationSeconds === "number" ? args.durationSeconds : undefined,
+    aspectRatio: args.aspectRatio !== undefined ? asOptionalString(args.aspectRatio) ?? "9:16" : undefined,
+    targetPlatforms: Array.isArray(args.targetPlatforms) ? asStringArray(args.targetPlatforms) : undefined,
+    status: asOptionalString(args.status) as "draft" | "review" | "approved" | "generating" | "ready" | "rejected" | undefined,
+    shotEdits,
+    changeSummary: asOptionalString(args.changeSummary) ?? undefined,
+  });
+
+  return {
+    toolName: "update_video_brief",
+    summary: `Updated storyboard with ${shotEdits.length} shot edit${shotEdits.length === 1 ? "" : "s"}.`,
+    payload: {
+      id: brief.id,
+      planItemId: brief.planItemId,
+      status: brief.status,
+      durationSeconds: brief.durationSeconds,
+      shotCount: brief.shots.length,
+      editedShotIds: shotEdits.map((edit) => edit.shotId),
+    },
+  };
+}
+
+async function addEditorialCommentTool(args: Record<string, unknown>, context: ToolContext) {
+  const comment = await createEditorialComment({
+    targetType: asRequiredString(args.targetType, "targetType"),
+    targetId: asRequiredString(args.targetId, "targetId"),
+    body: asRequiredString(args.body, "body"),
+    createdById: context.access.id,
+    sectionKey: asOptionalString(args.sectionKey),
+    fieldKey: asOptionalString(args.fieldKey),
+    isChangeRequest: args.isChangeRequest === true,
+    parentId: asOptionalString(args.parentId),
+  });
+  return {
+    toolName: "add_editorial_comment",
+    summary: `${comment.isChangeRequest ? "Added change request" : "Added editorial comment"}.`,
+    payload: { id: comment.id, targetType: comment.targetType, targetId: comment.targetId, status: comment.status },
+  };
+}
+
+async function resolveEditorialCommentTool(args: Record<string, unknown>, context: ToolContext) {
+  const comment = await resolveEditorialComment(asRequiredString(args.commentId, "commentId"), context.access.id);
+  return {
+    toolName: "resolve_editorial_comment",
+    summary: "Resolved editorial comment.",
+    payload: { id: comment.id, status: comment.status, targetType: comment.targetType, targetId: comment.targetId },
+  };
+}
+
 const toolHandlers: Record<string, ToolHandler> = {
   list_content: async (args) => listContentTool(args),
   create_content: createContentTool,
@@ -2257,6 +2334,9 @@ const toolHandlers: Record<string, ToolHandler> = {
   generate_ai_content_plan: generateAiContentPlanTool,
   generate_content_variants: generateContentVariantsTool,
   generate_video_brief: generateVideoBriefTool,
+  update_video_brief: updateVideoBriefTool,
+  add_editorial_comment: addEditorialCommentTool,
+  resolve_editorial_comment: resolveEditorialCommentTool,
   get_quality_summary: async () => getQualitySummaryTool(),
   review_quality: reviewQualityTool,
   apply_quality_recommendations: applyQualityRecommendationsTool,
@@ -3020,6 +3100,87 @@ export const contentOpsTools: ToolDefinition[] = [
           guidance: { type: "string" },
         },
         required: ["planItemId"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_video_brief",
+      description: "Apply a targeted, reviewable edit to an existing video storyboard. Use shotEdits for specific shots and include a concise changeSummary. This does not generate media.",
+      parameters: {
+        type: "object",
+        properties: {
+          planItemId: { type: "string" },
+          concept: { type: "string" },
+          script: { type: "string" },
+          voiceover: { type: "string" },
+          onScreenText: { type: "string" },
+          audioDirection: { type: "string" },
+          visualDirection: { type: "string" },
+          generationStrategy: { type: "string" },
+          durationSeconds: { type: "number" },
+          aspectRatio: { type: "string" },
+          targetPlatforms: { type: "array", items: { type: "string" } },
+          status: { type: "string", enum: ["draft", "review", "approved", "generating", "ready", "rejected"] },
+          changeSummary: { type: "string" },
+          shotEdits: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                shotId: { type: "string" },
+                title: { type: "string" },
+                durationSeconds: { type: "number" },
+                purpose: { type: "string" },
+                prompt: { type: "string" },
+                cameraDirection: { type: "string" },
+                visualDetails: { type: "string" },
+                onScreenText: { type: "string" },
+                voiceover: { type: "string" },
+                status: { type: "string", enum: ["planned", "approved", "generating", "ready", "needs_changes"] },
+              },
+              required: ["shotId"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["planItemId"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_editorial_comment",
+      description: "Add a review comment or change request to a content record, video brief, or specific video shot.",
+      parameters: {
+        type: "object",
+        properties: {
+          targetType: { type: "string", description: "For example content, video_brief, or video_shot." },
+          targetId: { type: "string" },
+          body: { type: "string" },
+          sectionKey: { type: "string" },
+          fieldKey: { type: "string" },
+          isChangeRequest: { type: "boolean" },
+          parentId: { type: "string" },
+        },
+        required: ["targetType", "targetId", "body"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "resolve_editorial_comment",
+      description: "Resolve an open editorial comment or change request after it has been addressed.",
+      parameters: {
+        type: "object",
+        properties: { commentId: { type: "string" } },
+        required: ["commentId"],
         additionalProperties: false,
       },
     },

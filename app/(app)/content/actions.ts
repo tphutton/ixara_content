@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createActionLog } from "@/lib/actions/action-log";
 import { requireApprovedUserAccess } from "@/lib/auth/user-access";
 import { applyBrandRulesToContent } from "@/lib/brand-profiles/rules";
+import { createRecordVersion } from "@/lib/editorial/record-history";
 import { parseBoolean, parseOptionalString, parseStringArray } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
 
@@ -79,6 +80,15 @@ export async function createContentAction(formData: FormData) {
     source: "manual",
   });
 
+  await createRecordVersion({
+    targetType: "content",
+    targetId: content.id,
+    snapshot: content,
+    createdById: access.id,
+    source: "manual",
+    changeSummary: "Initial content record",
+  });
+
   revalidatePath("/content");
   redirect(`/content/${content.id}`);
 }
@@ -115,6 +125,15 @@ export async function updateContentAction(id: string, formData: FormData) {
       brandWarnings: warnings,
     },
     source: "manual",
+  });
+
+  await createRecordVersion({
+    targetType: "content",
+    targetId: content.id,
+    snapshot: content,
+    createdById: access.id,
+    source: "manual",
+    changeSummary: `Updated content "${content.title}"`,
   });
 
   revalidatePath("/content");

@@ -194,6 +194,12 @@ enum EditorialApprovalDecision {
   revoked
 }
 
+enum EditorialCommentStatus {
+  open
+  resolved
+  dismissed
+}
+
 model UserAccess {
   id             String           @id @default(cuid())
   clerkUserId    String           @unique
@@ -231,6 +237,9 @@ model UserAccess {
   actionLogs           ContentActionLog[]
   editorialApprovalsRequested EditorialApproval[] @relation("EditorialApprovalRequestedBy")
   editorialApprovalsDecided   EditorialApproval[] @relation("EditorialApprovalDecidedBy")
+  recordVersionsCreated       RecordVersion[]      @relation("RecordVersionCreatedBy")
+  editorialCommentsCreated    EditorialComment[]   @relation("EditorialCommentCreatedBy")
+  editorialCommentsResolved   EditorialComment[]   @relation("EditorialCommentResolvedBy")
 
   @@index([approvalStatus, role])
 }
@@ -640,6 +649,47 @@ model EditorialApproval {
 
   @@index([targetType, targetId, createdAt])
   @@index([decision, createdAt])
+}
+
+model RecordVersion {
+  id            String   @id @default(cuid())
+  targetType    String
+  targetId      String
+  version       Int
+  snapshot      Json
+  changeSummary String?
+  source        String   @default("manual")
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  createdBy UserAccess? @relation("RecordVersionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([targetType, targetId, version])
+  @@index([targetType, targetId, createdAt])
+}
+
+model EditorialComment {
+  id           String                 @id @default(cuid())
+  targetType   String
+  targetId     String
+  sectionKey   String?
+  fieldKey     String?
+  body         String
+  status       EditorialCommentStatus @default(open)
+  isChangeRequest Boolean             @default(false)
+  parentId     String?
+  createdById  String
+  resolvedById String?
+  createdAt    DateTime               @default(now())
+  resolvedAt   DateTime?
+
+  parent       EditorialComment?  @relation("EditorialCommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      EditorialComment[]  @relation("EditorialCommentThread")
+  createdBy    UserAccess         @relation("EditorialCommentCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  resolvedBy   UserAccess?        @relation("EditorialCommentResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId, status, createdAt])
+  @@index([parentId, createdAt])
 }
 
 model BrandProfile {

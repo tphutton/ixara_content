@@ -4,17 +4,20 @@ import { ContentPlanItemType, EditorialApprovalTargetType } from "@prisma/client
 import { EditorialApprovalPanel } from "@/components/approvals/editorial-approval-panel";
 import { ContentForm } from "@/components/content/content-form";
 import { ContentVariantsPanel } from "@/components/content/content-variants-panel";
+import { EditorialActivityPanel } from "@/components/editorial/editorial-activity-panel";
 import { ProductionFlowPanel } from "@/components/content/production-flow-panel";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { QualityReviewPanel } from "@/components/quality/quality-review-panel";
 import { BrandRuleGuide } from "@/components/settings/brand-rule-guide";
 import { prisma } from "@/lib/prisma";
+import { listEditorialActivity } from "@/lib/editorial/record-history";
 import {
   applyContentQualityRecommendationsAction,
   reviewContentQualityAction,
 } from "../../quality/actions";
 import { deleteContentAction, updateContentAction } from "../actions";
+import { addContentEditorialComment, resolveContentEditorialComment } from "./editorial-actions";
 import { deleteContentVariantAction, generateContentVariantsAction, selectContentVariantAction, updateContentVariantAction } from "./variant-actions";
 
 export const dynamic = "force-dynamic";
@@ -70,6 +73,8 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
     notFound();
   }
 
+  const activity = await listEditorialActivity("content", content.id);
+
   const updateAction = updateContentAction.bind(null, id);
   const deleteAction = deleteContentAction.bind(null, id);
   const reviewAction = reviewContentQualityAction.bind(null, id);
@@ -78,6 +83,7 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
   const deleteVariantAction = deleteContentVariantAction.bind(null, id);
   const updateVariantAction = updateContentVariantAction.bind(null, id);
   const selectVariantAction = selectContentVariantAction.bind(null, id);
+  const addCommentAction = addContentEditorialComment.bind(null, id);
   const latestQualityReview = content.qualityReviews[0] ?? null;
   const productionItem = content.planItems.find((item) => item.videoBrief) ?? null;
   const productionBrief = productionItem?.videoBrief ?? null;
@@ -205,6 +211,14 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
           <BrandRuleGuide profiles={brandProfiles} />
         </div>
       </div>
+
+      <EditorialActivityPanel
+        comments={activity.comments}
+        commentAction={addCommentAction}
+        href={`/content/${id}`}
+        resolveAction={resolveContentEditorialComment.bind(null, id)}
+        versions={activity.versions}
+      />
 
       {isEditing ? (
         <div className="editor-overlay">
