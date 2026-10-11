@@ -1,5 +1,6 @@
 import { MediaGenerationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ingestGeneratedMedia, isGeneratedAssetStorageConfigured } from "@/lib/media/generated-asset-storage";
 import { getRunwayTask, startRunwayVideo } from "@/lib/media/providers/runway";
 
 type JobInput = {
@@ -7,6 +8,7 @@ type JobInput = {
   promptImage?: string | null;
   durationSeconds?: number;
   aspectRatio?: string;
+  title?: string;
 };
 
 function asJobInput(input: unknown): JobInput {
@@ -18,7 +20,28 @@ function isTerminal(status: MediaGenerationStatus) {
   return status === MediaGenerationStatus.succeeded || status === MediaGenerationStatus.failed || status === MediaGenerationStatus.cancelled;
 }
 
-async function processRunwayJob(job: { id: string; status: MediaGenerationStatus; externalTaskId: string | null; outputUrl: string | null; input: unknown }) {
+async function persistOutput(job: { id: string; outputUrl: string; targetType: string; targetId: string; input: unknown }) {
+  if (!isGeneratedAssetStorageConfigured()) {
+    return prisma.mediaGenerationJob.update({
+      where: { id: job.id },
+      data: { status: MediaGenerationStatus.awaiting_asset, outputUrl: job.outputUrl, error: "Awaiting durable media storage configuration." },
+    });
+  }
+  const input = asJobInput(job.input);
+  const asset = await ingestGeneratedMedia({
+    jobId: job.id,
+    outputUrl: job.outputUrl,
+    title: input.title ?? "Generated video",
+    targetType: job.targetType,
+    targetId: job.targetId,
+  });
+  return prisma.mediaGenerationJob.update({
+    where: { id: job.id },
+    data: { status: MediaGenerationStatus.succeeded, outputAssetId: asset.id, outputUrl: asset.fileUrl, completedAt: new Date(), error: null },
+  });
+}
+
+async function processRunwayJob(job: { id: string; status: MediaGenerationStatus; externalTaskId: string | null; outputUrl: string | null; targetType: string; targetId: string; input: unknown }) {
   if (job.status === MediaGenerationStatus.queued) {
     const input = asJobInput(job.input);
     if (!input.prompt || !input.durationSeconds || !input.aspectRatio) throw new Error("Generation job is missing prompt, duration, or aspect ratio.");
@@ -34,13 +57,16 @@ async function processRunwayJob(job: { id: string; status: MediaGenerationStatus
     });
   }
 
+  if (job.status === MediaGenerationStatus.awaiting_asset && job.outputUrl) {
+    return persistOutput({ ...job, outputUrl: job.outputUrl });
+  }
   if (!job.externalTaskId || isTerminal(job.status)) return job;
   const task = await getRunwayTask(job.externalTaskId);
   const taskStatus = task.status?.toLowerCase();
   if (taskStatus === "succeeded") {
     const outputUrl = task.output?.[0];
     if (!outputUrl) throw new Error("Runway reported success without an output URL.");
-    return prisma.mediaGenerationJob.update({ where: { id: job.id }, data: { status: MediaGenerationStatus.succeeded, outputUrl, completedAt: new Date(), error: null } });
+    return persistOutput({ ...job, outputUrl });
   }
   if (taskStatus === "failed" || taskStatus === "cancelled") {
     return prisma.mediaGenerationJob.update({ where: { id: job.id }, data: { status: taskStatus === "cancelled" ? MediaGenerationStatus.cancelled : MediaGenerationStatus.failed, error: task.failure ?? task.failureCode ?? "Runway task failed.", completedAt: new Date() } });
@@ -50,7 +76,7 @@ async function processRunwayJob(job: { id: string; status: MediaGenerationStatus
 
 export async function runDueMediaGenerationJobs(limit = 5) {
   const jobs = await prisma.mediaGenerationJob.findMany({
-    where: { provider: "runway", status: { in: [MediaGenerationStatus.queued, MediaGenerationStatus.submitted, MediaGenerationStatus.running] } },
+    where: { provider: "runway", status: { in: [MediaGenerationStatus.queued, MediaGenerationStatus.submitted, MediaGenerationStatus.running, MediaGenerationStatus.awaiting_asset] } },
     orderBy: { updatedAt: "asc" },
     take: Math.min(Math.max(limit, 1), 20),
   });

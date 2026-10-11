@@ -73,6 +73,7 @@ enum MediaGenerationStatus {
   queued
   submitted
   running
+  awaiting_asset
   succeeded
   failed
   cancelled

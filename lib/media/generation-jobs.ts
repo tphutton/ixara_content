@@ -43,6 +43,7 @@ export async function queueVideoGeneration(input: {
       createdById: input.accessId,
       input: jsonValue({
         planItemId: input.planItemId,
+        title: brief.planItem.title,
         briefId: brief.id,
         shotId: shot?.id ?? null,
         durationSeconds: shot?.durationSeconds ?? brief.durationSeconds,

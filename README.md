@@ -161,6 +161,7 @@ Local development:
 - `WORDPRESS_MEDIA_BASE_URL=https://media.ixara.tech/wp-json/wp/v2`
 - `AUTOMATION_RUNNER_SECRET`
 - `RUNWAYML_API_SECRET` for approved media generation jobs submitted through Runway
+- `MEDIA_S3_BUCKET`, `MEDIA_S3_REGION`, `MEDIA_S3_ACCESS_KEY_ID`, `MEDIA_S3_SECRET_ACCESS_KEY`, and `MEDIA_ASSET_PUBLIC_BASE_URL` for durable generated-media Assets; `MEDIA_S3_ENDPOINT` is used for R2 or another S3-compatible provider
 - `META_APP_ID` for live Meta OAuth and long-lived token exchange
 - `META_APP_SECRET` for live Meta OAuth and long-lived token exchange
 - `META_SCOPES` optional override for Meta permissions
@@ -174,6 +175,7 @@ Railway deployment:
 - Keep `CAMPAIGNS_API_KEY`, `CLERK_SECRET_KEY`, `OPENAI_API_KEY`, and `DATABASE_URL` server-side only
 - Keep `AUTOMATION_RUNNER_SECRET` server-side only and use it for scheduled runner calls
 - Keep `RUNWAYML_API_SECRET` server-side only; the protected `/api/media/generation/run-due` endpoint uses it to submit and poll approved jobs
+- Keep the `MEDIA_S3_*` credentials server-side; generated jobs remain `awaiting_asset` until the output is copied into configured storage
 - Keep `META_APP_SECRET` server-side only; it is used during OAuth and long-lived token exchange
 - Keep `SOCIAL_ACCOUNT_ENCRYPTION_KEY` server-side only because it protects stored platform tokens
 

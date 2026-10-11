@@ -466,4 +466,5 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `get_production_status`: Read one unified production status across brief, shots, generation jobs, content, and schedule.
 - `get_performance_insights`: Build cautious brand/channel benchmarks from the latest synced analytics snapshots for planning.
 - The protected `/api/media/generation/run-due` endpoint now submits queued Runway jobs, polls active tasks, records failures, and preserves returned output URLs for the durable asset-ingestion step.
+- Generated media now moves to `awaiting_asset` when storage is not configured, and configured S3-compatible storage can copy the output into a durable video `Asset` before marking the job succeeded.
 - Meta publishing now detects video Assets, uses Facebook video delivery or Instagram Reel containers, and waits for Instagram processing before publishing.
