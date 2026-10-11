@@ -2546,18 +2546,30 @@ textarea {
 }
 
 .editor-overlay.editor-overlay--dialog {
-  grid-template-columns: minmax(0, 1fr);
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .editor-overlay.editor-overlay--dialog > .editor-overlay__panel {
-  justify-self: center;
+  position: relative;
+  z-index: 1;
+  justify-self: auto;
   max-width: calc(100vw - 32px);
+  height: min(90vh, 920px);
+  max-height: calc(100vh - 32px);
+  border: 1px solid var(--border-strong);
 }
 
 .editor-overlay__backdrop {
   background: rgba(2, 6, 23, 0.82);
   backdrop-filter: blur(8px);
+}
+
+.editor-overlay.editor-overlay--dialog > .editor-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
 
 .editor-overlay__backdrop a {
