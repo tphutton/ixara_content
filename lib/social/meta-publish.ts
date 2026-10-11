@@ -18,6 +18,7 @@ import {
   MetaReauthRequiredError,
   assertMetaAccountReadyForSync,
   fetchMetaPostPermalink,
+  fetchMetaMediaContainerStatus,
   getStoredMetaToken,
   isMetaPlatform,
   metaPost,
@@ -35,7 +36,7 @@ type ScheduleForPublish = ContentSchedule & {
     brand: string | null;
     assetImage: string | null;
     assetCaption: string | null;
-    primaryAsset: { fileUrl: string; title: string } | null;
+    primaryAsset: { fileUrl: string; title: string; mimeType?: string | null; mediaType?: string | null } | null;
     selectedVariant: { platform: string; hook: string | null; body: string | null; cta: string | null; status: ContentStatus } | null;
     qualityReviews: QualityReview[];
   } | null;
@@ -46,7 +47,7 @@ type ScheduleForPublish = ContentSchedule & {
     status: BlogStatus;
     brand: string | null;
     featureImage: string | null;
-    featureAsset: { fileUrl: string; title: string } | null;
+    featureAsset: { fileUrl: string; title: string; mimeType?: string | null; mediaType?: string | null } | null;
     qualityReviews: QualityReview[];
   } | null;
   publishedPosts: Array<{ id: string; status: PublishedPostStatus }>;
@@ -139,6 +140,13 @@ function getMediaUrl(schedule: ScheduleForPublish) {
   );
 }
 
+function getMediaKind(schedule: ScheduleForPublish) {
+  const asset = schedule.content?.primaryAsset ?? schedule.blog?.featureAsset;
+  const mimeType = asset?.mimeType?.toLowerCase() ?? "";
+  const mediaType = asset?.mediaType?.toLowerCase() ?? "";
+  return mimeType.startsWith("video/") || mediaType === "video" ? "video" : "image";
+}
+
 export function getMetaPublishReadiness(schedule: ScheduleForPublish, accounts: ConnectedAccount[]): PublishReadiness {
   const reasons: string[] = [];
   const { platform, account } = choosePublishingAccount(schedule, accounts);
@@ -174,7 +182,7 @@ export function getMetaPublishReadiness(schedule: ScheduleForPublish, accounts: 
     if (!igBusinessId) reasons.push("Instagram account is missing the business account ID.");
   }
   if (!caption) reasons.push("No publishable caption/body copy is available.");
-  if (platform === SocialPlatform.instagram && !mediaUrl) reasons.push("Instagram publishing requires an image URL.");
+  if (platform === SocialPlatform.instagram && !mediaUrl) reasons.push("Instagram publishing requires an image or video URL.");
 
   return {
     ready: reasons.length === 0,
@@ -198,7 +206,16 @@ async function publishFacebook(input: {
   token: string;
   caption: string;
   mediaUrl: string | null;
+  mediaKind: "image" | "video";
 }) {
+  if (input.mediaKind === "video" && input.mediaUrl) {
+    const result = await metaPost<{ id?: string }>(`/${input.pageId}/videos`, input.token, {
+      file_url: input.mediaUrl,
+      description: input.caption,
+      published: "true",
+    });
+    return { externalPostId: result.id };
+  }
   if (input.mediaUrl) {
     const result = await metaPost<{ id?: string; post_id?: string }>(`/${input.pageId}/photos`, input.token, {
       url: input.mediaUrl,
@@ -219,14 +236,26 @@ async function publishInstagram(input: {
   token: string;
   caption: string;
   mediaUrl: string;
+  mediaKind: "image" | "video";
 }) {
-  const container = await metaPost<{ id?: string }>(`/${input.igBusinessId}/media`, input.token, {
-    image_url: input.mediaUrl,
-    caption: input.caption,
-  });
+  const container = await metaPost<{ id?: string }>(`/${input.igBusinessId}/media`, input.token,
+    input.mediaKind === "video"
+      ? { video_url: input.mediaUrl, media_type: "REELS", caption: input.caption, share_to_feed: "true" }
+      : { image_url: input.mediaUrl, caption: input.caption },
+  );
 
   if (!container.id) {
     throw new Error("Meta did not return an Instagram media container ID.");
+  }
+
+  if (input.mediaKind === "video") {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const status = await fetchMetaMediaContainerStatus(container.id, input.token);
+      if (status.status_code === "ERROR") throw new Error(status.status ?? "Instagram video container failed.");
+      if (status.status_code === "FINISHED") break;
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      if (attempt === 11) throw new Error("Instagram video container did not finish in time.");
+    }
   }
 
   const result = await metaPost<{ id?: string }>(`/${input.igBusinessId}/media_publish`, input.token, {
@@ -344,6 +373,7 @@ export async function publishScheduleToMeta(input: {
 
   const caption = getCaption(schedule);
   const mediaUrl = getMediaUrl(schedule);
+  const mediaKind = getMediaKind(schedule);
   const delivery = await claimMetaDelivery({ schedule, account, access: input.access, caption, mediaUrl });
   if (delivery.status === PublishedPostStatus.published) return delivery;
 
@@ -355,7 +385,8 @@ export async function publishScheduleToMeta(input: {
             pageId: account.externalAccountId as string,
             token,
             caption,
-            mediaUrl,
+          mediaUrl,
+          mediaKind,
           })
         : await publishInstagram({
             igBusinessId:
@@ -364,6 +395,7 @@ export async function publishScheduleToMeta(input: {
             token,
             caption,
             mediaUrl: mediaUrl as string,
+            mediaKind,
           });
   } catch (error) {
     await prisma.publishedPost.update({

@@ -174,6 +174,7 @@ Status: planned
 - [x] Add protected scheduled sync endpoint for active Meta connected accounts.
 - [ ] Attach scheduled background sync jobs for connected accounts in Railway.
 - [x] Add first platform publishing workflow for approved, quality-ready Facebook and Instagram schedule entries.
+- [x] Extend the Meta delivery path to publish video Assets to Facebook and Instagram Reels with container-status polling.
 - [x] Add `/publishing` delivery queue for ready, blocked, failed, and published Meta schedule entries.
 - [ ] Add publishing previews per channel.
 - [x] Add publishing approval gates backed by the shared Content editorial approval ledger.

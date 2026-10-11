@@ -87,6 +87,14 @@ async function metaFetch<T>(path: string, accessToken: string, query?: Record<st
   return payload;
 }
 
+export async function fetchMetaMediaContainerStatus(containerId: string, accessToken: string) {
+  return metaFetch<{ status_code?: string; status?: string }>(
+    `/${containerId}`,
+    accessToken,
+    { fields: "status_code,status" },
+  );
+}
+
 export async function metaPost<T>(path: string, accessToken: string, body: Record<string, string>) {
   const url = new URL(`${META_GRAPH_BASE}${path}`);
   url.searchParams.set("access_token", accessToken);
