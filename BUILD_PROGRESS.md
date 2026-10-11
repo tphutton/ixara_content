@@ -38,6 +38,14 @@
 - Added a channel-aware final-copy preview on Schedule detail using the selected variant and its linked asset, with blog fallbacks for scheduled articles.
 - Kept the preview derived from existing records so it cannot drift from the copy that Meta readiness and publishing will use.
 
+## 2026-10-11: Structured video planning foundation
+
+- Added additive `VideoBrief` and `VideoShot` records linked to Content plan items, preserving existing plans and assets while adding duration, format, platforms, script, voiceover, on-screen text, audio direction, visual direction, generation strategy, and timed shot prompts.
+- Extended AI plan generation so `video` items can carry a production-ready storyboard; longer videos include an assembly strategy rather than pretending one provider request can render the entire runtime.
+- Added Quill's approval-gated `generate_video_brief` tool, which creates or refreshes a reviewable storyboard without calling a video provider or spending generation credits.
+- Added a compact storyboard view to plan-item detail, including shot timing, prompts, format, platforms, and generation status.
+- Added the Prisma migration for the new video planning records. Runway task execution, durable media downloads, composition, and video-aware Meta delivery remain separate next phases.
+
 ## 2026-09-24: Compact campaign workspace
 
 - Converted Campaigns from expanded list rows into a compact comparison table with direct Open and Delete actions.
@@ -91,6 +99,8 @@ Deferred until this journey is complete:
 - [x] Recommend assets using brand, campaign, geography, category, and content context.
 - [x] Upgrade promoted plan items into complete production briefs with inherited context and readiness checks.
 - [ ] Extend guided quality fixes to blogs and plan items.
+- [x] Add structured video briefs and timed storyboards to plan items.
+- [ ] Add Runway generation jobs, durable output storage, and video review.
 - [x] Add variant editing, review, approval, and selection for publishing.
 - [x] Build a guided publishing-package step combining final copy, channel, account, asset, date, and campaign.
 - [x] Add a channel-aware final-copy preview while retaining clear validation before a package can be marked ready to post.
@@ -437,3 +447,4 @@ The product direction is now expanding into a planner-first Content Command Plat
 - `get_quality_summary`: Read the quality command summary for weak work and active items missing reviews.
 - `generate_ai_content_plan`: Generate and save a 14-day AI content plan from current planner signals.
 - `generate_content_variants`: Generate and save platform-specific variants for an existing content record.
+- `generate_video_brief`: Generate an approval-gated storyboard and production brief for a video plan item without starting external rendering.

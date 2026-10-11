@@ -12,7 +12,7 @@ type AiPlanFormProps = {
 };
 
 const channelOptions = ["Instagram", "Facebook", "LinkedIn", "Email", "Blog", "Website", "YouTube", "TikTok"];
-const itemTypes = ["content", "blog", "schedule", "asset_request", "automation"];
+const itemTypes = ["content", "video", "blog", "schedule", "asset_request", "automation"];
 const itemStatuses = ["planned", "approved", "created", "scheduled", "published", "blocked", "cancelled"];
 
 function emptyToNull(value: FormDataEntryValue | null) {
@@ -303,6 +303,13 @@ export function AiPlanForm({ action, brandProfiles, campaigns }: AiPlanFormProps
                   onChange={(event) => updateItem(index, { assetRequest: event.target.value || null })}
                 />
               </label>
+
+              {item.itemType === "video" && item.videoBrief ? (
+                <div className="video-brief-summary">
+                  <div className="section-heading"><div><p className="kicker">Storyboard included</p><strong>{item.videoBrief.concept ?? "Video concept"}</strong></div><span className="inline-chip">{item.videoBrief.durationSeconds ?? "?"}s · {item.videoBrief.aspectRatio ?? "9:16"}</span></div>
+                  <p className="muted">{item.videoBrief.shots?.length ?? 0} timed shots · {(item.videoBrief.targetPlatforms ?? []).join(", ") || "Platforms to confirm"}</p>
+                </div>
+              ) : null}
             </article>
           ))}
         </div>

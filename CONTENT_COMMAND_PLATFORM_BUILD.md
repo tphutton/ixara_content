@@ -28,6 +28,8 @@ Schedule opens in a table-first workflow with Upcoming, Past, and All date tabs.
 
 Content variants now have an explicit publishing handoff. Operators can edit generated channel copy in a focused modal, approve it through the existing editorial approval ledger, and select one version for the linked schedule. Schedule detail now presents the selected copy, platform, asset, account, campaign, date, and approval as one derived publishing package. Meta readiness, publishing, and Quill use that selected version while preserving the original content record, and Meta publication is blocked until the variant is selected and approved.
 
+Video planning now has its own additive production contract. Video plan items can hold a `VideoBrief` with total runtime, aspect ratio, target platforms, script, voiceover, audio/visual direction, generation strategy, and ordered `VideoShot` prompts with durations. Quill can generate and refresh this storyboard through an approval-gated `generate_video_brief` action without starting an external render. Runway generation, durable output storage, final composition, and video-specific publishing remain the next implementation phase.
+
 ## Quill action safety
 
 Quill separates research from mutation. Read-only tools execute immediately, while operations that change workspace or external data create durable action proposals. Operators approve or reject proposals in chat; failed actions preserve diagnostics and can be retried. Only editors and admins can execute approved actions, and proposals are scoped to the user and conversation that created them.
@@ -101,6 +103,8 @@ Status: started
 - [x] Add production-flow guidance to content/blog detail pages so operators can see the next step from draft to quality, variants, schedule, and publish.
 - [x] Add direct schedule creation handoff from content/blog detail pages.
 - [ ] Add channel-specific variants for blog excerpts, ads, and publishing packages.
+- [x] Add structured video briefs and ordered shot lists for video plan items.
+- [ ] Add governed Runway generation jobs, durable generated media, and video review.
 - [ ] Add version history, diff review, and revert support.
 - [ ] Add owner, assignee, due date, priority, and editorial stage fields.
 - [ ] Add approval comments and change-request loops.
@@ -115,6 +119,7 @@ Status: started
 - [ ] Add Atlas workflow: build next week’s content plan from business signals.
 - [x] Add Quill/Atlas `generate_ai_content_plan` tool to create saved plans from current planner signals.
 - [x] Add Quill/Atlas `generate_content_variants` tool for saved platform adaptations.
+- [x] Add Quill/Atlas `generate_video_brief` tool for reviewable timed video storyboards.
 - [ ] Add Atlas workflow: turn a campaign into a launch calendar.
 - [ ] Add Atlas workflow: generate multi-channel variants from one brief or blog.
 - [ ] Add Atlas workflow: improve weak hooks, CTAs, metadata, and asset fit.

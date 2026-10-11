@@ -82,6 +82,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
             blog: { select: { id: true, title: true } },
             schedule: { select: { id: true, scheduledFor: true } },
             qualityReviews: { orderBy: { createdAt: "desc" }, take: 1 },
+            videoBrief: { include: { shots: { orderBy: { sortOrder: "asc" } } } },
           },
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         },
@@ -257,6 +258,15 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
               <div><p className="kicker">Creative brief</p><p>{viewingItem.brief ?? "No brief added."}</p></div>
               <div className="plan-detail-grid"><div><p className="kicker">Objective</p><p>{readiness.effective.objective ?? "Not set"}</p></div><div><p className="kicker">Audience</p><p>{readiness.effective.targetAudience ?? "Not set"}</p></div><div><p className="kicker">Key message</p><p>{readiness.effective.keyMessage ?? "Not set"}</p></div><div><p className="kicker">CTA & tone</p><p>{readiness.effective.callToAction ?? "No CTA"} · {readiness.effective.tone ?? "No tone"}</p></div></div>
               <div><p className="kicker">Asset direction</p><p>{viewingItem.assetRequest ?? "No asset direction added."}</p></div>
+              {viewingItem.videoBrief ? (
+                <section className="video-brief-summary">
+                  <div className="section-heading"><div><p className="kicker">Video production brief</p><h4>{viewingItem.videoBrief.concept}</h4></div><StatusBadge label={viewingItem.videoBrief.status} /></div>
+                  <div className="metadata-grid"><div><span>Duration</span><strong>{viewingItem.videoBrief.durationSeconds}s</strong></div><div><span>Format</span><strong>{viewingItem.videoBrief.aspectRatio}</strong></div><div><span>Platforms</span><strong>{viewingItem.videoBrief.targetPlatforms.join(", ") || "Not set"}</strong></div><div><span>Generation</span><strong>{viewingItem.videoBrief.generationStrategy ?? "Not set"}</strong></div></div>
+                  {viewingItem.videoBrief.script ? <div><p className="kicker">Script</p><p className="preserve-lines">{viewingItem.videoBrief.script}</p></div> : null}
+                  {viewingItem.videoBrief.voiceover ? <div><p className="kicker">Voiceover</p><p className="preserve-lines">{viewingItem.videoBrief.voiceover}</p></div> : null}
+                  <div className="table-shell"><table className="table"><thead><tr><th>#</th><th>Shot</th><th>Time</th><th>Prompt</th></tr></thead><tbody>{viewingItem.videoBrief.shots.map((shot) => <tr key={shot.id}><td>{shot.sortOrder + 1}</td><td><strong>{shot.title}</strong><div className="table-subtext">{shot.purpose ?? "No purpose"}</div></td><td>{shot.durationSeconds}s</td><td><span className="table-subtext preserve-lines">{shot.prompt}</span></td></tr>)}</tbody></table></div>
+                </section>
+              ) : viewingItem.itemType === "video" ? <div className="plan-brief-gaps"><strong>Video brief missing:</strong> Generate a storyboard before requesting video assets.</div> : null}
               <div><p className="kicker">Next action</p><p className="quality-next-step">{nextBestAction(viewingItem, readiness.ready)}</p></div>
               <EditorialApprovalPanel compact path={`/plans/${plan.id}?viewItem=${viewingItem.id}`} targetId={viewingItem.id} targetType={EditorialApprovalTargetType.content_plan_item} />
               <form action={updateStatus} className="status-control"><select name="status" defaultValue={viewingItem.status} aria-label={`Status for ${viewingItem.title}`}>{allStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select><button className="button button--secondary" type="submit">Update status</button></form>

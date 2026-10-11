@@ -1598,6 +1598,23 @@ textarea {
   line-height: 1.5;
 }
 
+.video-brief-summary {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.22);
+}
+
+.video-brief-summary h4 {
+  margin: 0;
+}
+
+.preserve-lines {
+  white-space: pre-wrap;
+}
+
 .publishing-package__progress {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));

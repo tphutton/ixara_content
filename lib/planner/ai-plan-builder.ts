@@ -29,6 +29,28 @@ export type AiPlanItem = {
   country?: string | null;
   campaignName?: string | null;
   assetRequest?: string | null;
+  videoBrief?: {
+    durationSeconds?: number;
+    aspectRatio?: string;
+    targetPlatforms?: string[];
+    concept?: string;
+    script?: string | null;
+    voiceover?: string | null;
+    onScreenText?: string | null;
+    audioDirection?: string | null;
+    visualDirection?: string | null;
+    generationStrategy?: string | null;
+    shots?: Array<{
+      title?: string;
+      durationSeconds?: number;
+      purpose?: string | null;
+      prompt?: string;
+      cameraDirection?: string | null;
+      visualDetails?: string | null;
+      onScreenText?: string | null;
+      voiceover?: string | null;
+    }>;
+  } | null;
 };
 
 export type AiPlanOutput = {
@@ -111,7 +133,7 @@ Return only valid JSON with:
 title, description, goal, brand, campaignName, startDate, endDate, items.
 
 items must be an array of ${itemCount} work units. Each item must include:
-title, itemType, status, brief, objective, targetAudience, keyMessage, callToAction, tone, channel, scheduledFor, brand, sport, region, country, campaignName, assetRequest.
+title, itemType, status, brief, objective, targetAudience, keyMessage, callToAction, tone, channel, scheduledFor, brand, sport, region, country, campaignName, assetRequest, videoBrief.
 
 Allowed itemType values: ${Object.values(ContentPlanItemType).join(", ")}.
 Allowed status values: ${Object.values(ContentPlanItemStatus).join(", ")}.
@@ -135,6 +157,8 @@ Planning standards:
 - For "variants", plan platform adaptations from strong existing content.
 - Otherwise prioritize urgent blockers, campaign windows, under-covered brands/channels, and quality/readiness gaps.
 - Make every item specific enough for an operator to promote into content, blog, or schedule work.
+- When itemType is "video", include a videoBrief with durationSeconds, aspectRatio, targetPlatforms, concept, script, voiceover, onScreenText, audioDirection, visualDirection, generationStrategy, and 3-5 timed shots. Shot durations must add up to the total duration. Use 5, 10, or 15 seconds per Runway generation segment; for longer videos, explain the assembly strategy.
+- For video shots, write production-ready prompts with one clear visual idea, subject, action, environment, camera movement, and continuity details. Do not use generic prompts such as "create an engaging video".
 - Every item must state a concrete objective, target audience, key message, call to action, and tone. Do not repeat generic plan-level wording.
 - Include asset requests when media context is missing.
 - Use scheduledFor only when a credible timing suggestion is available inside the operator date range, or in the next 14 days if no range was supplied.
@@ -246,7 +270,7 @@ export async function saveAiContentPlanPreview(access: UserAccess, preview: AiPl
       sourcePrompt: asOptionalString(preview.sourcePrompt) ?? "AI-generated from /planner command signals.",
       createdById: access.id,
       updatedById: access.id,
-      items: {
+        items: {
         create: parsed.items.map((item, index) => ({
           title: asOptionalString(item.title) ?? `Planned item ${index + 1}`,
           itemType: parseItemType(item.itemType),
@@ -265,11 +289,43 @@ export async function saveAiContentPlanPreview(access: UserAccess, preview: AiPl
           country: asOptionalString(item.country),
           campaignName: asOptionalString(item.campaignName) ?? parsed.campaignName,
           assetRequest: asOptionalString(item.assetRequest),
+          videoBrief:
+            item.itemType === ContentPlanItemType.video && item.videoBrief
+              ? {
+                  create: {
+                    durationSeconds: Math.max(1, Math.round(Number(item.videoBrief.durationSeconds) || 15)),
+                    aspectRatio: asOptionalString(item.videoBrief.aspectRatio) ?? "9:16",
+                    targetPlatforms: Array.isArray(item.videoBrief.targetPlatforms)
+                      ? item.videoBrief.targetPlatforms.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+                      : [],
+                    concept: asOptionalString(item.videoBrief.concept) ?? asOptionalString(item.brief) ?? "Video concept pending.",
+                    script: asOptionalString(item.videoBrief.script),
+                    voiceover: asOptionalString(item.videoBrief.voiceover),
+                    onScreenText: asOptionalString(item.videoBrief.onScreenText),
+                    audioDirection: asOptionalString(item.videoBrief.audioDirection),
+                    visualDirection: asOptionalString(item.videoBrief.visualDirection),
+                    generationStrategy: asOptionalString(item.videoBrief.generationStrategy),
+                    shots: {
+                      create: (Array.isArray(item.videoBrief.shots) ? item.videoBrief.shots : []).slice(0, 20).map((shot, shotIndex) => ({
+                        sortOrder: shotIndex,
+                        title: asOptionalString(shot.title) ?? `Shot ${shotIndex + 1}`,
+                        durationSeconds: Math.max(1, Math.round(Number(shot.durationSeconds) || 5)),
+                        purpose: asOptionalString(shot.purpose),
+                        prompt: asOptionalString(shot.prompt) ?? "Define the subject, action, environment, camera movement, and continuity for this shot.",
+                        cameraDirection: asOptionalString(shot.cameraDirection),
+                        visualDetails: asOptionalString(shot.visualDetails),
+                        onScreenText: asOptionalString(shot.onScreenText),
+                        voiceover: asOptionalString(shot.voiceover),
+                      })),
+                    },
+                  },
+                }
+              : undefined,
           sortOrder: index,
         })),
       },
     },
-    include: { items: true },
+    include: { items: { include: { videoBrief: { include: { shots: true } } } } },
   });
 
   await createActionLog({

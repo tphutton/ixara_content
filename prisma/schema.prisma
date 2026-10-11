@@ -129,6 +129,7 @@ enum ContentPlanStatus {
 
 enum ContentPlanItemType {
   content
+  video
   blog
   schedule
   asset_request
@@ -143,6 +144,23 @@ enum ContentPlanItemStatus {
   published
   blocked
   cancelled
+}
+
+enum VideoBriefStatus {
+  draft
+  review
+  approved
+  generating
+  ready
+  rejected
+}
+
+enum VideoShotStatus {
+  planned
+  approved
+  generating
+  ready
+  needs_changes
 }
 
 enum QualityReviewTargetType {
@@ -206,6 +224,8 @@ model UserAccess {
   qualityReviewsCreated    QualityReview[]     @relation("QualityReviewCreatedBy")
   contentVariantsCreated   ContentVariant[]    @relation("ContentVariantCreatedBy")
   contentVariantsUpdated   ContentVariant[]    @relation("ContentVariantUpdatedBy")
+  videoBriefsCreated       VideoBrief[]       @relation("VideoBriefCreatedBy")
+  videoBriefsUpdated       VideoBrief[]       @relation("VideoBriefUpdatedBy")
   chatThreads          ChatThread[]
   quillActionProposals QuillActionProposal[]
   actionLogs           ContentActionLog[]
@@ -429,6 +449,7 @@ model ContentPlanItem {
   blogId       String?
   scheduleId   String?
   assetRequest String?
+  videoBrief  VideoBrief?
   sortOrder    Int                   @default(0)
   createdAt    DateTime              @default(now())
   updatedAt    DateTime              @updatedAt
@@ -444,6 +465,56 @@ model ContentPlanItem {
   @@index([contentId])
   @@index([blogId])
   @@index([scheduleId])
+}
+
+model VideoBrief {
+  id                 String   @id @default(cuid())
+  planItemId         String   @unique
+  durationSeconds    Int
+  aspectRatio        String
+  targetPlatforms    String[] @default([])
+  concept            String
+  script             String?
+  voiceover          String?
+  onScreenText       String?
+  audioDirection     String?
+  visualDirection    String?
+  generationStrategy String?
+  status             VideoBriefStatus @default(draft)
+  createdById        String?
+  updatedById        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  planItem ContentPlanItem @relation(fields: [planItemId], references: [id], onDelete: Cascade)
+  shots    VideoShot[]
+  createdBy UserAccess? @relation("VideoBriefCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy UserAccess? @relation("VideoBriefUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([status, updatedAt])
+}
+
+model VideoShot {
+  id             String   @id @default(cuid())
+  videoBriefId   String
+  sortOrder      Int
+  title          String
+  durationSeconds Int
+  purpose        String?
+  prompt         String
+  cameraDirection String?
+  visualDetails  String?
+  referenceAssetIds String[] @default([])
+  onScreenText   String?
+  voiceover      String?
+  status         VideoShotStatus @default(planned)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  videoBrief VideoBrief @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+
+  @@unique([videoBriefId, sortOrder])
+  @@index([videoBriefId, status])
 }
 
 model QualityReview {

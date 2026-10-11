@@ -41,6 +41,7 @@ import { runQualityReview } from "@/lib/quality/editorial-review";
 import { getQualityCommandSummary } from "@/lib/quality/summary";
 import { promoteContentPlanItem, type PlanPromotionTarget } from "@/lib/plans/promotion";
 import { generateAiContentPlan } from "@/lib/planner/ai-plan-builder";
+import { generateVideoBrief } from "@/lib/planner/video-brief-builder";
 import { generateContentVariants, parseVariantPlatforms } from "@/lib/content-variants/generate";
 import { runDueSocialSync } from "@/lib/social/sync-runner";
 import { getMetaPublishReadiness, publishScheduleToMeta } from "@/lib/social/meta-publish";
@@ -2145,6 +2146,15 @@ async function generateAiContentPlanTool(args: Record<string, unknown>, context:
         status: item.status,
         channel: item.channel,
         scheduledFor: item.scheduledFor?.toISOString() ?? null,
+        videoBrief: item.videoBrief
+          ? {
+              id: item.videoBrief.id,
+              status: item.videoBrief.status,
+              durationSeconds: item.videoBrief.durationSeconds,
+              aspectRatio: item.videoBrief.aspectRatio,
+              shotCount: item.videoBrief.shots.length,
+            }
+          : null,
       })),
     },
   };
@@ -2172,6 +2182,39 @@ async function generateContentVariantsTool(args: Record<string, unknown>, contex
         hook: variant.hook,
         cta: variant.cta,
         status: variant.status,
+      })),
+    },
+  };
+}
+
+async function generateVideoBriefTool(args: Record<string, unknown>, context: ToolContext) {
+  const brief = await generateVideoBrief(context.access, {
+    planItemId: asRequiredString(args.planItemId, "planItemId"),
+    durationSeconds: typeof args.durationSeconds === "number" ? args.durationSeconds : null,
+    aspectRatio: asOptionalString(args.aspectRatio),
+    targetPlatforms: asStringArray(args.targetPlatforms),
+    guidance: asOptionalString(args.guidance),
+  });
+
+  return {
+    toolName: "generate_video_brief",
+    summary: `Generated a ${brief.durationSeconds}-second video storyboard with ${brief.shots.length} shots.`,
+    payload: {
+      id: brief.id,
+      planItemId: brief.planItemId,
+      status: brief.status,
+      durationSeconds: brief.durationSeconds,
+      aspectRatio: brief.aspectRatio,
+      targetPlatforms: brief.targetPlatforms,
+      concept: brief.concept,
+      generationStrategy: brief.generationStrategy,
+      shots: brief.shots.map((shot) => ({
+        id: shot.id,
+        sortOrder: shot.sortOrder,
+        title: shot.title,
+        durationSeconds: shot.durationSeconds,
+        prompt: shot.prompt,
+        status: shot.status,
       })),
     },
   };
@@ -2213,6 +2256,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   add_content_plan_item: addContentPlanItemTool,
   generate_ai_content_plan: generateAiContentPlanTool,
   generate_content_variants: generateContentVariantsTool,
+  generate_video_brief: generateVideoBriefTool,
   get_quality_summary: async () => getQualitySummaryTool(),
   review_quality: reviewQualityTool,
   apply_quality_recommendations: applyQualityRecommendationsTool,
@@ -2957,6 +3001,25 @@ export const contentOpsTools: ToolDefinition[] = [
           platforms: { type: "array", items: { type: "string" } },
         },
         required: ["contentId"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_video_brief",
+      description: "Generate and save a production-ready storyboard for a video plan item. This creates a reviewable brief only; it does not call a video provider or spend generation credits.",
+      parameters: {
+        type: "object",
+        properties: {
+          planItemId: { type: "string" },
+          durationSeconds: { type: "number", description: "Total runtime, normally 15, 30, 45, or 60 seconds." },
+          aspectRatio: { type: "string", description: "For example 9:16, 1:1, or 16:9." },
+          targetPlatforms: { type: "array", items: { type: "string" } },
+          guidance: { type: "string" },
+        },
+        required: ["planItemId"],
         additionalProperties: false,
       },
     },
