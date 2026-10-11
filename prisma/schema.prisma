@@ -544,6 +544,7 @@ model MediaGenerationJob {
   input           Json
   status          MediaGenerationStatus @default(queued)
   externalTaskId  String?
+  outputUrl       String?
   outputAssetId   String?
   error           String?
   attempts        Int                   @default(0)

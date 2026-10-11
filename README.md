@@ -160,6 +160,7 @@ Local development:
 - `LEGACY_BLOGS_API_KEY`
 - `WORDPRESS_MEDIA_BASE_URL=https://media.ixara.tech/wp-json/wp/v2`
 - `AUTOMATION_RUNNER_SECRET`
+- `RUNWAYML_API_SECRET` for approved media generation jobs submitted through Runway
 - `META_APP_ID` for live Meta OAuth and long-lived token exchange
 - `META_APP_SECRET` for live Meta OAuth and long-lived token exchange
 - `META_SCOPES` optional override for Meta permissions
@@ -172,6 +173,7 @@ Railway deployment:
 - Set `NEXT_PUBLIC_APP_URL` to the final Railway app URL
 - Keep `CAMPAIGNS_API_KEY`, `CLERK_SECRET_KEY`, `OPENAI_API_KEY`, and `DATABASE_URL` server-side only
 - Keep `AUTOMATION_RUNNER_SECRET` server-side only and use it for scheduled runner calls
+- Keep `RUNWAYML_API_SECRET` server-side only; the protected `/api/media/generation/run-due` endpoint uses it to submit and poll approved jobs
 - Keep `META_APP_SECRET` server-side only; it is used during OAuth and long-lived token exchange
 - Keep `SOCIAL_ACCOUNT_ENCRYPTION_KEY` server-side only because it protects stored platform tokens
 
@@ -229,4 +231,5 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - Automation scheduling metadata and manual runs are now live, and workflows can generate either short-form content drafts or structured blog drafts. Background execution can use the protected runner endpoints for automations and social analytics sync before platform publishing is added.
 - Quill can now inspect automation health, list workflows, and trigger safe automation runs through the same server-side tool layer used for content operations.
 - The protected runner endpoints accept either `Authorization: Bearer <AUTOMATION_RUNNER_SECRET>` or `x-automation-secret` and are designed for Railway cron or an external scheduler.
+- Approved video generation jobs can be manually advanced through `/api/media/generation/run-due`; Railway cron wiring is intentionally deferred until the end-to-end content journey is ready.
 - See `BUILD_PROGRESS.md` for milestone-by-milestone status.
