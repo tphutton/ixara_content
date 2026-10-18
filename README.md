@@ -166,6 +166,8 @@ Local development:
 - `META_APP_SECRET` for live Meta OAuth and long-lived token exchange
 - `META_SCOPES` optional override for Meta permissions
 - `META_REAUTH_BUFFER_DAYS` optional number of days before expiry to mark Meta tokens for reconnect, defaulting to 3
+- `X_CLIENT_ID` and optional `X_SCOPES` enable X OAuth 2.0 authorization; register `/api/social/x/callback` with X
+- `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, and optional `TIKTOK_SCOPES` enable TikTok OAuth; register `/api/social/tiktok/callback` with TikTok
 - `SOCIAL_ACCOUNT_ENCRYPTION_KEY` for encrypting stored social access tokens
 
 Railway deployment:

@@ -7,6 +7,7 @@ import { SummaryStats } from "@/components/ui/summary-stats";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { prisma } from "@/lib/prisma";
 import { isMetaConfigured, isMetaPlatform } from "@/lib/social/meta";
+import { isOAuthConfigured, isOAuthPlatform } from "@/lib/social/platform-oauth";
 import {
   createConnectedAccountAction,
   deleteConnectedAccountAction,
@@ -104,6 +105,8 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
           <p className="muted" style={{ margin: "8px 0 0" }}>
             {resolvedSearchParams.success === "meta_connected"
               ? "Meta account connected successfully. You can sync posts and analytics now."
+              : resolvedSearchParams.success === "x_connected" || resolvedSearchParams.success === "tiktok_connected"
+                ? `${resolvedSearchParams.success.startsWith("x_") ? "X" : "TikTok"} account authorized. Live sync and publishing for this platform will be added separately.`
               : resolvedSearchParams.success === "account_created"
                 ? "Account saved. Connect it to Meta to authorize sync and publishing permissions."
               : resolvedSearchParams.success === "account_updated"
@@ -163,7 +166,9 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
             {accounts.map((account) => {
               const syncAction = syncConnectedAccountNowAction.bind(null, account.id);
               const canUseMetaFlow = metaConfigured && isMetaPlatform(account.platform);
+              const canUseOAuthFlow = isOAuthPlatform(account.platform) && isOAuthConfigured(account.platform);
               const expiresSoon = tokenExpiresWithinDays(account.tokenExpiresAt, 14);
+              const needsReconnect = account.status === "needs_reauth" || account.status === "error" || expiresSoon;
 
               return (
                 <tr key={account.id}>
@@ -174,12 +179,17 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
                   <td><strong>{account.publishedPosts.length} post{account.publishedPosts.length === 1 ? "" : "s"}</strong><div className="table-subtext">Updated {formatDistanceToNow(account.updatedAt, { addSuffix: true })}</div></td>
                   <td>{account.lastSyncedAt ? formatDistanceToNow(account.lastSyncedAt, { addSuffix: true }) : "Never"}<div className="table-subtext">{account.lastSyncStatus ?? "No sync result"}</div></td>
                   <td><div className="row-actions table-actions">
-                    {canUseMetaFlow && !account.encryptedAccessToken ? (
+                    {canUseMetaFlow && (!account.encryptedAccessToken || needsReconnect) ? (
                       <Link className="button button--primary" href={`/api/social/meta/start?accountId=${account.id}`}>
-                        Connect Meta
+                        {account.encryptedAccessToken ? "Reconnect Meta" : "Connect Meta"}
                       </Link>
                     ) : null}
-                    {canUseMetaFlow && account.encryptedAccessToken ? (
+                    {canUseOAuthFlow && (!account.encryptedAccessToken || needsReconnect) ? (
+                      <Link className="button button--primary" href={`/api/social/${account.platform}/start?accountId=${account.id}`}>
+                        {account.encryptedAccessToken ? `Reconnect ${account.platform === "x" ? "X" : "TikTok"}` : `Authorize ${account.platform === "x" ? "X" : "TikTok"}`}
+                      </Link>
+                    ) : null}
+                    {canUseMetaFlow && account.encryptedAccessToken && !needsReconnect ? (
                       <form action={syncAction}>
                         <button className="button button--primary" type="submit">Sync posts</button>
                       </form>
@@ -198,6 +208,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
 
       {viewingAccount ? (() => {
         const canUseMetaFlow = metaConfigured && isMetaPlatform(viewingAccount.platform);
+        const canUseOAuthFlow = isOAuthPlatform(viewingAccount.platform) && isOAuthConfigured(viewingAccount.platform);
         const expiresSoon = tokenExpiresWithinDays(viewingAccount.tokenExpiresAt, 14);
         const needsReconnect = viewingAccount.status === "needs_reauth" || viewingAccount.status === "error" || expiresSoon;
         const disconnectAction = disconnectConnectedAccountAction.bind(null, viewingAccount.id);
@@ -217,6 +228,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
               {canUseMetaFlow && !viewingAccount.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Connect Meta</Link> : null}
               {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <form action={syncAction}><button className="button button--secondary" type="submit">Sync posts</button></form> : null}
               {canUseMetaFlow && viewingAccount.encryptedAccessToken && needsReconnect ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Reconnect Meta</Link> : null}
+              {canUseOAuthFlow && (!viewingAccount.encryptedAccessToken || needsReconnect) ? <Link className="button button--secondary" href={`/api/social/${viewingAccount.platform}/start?accountId=${viewingAccount.id}`}>{viewingAccount.encryptedAccessToken ? "Reconnect" : "Authorize"} {viewingAccount.platform === "x" ? "X" : "TikTok"}</Link> : null}
               <form action={disconnectAction}><button className="button button--secondary" type="submit">Disconnect</button></form>
               <form action={deleteAction}><button className="button button--secondary" type="submit">Delete</button></form>
             </div>

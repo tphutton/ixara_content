@@ -55,13 +55,21 @@ export function SocialConnectionGuide() {
         <div className="social-guide-platforms">
           <div className="social-guide-checklist__title"><CircleHelp size={16} /><strong>What is live today?</strong></div>
           <div className="social-guide-platforms__row"><span><strong>Facebook / Instagram</strong><small>OAuth, sync, analytics, and publishing via Meta</small></span><StatusBadge label="active" /></div>
-          <div className="social-guide-platforms__row"><span><strong>LinkedIn / X / TikTok / YouTube</strong><small>Save a planning record while live connectors are being added</small></span><span className="inline-chip">Planning</span></div>
+          <div className="social-guide-platforms__row"><span><strong>X / TikTok</strong><small>OAuth authorization is available; sync and publishing adapters are next</small></span><span className="inline-chip">Authorize</span></div>
+          <div className="social-guide-platforms__row"><span><strong>LinkedIn / YouTube</strong><small>Save a planning record while live authorization is being added</small></span><span className="inline-chip">Planning</span></div>
         </div>
       </div>
 
       <div className="social-connection-guide__note">
         <Plus size={16} />
         <span><strong>Connecting multiple accounts:</strong> add each account separately, link each to its brand, and authorize only the accounts you want Content to publish to. They will remain separate in the table so you can sync or reconnect them individually.</span>
+      </div>
+
+      <div className="social-guide-statuses">
+        <div><strong>Pending setup</strong><span>Saved, but not authorized yet. Use Connect Meta when available.</span></div>
+        <div><strong>Active</strong><span>Authorized and ready to sync. Sync before relying on live data.</span></div>
+        <div><strong>Needs reauth / Error</strong><span>Authorization or sync needs attention. Reconnect the platform, then retry its available action.</span></div>
+        <div><strong>Disconnected</strong><span>Kept for planning and history, but it cannot publish or sync.</span></div>
       </div>
     </section>
   );

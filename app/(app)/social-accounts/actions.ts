@@ -10,6 +10,8 @@ import { createActionLog } from "@/lib/actions/action-log";
 import { requireEditorialUserAccess } from "@/lib/auth/user-access";
 import { parseOptionalString, parseStringArray } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
+import { isMetaConfigured, isMetaPlatform } from "@/lib/social/meta";
+import { isOAuthConfigured, isOAuthPlatform } from "@/lib/social/platform-oauth";
 import { syncConnectedMetaAccount } from "@/lib/social/meta-sync";
 
 function parseEnum<T extends string>(value: FormDataEntryValue | null, allowed: readonly T[], fallback: T) {
@@ -68,6 +70,15 @@ export async function createConnectedAccountAction(formData: FormData) {
 
   revalidatePath("/social-accounts");
   revalidatePath("/analytics");
+
+  if (isMetaPlatform(account.platform) && isMetaConfigured()) {
+    redirect(`/api/social/meta/start?accountId=${account.id}`);
+  }
+
+  if (isOAuthPlatform(account.platform) && isOAuthConfigured(account.platform)) {
+    redirect(`/api/social/${account.platform}/start?accountId=${account.id}`);
+  }
+
   redirect("/social-accounts?success=account_created");
 }
 
