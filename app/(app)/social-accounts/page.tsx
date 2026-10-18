@@ -1,6 +1,7 @@
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { ConnectedAccountForm } from "@/components/social/connected-account-form";
+import { SocialConnectionGuide } from "@/components/social/social-connection-guide";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { SummaryStats } from "@/components/ui/summary-stats";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -94,6 +95,8 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
           },
         ]}
       />
+
+      <SocialConnectionGuide />
 
       {resolvedSearchParams?.success ? (
         <div className="card card--padded">
