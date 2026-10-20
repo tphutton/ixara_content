@@ -1049,3 +1049,21 @@ model PostAnalyticsSnapshot {
   @@index([publishedPostId, capturedAt])
   @@index([capturedAt])
 }
+
+// Durable, actor-bound MCP previews. Business mutation and applied result commit together.
+model McpChangeSet {
+  id          String   @id @default(uuid())
+  actorId     String
+  requestKey  String
+  requestHash String
+  tool        String
+  argsJson    Json
+  baseJson    Json
+  previewJson Json
+  resultJson  Json?
+  expiresAt   DateTime
+  appliedAt   DateTime?
+  createdAt   DateTime @default(now())
+  @@unique([actorId, requestKey])
+  @@index([expiresAt])
+}
