@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ixara-content",
+  "version": "0.1.0",
+  "description": "Manage content, blogs, plans, brand profiles, schedules, storyboards, comments and editorial approvals through the existing Content workflow.",
+  "author": {
+    "name": "Ixara Tech"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Ixara Content",
+        "shortDescription": "Manage editorial content",
+        "longDescription": "Manage content, blogs, plans, brand profiles, schedules, storyboards, comments and editorial approvals through the existing Content workflow.",
+        "developerName": "Ixara Tech",
+        "category": "Productivity",
+        "capabilities": [],
+        "defaultPrompt": "Help me manage editorial content."
+      }
+    }
+  }
+}

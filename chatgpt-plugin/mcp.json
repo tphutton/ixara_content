@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "ixara-content": {
+      "type": "streamable-http",
+      "url": "https://mcp.ixara.tech/mcp/ixara-content",
+      "extensions": {
+        "com.openai": {
+          "auth": {
+            "type": "oauth",
+            "client": {
+              "mode": "provided",
+              "clientId": "HvSuYhJPY76c0wdThPgeSVwj51z5NGIL",
+              "tokenEndpointAuthMethod": "none"
+            },
+            "baseScopes": [
+              "ixara-content:read"
+            ],
+            "defaultScopes": [
+              "ixara-content:read",
+              "ixara-content:write",
+              "ixara-content:approve"
+            ],
+            "oidcEnabled": false
+          }
+        }
+      }
+    }
+  }
+}
