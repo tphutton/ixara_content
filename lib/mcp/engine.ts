@@ -107,7 +107,8 @@ export function createEngine(db: any, operations: Operation[], options: {name: s
       if(!change)throw new McpError(404,'Change set not found.');
       const op=find(change.tool);
       if(change.appliedAt)return {change_set_id:change.id,applied:true,result:change.resultJson};
-      if(change.expiresAt.getTime()<=Date.now())throw new McpError(409,'Preview expired. Create a new preview.');
+      // External owners enforce expiry and can still recover an already committed result after local expiry.
+      if(!op.external&&change.expiresAt.getTime()<=Date.now())throw new McpError(409,'Preview expired. Create a new preview.');
       const args=change.argsJson;validate(op.inputSchema,args);
       if(op.guard)await op.guard(args,tx);
       const current=op.snapshot?await op.snapshot(args,tx):null;

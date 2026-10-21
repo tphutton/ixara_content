@@ -44,6 +44,7 @@ test('external preview never executes a write; remote commit and local rollback 
  assert.equal(previews,1);assert.equal(remoteWrites,0);assert.equal(f.state().records.length,0);
  await f.handler(req({action:'preview',tool:'campaign',args:{},request_key:'external-key'}));assert.equal(previews,1);
  await assert.rejects(f.handler(req({action:'apply',change_set_id:p.id})));assert.equal(remoteWrites,1);assert.equal(f.state().records.length,0);
+ await f.db.mcpChangeSet.update({where:{id:p.id},data:{expiresAt:new Date(0)}});
  assert.equal((await f.handler(req({action:'apply',change_set_id:p.id}))).result.id,'remote-campaign');
  await f.handler(req({action:'apply',change_set_id:p.id}));assert.equal(remoteWrites,1);assert.equal(f.state().records.length,1);
 });
