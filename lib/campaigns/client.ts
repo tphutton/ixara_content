@@ -8,7 +8,7 @@ import {
 export class CampaignsApiError extends Error {
   code: "missing_api_key" | "request_failed";
 
-  constructor(message: string, code: "missing_api_key" | "request_failed") {
+  constructor(message: string, code: "missing_api_key" | "request_failed", public status?: number) {
     super(message);
     this.name = "CampaignsApiError";
     this.code = code;
@@ -43,7 +43,7 @@ async function campaignsRequest<T>(path: string, init?: RequestInit): Promise<T>
     const errorBody = await response.text().catch(() => "");
     throw new CampaignsApiError(
       `Campaign API request failed (${response.status}): ${errorBody || response.statusText}`,
-      "request_failed",
+      "request_failed", response.status,
     );
   }
 
@@ -134,4 +134,14 @@ export async function safeListCampaigns(filters?: {
       error: error instanceof Error ? error.message : "Campaign API request failed.",
     };
   }
+}
+
+// Campaign MCP previews are owned by the campaigns database, not a local rollback.
+export async function campaignChangeRequest(path:string, actor:string, body?:unknown, requestKey?:string) {
+  if(!path.startsWith('/changes/'))throw new Error('Invalid campaign operation.');
+  return campaignsRequest<any>('/campaigns'+path,{
+    method:body===undefined?'GET':'POST',redirect:'error',signal:AbortSignal.timeout(12000),
+    headers:{'X-Ixara-Campaign-Actor':actor,...(requestKey?{'Idempotency-Key':requestKey}:{})},
+    ...(body===undefined?{}:{body:JSON.stringify(body)}),
+  });
 }

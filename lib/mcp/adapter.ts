@@ -1,3 +1,6 @@
+import {campaignOperations} from './campaigns';
+import {campaignChangeRequest} from '@/lib/campaigns/client';
+import {createActionLog} from '@/lib/actions/action-log';
 import { prisma } from '@/lib/prisma';
 import { contentOpsTools, executeContentOpsTool } from '@/lib/ai/tools';
 import { requestEditorialApproval, decideEditorialApproval, revokeEditorialApproval, getEditorialApprovalHistory } from '@/lib/approvals/editorial-approvals';
@@ -5,7 +8,7 @@ import { listEditorialActivity } from '@/lib/editorial/record-history';
 import { createEngine, McpError, type Operation } from './engine';
 
 const reads = new Set(['list_content','list_blogs','list_schedule_entries','get_dashboard_summary','list_assets',
- 'recommend_assets_for_content','list_brand_profiles','get_brand_profile','list_campaigns','get_campaign',
+ 'recommend_assets_for_content','list_brand_profiles','get_brand_profile','list_campaigns',
  'list_connected_accounts','list_published_posts','get_top_performing_posts','get_performance_insights',
  'get_meta_publishing_readiness','list_automations','get_automation_health','list_content_plans','get_quality_summary','get_production_status']);
 const writes = new Set(['create_content','update_content','create_blog','update_blog','create_schedule_entry',
@@ -74,5 +77,15 @@ operations.push({name:'decide_editorial_approval',description:'Approve or reject
  inputSchema:objectSchema({approvalId:string,decision:{type:'string',enum:['approved','rejected']},comment:string},['approvalId','decision']),
  scope:'ixara-content:approve',mutating:true,snapshot:async(args,tx)=>{const approval=await tx.editorialApproval.findUniqueOrThrow({where:{id:args.approvalId}});return {approval,record:await tx[targetModels[approval.targetType]].findUniqueOrThrow({where:{id:approval.targetId}})};},
  run:async(args,access)=>decideEditorialApproval({...args,access})});
+operations.push(...campaignOperations({request:campaignChangeRequest,log:createActionLog,links:async campaign=>{
+ const name=campaign.campaign_name;
+ const [content,schedule,plans,items,assets]=await Promise.all([
+  prisma.content.findMany({where:{campaignName:name},select:{id:true,title:true},take:100}),
+  prisma.contentSchedule.findMany({where:{campaignName:name},select:{id:true},take:100}),
+  prisma.contentPlan.findMany({where:{campaignName:name},select:{id:true},take:100}),
+  prisma.contentPlanItem.findMany({where:{campaignName:name},select:{id:true},take:100}),
+  prisma.campaignAsset.findMany({where:{campaignId:campaign.campaign_id},select:{assetId:true,role:true},take:100}),
+ ]);return {content,schedule,plans,plan_items:items,assets,reference_note:'Content references currently use campaign names; campaign asset links use IDs.'};
+}}));
 const scopes=['ixara-content:read',...(process.env.IXARA_MCP_WRITE_ENABLED==='true'?['ixara-content:write','ixara-content:approve']:[])];
 export const handleMcp=createEngine(prisma,operations,{name:'Ixara Content',scopes,actor});
