@@ -42,7 +42,8 @@ export function validate(schema: any, value: any, path = 'args', depth = 0): voi
 }
 export type Operation = {name: string; description: string; inputSchema: any; scope: string; mutating: boolean;
   run: (args: any, actor: any) => Promise<any>; snapshot?: (args: any, tx: any) => Promise<any>;
-  guard?: (args: any, tx: any) => Promise<void>};
+  guard?: (args: any, tx: any) => Promise<void>;
+  external?: {preview:(args:any,actor:any,key:string)=>Promise<any>;apply:(args:any,actor:any,preview:any)=>Promise<any>}};
 export function createEngine(db: any, operations: Operation[], options: {name: string; scopes: string[]; actor?: (id: string) => Promise<any>; context?: (actor: any, run: () => Promise<any>) => Promise<any>}) {
   const find = (name: string) => {
     const op = operations.find(o => o.name === name);
@@ -59,7 +60,7 @@ export function createEngine(db: any, operations: Operation[], options: {name: s
     if (!process.env.DATABASE_URL) throw new McpError(503, 'Live database is not configured.');
     if (request.method === 'GET') {
       await db.$queryRaw`SELECT 1`;
-      return {profile:{id:principal.id,name:options.name},scopes:options.scopes,operations:operations.filter(o=>options.scopes.includes(o.scope)).map(({run,snapshot,guard,...o})=>o)};
+      return {profile:{id:principal.id,name:options.name},scopes:options.scopes,operations:operations.filter(o=>options.scopes.includes(o.scope)).map(({run,snapshot,guard,external,...o})=>o)};
     }
     const raw = await request.text();
     if (Buffer.byteLength(raw) > 131072) throw new McpError(413, 'Request is too large.');
@@ -81,7 +82,10 @@ export function createEngine(db: any, operations: Operation[], options: {name: s
       if(existing){if(existing.requestHash!==requestHash)throw new McpError(409,'Request key was already used for different changes.');return existing;}
       let preview: any, base: any;
       const rollback = new Error('rollback-preview');
-      try {await transaction(async tx=>{
+      if(op.external){
+        if(op.guard)await op.guard(args,db);
+        base=null;preview=json(await op.external.preview(args,actor,key));
+      }else try {await transaction(async tx=>{
         if(op.guard)await op.guard(args,tx);
         base=json(op.snapshot?await op.snapshot(args,tx):null);
         preview=json(await execute(op,args,actor));
@@ -103,12 +107,13 @@ export function createEngine(db: any, operations: Operation[], options: {name: s
       if(!change)throw new McpError(404,'Change set not found.');
       const op=find(change.tool);
       if(change.appliedAt)return {change_set_id:change.id,applied:true,result:change.resultJson};
-      if(change.expiresAt.getTime()<=Date.now())throw new McpError(409,'Preview expired. Create a new preview.');
+      // External owners enforce expiry and can still recover an already committed result after local expiry.
+      if(!op.external&&change.expiresAt.getTime()<=Date.now())throw new McpError(409,'Preview expired. Create a new preview.');
       const args=change.argsJson;validate(op.inputSchema,args);
       if(op.guard)await op.guard(args,tx);
       const current=op.snapshot?await op.snapshot(args,tx):null;
       if(digest(current)!==digest(change.baseJson.value))throw new McpError(409,'Records changed since preview. Preview again.');
-      const result=json(await execute(op,args,actor));
+      const result=json(op.external?await op.external.apply(args,actor,change.previewJson):await execute(op,args,actor));
       await tx.mcpChangeSet.update({where:{id:change.id},data:{resultJson:result,appliedAt:new Date()}});
       return {change_set_id:change.id,applied:true,result};
     });

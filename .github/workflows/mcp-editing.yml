@@ -1,0 +1,36 @@
+name: Content MCP editing
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: content_test
+          POSTGRES_PASSWORD: content_test
+          POSTGRES_DB: content_mcp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://content_test:content_test@localhost:5432/content_mcp_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma db push --skip-generate
+      - run: npx tsc --noEmit --incremental false
+      - run: npm test
+      - run: npm exec --yes --package=tsx@4.20.6 -- tsx tests/mcp-postgres.integration.ts
