@@ -12,8 +12,8 @@ INSERT INTO "PublishedPost" (id, "connectedAccountId", platform, "importedAt", "
 \ir ../prisma/migrations/20261024120000_preserve_social_import_identity/migration.sql
 DO $$ BEGIN
   IF (SELECT "sourceExternalAccountId" FROM "PublishedPost" WHERE id='identity-before') IS NOT NULL THEN RAISE EXCEPTION 'Backfill relabelled older history'; END IF;
-  IF (SELECT "sourceExternalAccountId" FROM "PublishedPost" WHERE id='identity-after') <> 'correct-page' THEN RAISE EXCEPTION 'Identity backfill failed'; END IF;
-  IF (SELECT "sourceBrandName" FROM "PublishedPost" WHERE id='identity-after') <> 'StadioMate' THEN RAISE EXCEPTION 'Brand backfill failed'; END IF;
+  IF (SELECT "sourceExternalAccountId" FROM "PublishedPost" WHERE id='identity-after') IS DISTINCT FROM 'correct-page' THEN RAISE EXCEPTION 'Identity backfill failed'; END IF;
+  IF (SELECT "sourceBrandName" FROM "PublishedPost" WHERE id='identity-after') IS DISTINCT FROM 'StadioMate' THEN RAISE EXCEPTION 'Brand backfill failed'; END IF;
 END $$;
 DELETE FROM "PublishedPost" WHERE id IN ('identity-before','identity-after');
 DELETE FROM "ConnectedAccount" WHERE id='identity-fixture';
@@ -30,7 +30,7 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM "PublishedPost" WHERE id='cmvm52ael0005r31x01xods1h') THEN RAISE EXCEPTION 'Wrong import remained'; END IF;
   IF EXISTS (SELECT 1 FROM "PostAnalyticsSnapshot" WHERE id='cleanup-metrics') THEN RAISE EXCEPTION 'Analytics did not cascade'; END IF;
   IF (SELECT count(*) FROM "SocialImportCleanupArchive") <> 1 THEN RAISE EXCEPTION 'Archive count incorrect'; END IF;
-  IF (SELECT "analyticsSnapshots"->0->>'engagements' FROM "SocialImportCleanupArchive") <> '42' THEN RAISE EXCEPTION 'Archive lost analytics'; END IF;
+  IF (SELECT "analyticsSnapshots"->0->>'engagements' FROM "SocialImportCleanupArchive") IS DISTINCT FROM '42' THEN RAISE EXCEPTION 'Archive lost analytics'; END IF;
   IF (SELECT count(*) FROM "PublishedPost" WHERE id IN ('keep-stadiomate','cmvm52apn0009r31xz06mj3pi')) <> 2 THEN RAISE EXCEPTION 'Unrelated/changed records deleted'; END IF;
 END $$;
 DELETE FROM "PublishedPost" WHERE id IN ('keep-stadiomate','cmvm52apn0009r31xz06mj3pi');
