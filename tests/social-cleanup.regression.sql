@@ -1,5 +1,23 @@
 \set ON_ERROR_STOP on
 -- Disposable CI database only. Test exact-ID cleanup, archival and keep conditions.
+-- Recreate the pre-migration columns on this empty test database, then exercise
+-- identity backfill on both sides of the explicit confirmation timestamp.
+ALTER TABLE "PublishedPost" DROP COLUMN "sourceExternalAccountId", DROP COLUMN "sourceBrandName";
+ALTER TABLE "PostAnalyticsSnapshot" DROP COLUMN "views";
+INSERT INTO "ConnectedAccount" (id, platform, "accountName", scopes, "updatedAt", "externalAccountId", "brandName", metadata) VALUES
+ ('identity-fixture', 'facebook', 'StadioMate', '{}', now(), 'correct-page', 'StadioMate', '{"metaConfirmedAt":"2026-10-24T10:00:00Z"}');
+INSERT INTO "PublishedPost" (id, "connectedAccountId", platform, "importedAt", "updatedAt") VALUES
+ ('identity-before', 'identity-fixture', 'facebook', '2026-10-24T09:00:00Z', now()),
+ ('identity-after', 'identity-fixture', 'facebook', '2026-10-24T11:00:00Z', now());
+\ir ../prisma/migrations/20261024120000_preserve_social_import_identity/migration.sql
+DO $$ BEGIN
+  IF (SELECT "sourceExternalAccountId" FROM "PublishedPost" WHERE id='identity-before') IS NOT NULL THEN RAISE EXCEPTION 'Backfill relabelled older history'; END IF;
+  IF (SELECT "sourceExternalAccountId" FROM "PublishedPost" WHERE id='identity-after') <> 'correct-page' THEN RAISE EXCEPTION 'Identity backfill failed'; END IF;
+  IF (SELECT "sourceBrandName" FROM "PublishedPost" WHERE id='identity-after') <> 'StadioMate' THEN RAISE EXCEPTION 'Brand backfill failed'; END IF;
+END $$;
+DELETE FROM "PublishedPost" WHERE id IN ('identity-before','identity-after');
+DELETE FROM "ConnectedAccount" WHERE id='identity-fixture';
+
 INSERT INTO "ConnectedAccount" (id, platform, "accountName", scopes, "updatedAt") VALUES
  ('cmt001v130001paw9tsoce3q1', 'instagram', 'StadioMate', '{}', now());
 INSERT INTO "PublishedPost" (id, "connectedAccountId", platform, "externalPostId", "captionSnapshot", "publishedAt", "importedAt", "updatedAt") VALUES
