@@ -12,6 +12,8 @@ import {
 } from "@/lib/social/meta";
 
 export async function GET(request: Request) {
+  // Railway may expose localhost in request.url; redirect to the configured public origin.
+  const redirectBase = new URL(process.env.NEXT_PUBLIC_APP_URL?.trim() || request.url).origin;
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state");
@@ -19,23 +21,23 @@ export async function GET(request: Request) {
   const errorDescription = searchParams.get("error_description");
 
   if (!isMetaConfigured()) {
-    return NextResponse.redirect(new URL("/social-accounts?error=meta_not_configured", request.url));
+    return NextResponse.redirect(new URL("/social-accounts?error=meta_not_configured", redirectBase));
   }
 
   if (errorReason || errorDescription) {
     return NextResponse.redirect(
-      new URL(`/social-accounts?error=${encodeURIComponent(errorDescription ?? errorReason ?? "meta_authorization_failed")}`, request.url),
+      new URL(`/social-accounts?error=${encodeURIComponent(errorDescription ?? errorReason ?? "meta_authorization_failed")}`, redirectBase),
     );
   }
 
   if (!code || !state) {
-    return NextResponse.redirect(new URL("/social-accounts?error=missing_meta_callback_state", request.url));
+    return NextResponse.redirect(new URL("/social-accounts?error=missing_meta_callback_state", redirectBase));
   }
 
   const [accountId, nonce] = state.split(":");
 
   if (!accountId || !nonce) {
-    return NextResponse.redirect(new URL("/social-accounts?error=invalid_meta_state", request.url));
+    return NextResponse.redirect(new URL("/social-accounts?error=invalid_meta_state", redirectBase));
   }
 
   const cookieStore = await cookies();
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
   cookieStore.delete(`meta_oauth_state_${accountId}`);
 
   if (!storedNonce || storedNonce !== nonce) {
-    return NextResponse.redirect(new URL("/social-accounts?error=meta_state_mismatch", request.url));
+    return NextResponse.redirect(new URL("/social-accounts?error=meta_state_mismatch", redirectBase));
   }
 
   const account = await prisma.connectedAccount.findUnique({
@@ -51,7 +53,7 @@ export async function GET(request: Request) {
   });
 
   if (!account) {
-    return NextResponse.redirect(new URL("/social-accounts?error=account_not_found", request.url));
+    return NextResponse.redirect(new URL("/social-accounts?error=account_not_found", redirectBase));
   }
 
   try {
@@ -95,7 +97,7 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/social-accounts?success=meta_connected", request.url));
+    return NextResponse.redirect(new URL("/social-accounts?success=meta_connected", redirectBase));
   } catch (error) {
     await prisma.connectedAccount.update({
       where: { id: account.id },
@@ -108,7 +110,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(
       new URL(
         `/social-accounts?error=${encodeURIComponent(error instanceof Error ? error.message : "Meta connection failed.")}`,
-        request.url,
+        redirectBase,
       ),
     );
   }
