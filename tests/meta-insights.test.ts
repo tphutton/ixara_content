@@ -24,6 +24,26 @@ describe("Meta insights compatibility", () => {
     expect(getInsightValue(result.data, "post_media_view")).toBe(100);
     expect(result.unavailable).toEqual(["post_clicks"]);
   });
+  it("isolates a generic invalid-parameter insights error without aborting history", async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(failure(100, "Invalid parameter"))
+      .mockResolvedValueOnce(ok([{ name: "views", values: [{ value: 12 }] }]))
+      .mockResolvedValueOnce(failure(100, "Invalid parameter"))
+      .mockResolvedValueOnce(ok([{ name: "total_interactions", values: [{ value: 3 }] }]))
+      .mockResolvedValueOnce(ok([{ name: "saved", values: [{ value: 0 }] }]))
+      .mockResolvedValueOnce(failure(100, "Invalid parameter"));
+    vi.stubGlobal("fetch", fetcher);
+    const result = await fetchInstagramMediaInsights("older-media", "token");
+    expect(getInsightValue(result.data, "views")).toBe(12);
+    expect(getInsightValue(result.data, "total_interactions")).toBe(3);
+    expect(result.unavailable).toEqual(["reach", "shares"]);
+  });
+  it("records all unavailable metrics when an older media item rejects every insight", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => failure(100, "Invalid parameter")));
+    const result = await fetchInstagramMediaInsights("older-media", "token");
+    expect(result.data).toEqual([]);
+    expect(result.unavailable).toEqual(["views", "reach", "total_interactions", "saved", "shares"]);
+  });
   it("reports missing permissions without presenting them as zero", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(failure(200, "Requires read_insights permission")));
     const result = await fetchFacebookPostInsights("post", "token");
