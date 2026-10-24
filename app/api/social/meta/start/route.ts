@@ -6,21 +6,23 @@ import { prisma } from "@/lib/prisma";
 import { buildMetaOAuthUrl, isMetaConfigured, isMetaPlatform } from "@/lib/social/meta";
 
 export async function GET(request: Request) {
+  // Railway may expose localhost in request.url; redirect to the configured public origin.
+  const redirectBase = new URL(process.env.NEXT_PUBLIC_APP_URL?.trim() || request.url).origin;
   const access = await getCurrentUserAccess();
 
   if (!access || access.approvalStatus !== "approved" || access.role === "viewer") {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
+    return NextResponse.redirect(new URL("/sign-in", redirectBase));
   }
 
   if (!isMetaConfigured()) {
-    return NextResponse.redirect(new URL("/social-accounts?error=meta_not_configured", request.url));
+    return NextResponse.redirect(new URL("/social-accounts?error=meta_not_configured", redirectBase));
   }
 
   const { searchParams } = new URL(request.url);
   const accountId = searchParams.get("accountId");
 
   if (!accountId) {
-    return NextResponse.redirect(new URL("/social-accounts?error=missing_account", request.url));
+    return NextResponse.redirect(new URL("/social-accounts?error=missing_account", redirectBase));
   }
 
   const account = await prisma.connectedAccount.findUnique({
@@ -28,7 +30,7 @@ export async function GET(request: Request) {
   });
 
   if (!account || !isMetaPlatform(account.platform)) {
-    return NextResponse.redirect(new URL("/social-accounts?error=invalid_account", request.url));
+    return NextResponse.redirect(new URL("/social-accounts?error=invalid_account", redirectBase));
   }
 
   const nonce = randomUUID();
