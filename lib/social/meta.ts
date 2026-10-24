@@ -271,46 +271,61 @@ export function buildStoredMetaAuth(accessToken: string, expiresInSeconds?: numb
   };
 }
 
-export async function fetchFacebookPagePosts(pageId: string, pageAccessToken: string) {
-  const payload = await metaFetch<{
-    data?: Array<{
-      id: string;
-      message?: string;
-      permalink_url?: string;
-      created_time?: string;
-      shares?: { count?: number };
-      insights?: {
-        data?: Array<{
-          name: string;
-          values?: Array<{ value?: number | Record<string, number> }>;
-        }>;
-      };
-    }>;
-  }>(`/${pageId}/published_posts`, pageAccessToken, {
-    fields:
-      "id,message,permalink_url,created_time,shares,insights.metric(post_impressions,post_impressions_unique,post_engaged_users)",
-    limit: "25",
-  });
+type MetaCollection<T> = {
+  data?: T[];
+  paging?: { next?: string; cursors?: { after?: string } };
+};
 
-  return payload.data ?? [];
+async function fetchMetaCollection<T extends { id: string }>(
+  path: string, accessToken: string, query: Record<string, string>,
+) {
+  const items = new Map<string, T>();
+  const cursors = new Set<string>();
+  let after: string | undefined;
+  for (let page = 0; page < 100; page += 1) {
+    const payload = await metaFetch<MetaCollection<T>>(path, accessToken, {
+      ...query, ...(after ? { after } : {}),
+    });
+    for (const item of payload.data ?? []) items.set(item.id, item);
+    // A short or empty page may still have another page. Never follow provider URLs.
+    const next = payload.paging?.next ? payload.paging.cursors?.after : undefined;
+    if (!payload.paging?.next) return [...items.values()];
+    if (!next || cursors.has(next)) throw new Error("Meta returned invalid pagination. Retry sync.");
+    cursors.add(next);
+    after = next;
+  }
+  throw new Error("Meta history exceeds the sync page limit. A batched backfill is required.");
+}
+
+export async function fetchFacebookPagePosts(pageId: string, pageAccessToken: string) {
+  const fields = "id,message,permalink_url,created_time,shares";
+  type FacebookPost = {
+    id: string; message?: string; permalink_url?: string; created_time?: string;
+    shares?: { count?: number };
+    insights?: { data?: Array<{ name: string; values?: Array<{ value?: number | Record<string, number> }> }> };
+  };
+  try {
+    return await fetchMetaCollection<FacebookPost>(`/${pageId}/published_posts`, pageAccessToken, {
+      fields: fields + ",insights.metric(post_impressions,post_impressions_unique,post_engaged_users)",
+      limit: "25",
+    });
+  } catch (error) {
+    // Retired/unsupported metrics must not block importing published posts.
+    // Preserve authentication, permissions and other provider errors.
+    if (!(error instanceof Error) || !/valid insights metric/i.test(error.message)) throw error;
+    return fetchMetaCollection<FacebookPost>(`/${pageId}/published_posts`, pageAccessToken, {
+      fields, limit: "25",
+    });
+  }
 }
 
 export async function fetchInstagramMedia(igBusinessAccountId: string, accessToken: string) {
-  const payload = await metaFetch<{
-    data?: Array<{
-      id: string;
-      caption?: string;
-      permalink?: string;
-      timestamp?: string;
-      like_count?: number;
-      comments_count?: number;
-    }>;
+  return fetchMetaCollection<{
+    id: string; caption?: string; permalink?: string; timestamp?: string;
+    like_count?: number; comments_count?: number;
   }>(`/${igBusinessAccountId}/media`, accessToken, {
-    fields: "id,caption,permalink,timestamp,like_count,comments_count",
-    limit: "25",
+    fields: "id,caption,permalink,timestamp,like_count,comments_count", limit: "25",
   });
-
-  return payload.data ?? [];
 }
 
 export async function fetchInstagramMediaInsights(mediaId: string, accessToken: string) {
