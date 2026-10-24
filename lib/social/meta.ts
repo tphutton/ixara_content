@@ -190,44 +190,9 @@ export async function exchangeForLongLivedMetaToken(shortLivedToken: string) {
 }
 
 export async function fetchMetaPages(accessToken: string) {
-  const payload = await metaFetch<{ data?: MetaPageAccount[] }>(
-    "/me/accounts",
-    accessToken,
-    {
-      fields: "id,name,access_token,instagram_business_account{id,username}",
-    },
-  );
-
-  return payload.data ?? [];
-}
-
-function scoreMetaPageMatch(account: ConnectedAccount, page: MetaPageAccount) {
-  let score = 0;
-  const accountName = account.accountName.toLowerCase();
-  const accountHandle = account.accountHandle?.toLowerCase();
-
-  if (page.name.toLowerCase() === accountName) {
-    score += 4;
-  }
-
-  if (page.name.toLowerCase().includes(accountName) || accountName.includes(page.name.toLowerCase())) {
-    score += 2;
-  }
-
-  if (accountHandle && page.instagram_business_account?.username?.toLowerCase() === accountHandle.replace(/^@/, "")) {
-    score += 4;
-  }
-
-  return score;
-}
-
-export function chooseBestMetaPage(account: ConnectedAccount, pages: MetaPageAccount[]) {
-  if (pages.length === 0) {
-    return null;
-  }
-
-  const sorted = [...pages].sort((a, b) => scoreMetaPageMatch(account, b) - scoreMetaPageMatch(account, a));
-  return sorted[0] ?? null;
+  return fetchMetaCollection<MetaPageAccount>("/me/accounts", accessToken, {
+    fields: "id,name,access_token,instagram_business_account{id,username}", limit: "25",
+  });
 }
 
 export function getStoredMetaToken(account: ConnectedAccount) {

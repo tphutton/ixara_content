@@ -1,7 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { ConnectedAccountForm } from "@/components/social/connected-account-form";
-import { SocialConnectionGuide } from "@/components/social/social-connection-guide";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { SummaryStats } from "@/components/ui/summary-stats";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -97,7 +96,6 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
         ]}
       />
 
-      <SocialConnectionGuide />
 
       {resolvedSearchParams?.success ? (
         <div className="card card--padded">
@@ -194,6 +192,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
                         <button className="button button--primary" type="submit">Sync posts</button>
                       </form>
                     ) : null}
+                    {canUseMetaFlow && account.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${account.id}`}>Change connected account</Link> : null}
                     <Link className="button button--secondary" href={`/social-accounts?view=${account.id}`}>
                       View
                     </Link>
@@ -220,7 +219,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
             <div className="editor-overlay__header"><div><p className="kicker">Social account</p><h3>{viewingAccount.accountName}</h3><div className="toolbar__group"><StatusBadge label={viewingAccount.status} /><span className="inline-chip">{viewingAccount.platform}</span></div></div><Link className="button button--secondary" href="/social-accounts">Close</Link></div>
             <div className="editor-overlay__content stack">
               <div className="metadata-grid"><div><span>Handle</span><strong>{viewingAccount.accountHandle ?? "Not set"}</strong></div><div><span>Brand</span><strong>{viewingAccount.brandProfile?.brandName ?? viewingAccount.brandName ?? "Not set"}</strong></div><div><span>Market</span><strong>{[viewingAccount.region, viewingAccount.country].filter(Boolean).join(", ") || "Not set"}</strong></div><div><span>Published posts</span><strong>{viewingAccount.publishedPosts.length}</strong></div></div>
-              <div><p className="kicker">Connection</p><p><strong>External account ID:</strong> {viewingAccount.externalAccountId ?? "Not connected"}</p><p><strong>Permissions:</strong> {viewingAccount.scopes.join(", ") || "None recorded"}</p><p><strong>Authorization:</strong> {viewingAccount.tokenExpiresAt ? `${expiresSoon ? "Expires soon, " : "Expires "}${formatDistanceToNow(viewingAccount.tokenExpiresAt, { addSuffix: true })}` : "No expiry recorded"}</p></div>
+              <div><p className="kicker">Connection</p><p><strong>External account ID:</strong> {viewingAccount.externalAccountId ?? "Not connected"}</p>{(() => { const identity = viewingAccount.metadata as { metaPageName?: string; metaPageId?: string; instagramUsername?: string } | null; return identity?.metaPageId ? <p><strong>Connected Facebook Page:</strong> {identity.metaPageName} (ID: {identity.metaPageId}){identity.instagramUsername ? <><br /><strong>Linked Instagram:</strong> @{identity.instagramUsername}</> : null}</p> : null; })()}<p><strong>Permissions:</strong> {viewingAccount.scopes.join(", ") || "None recorded"}</p><p><strong>Authorization:</strong> {viewingAccount.tokenExpiresAt ? `${expiresSoon ? "Expires soon, " : "Expires "}${formatDistanceToNow(viewingAccount.tokenExpiresAt, { addSuffix: true })}` : "No expiry recorded"}</p></div>
               <div><p className="kicker">Latest sync</p><p>{viewingAccount.lastSyncStatus ?? "This account has not reported a sync result."}</p><p className="muted">{viewingAccount.lastSyncedAt ? `Synced ${formatDistanceToNow(viewingAccount.lastSyncedAt, { addSuffix: true })}` : "Never synced"}</p></div>
             </div>
             <div className="editor-overlay__footer form-actions">
@@ -229,6 +228,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
               {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <form action={syncAction}><button className="button button--secondary" type="submit">Sync posts</button></form> : null}
               {canUseMetaFlow && viewingAccount.encryptedAccessToken && needsReconnect ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Reconnect Meta</Link> : null}
               {canUseOAuthFlow && (!viewingAccount.encryptedAccessToken || needsReconnect) ? <Link className="button button--secondary" href={`/api/social/${viewingAccount.platform}/start?accountId=${viewingAccount.id}`}>{viewingAccount.encryptedAccessToken ? "Reconnect" : "Authorize"} {viewingAccount.platform === "x" ? "X" : "TikTok"}</Link> : null}
+              {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Change connected account</Link> : null}
               <form action={disconnectAction}><button className="button button--secondary" type="submit">Disconnect</button></form>
               <form action={deleteAction}><button className="button button--secondary" type="submit">Delete</button></form>
             </div>
