@@ -175,15 +175,17 @@ export async function deleteConnectedAccountAction(id: string) {
 export async function syncConnectedAccountNowAction(id: string) {
   const access = await requireEditorialUserAccess();
 
-  await syncConnectedMetaAccount({
-    accountId: id,
-    userId: access.id,
-  });
+  let syncError: string | null = null;
+  try {
+    await syncConnectedMetaAccount({ accountId: id, userId: access.id });
+  } catch (error) {
+    syncError = error instanceof Error ? error.message : "Social sync failed.";
+  }
 
   revalidatePath("/social-accounts");
   revalidatePath("/analytics");
   revalidatePath("/dashboard");
   revalidatePath("/publishing");
   revalidatePath("/schedule");
-  redirect("/social-accounts?success=account_synced");
+  redirect(syncError ? `/social-accounts?error=${encodeURIComponent(syncError)}` : "/social-accounts?success=account_synced");
 }
