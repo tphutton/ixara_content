@@ -16,6 +16,7 @@ describe("audited history reconciliation", () => {
     expect(() => validateHistoryLink({ ...schedule, channel: "Instagram Story" }, post)).toThrow();
     expect(() => validateHistoryLink({ ...schedule, channel: "Facebook" }, post)).toThrow();
     expect(() => validateHistoryLink(schedule, { ...post, sourceBrandName: "Eagles & Aces Cup" })).toThrow();
+    expect(() => validateHistoryLink(schedule, { ...post, sourceBrandName: "Eagles & Aces Cup", content: { brand: "StadioMate" } })).toThrow();
   });
   it("rejects unverified, old or already-linked evidence", () => {
     for (const patch of [{ importedAt: null }, { externalPostId: null }, { status: "draft" }, { publishedAt: new Date("2025-01-01") }, { scheduleId: "another-slot" }, { contentId: "other-content" }]) {

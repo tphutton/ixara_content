@@ -33,6 +33,7 @@ export function validateHistoryLink(schedule: HistorySchedule, post: HistoryPost
   const platform = channel === "facebook" ? "facebook" : ["instagram", "instagram reels"].includes(channel ?? "") ? "instagram" : null;
   if (!platform || post.platform !== platform) throw new Error("Publication evidence must match the feed channel; Stories need separate evidence.");
   if (!["published", "imported"].includes(post.status) || !post.externalPostId || !post.importedAt || !post.publishedAt) throw new Error("Evidence must be an imported provider post with an actual publication date.");
+  if (post.sourceBrandName && post.sourceBrandName.toLowerCase() !== schedule.brand?.toLowerCase()) throw new Error("Captured source brand does not match this schedule.");
   if (!schedule.brand || publishedPostBrand(post)?.toLowerCase() !== schedule.brand.toLowerCase()) throw new Error("Publication evidence must belong to the same brand.");
   if (Math.abs(schedule.scheduledFor.getTime() - post.publishedAt.getTime()) > 24 * 60 * 60 * 1000) throw new Error("Publication evidence must be within one day of the original slot.");
   if (post.scheduleId && post.scheduleId !== schedule.id) throw new Error("This post is already linked to another schedule.");
