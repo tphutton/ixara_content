@@ -1,3 +1,4 @@
+import { hasEngagementRate, hasPerformanceMetrics } from "@/lib/social/reporting";
 import Link from "next/link";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { PublishedPostForm } from "@/components/analytics/published-post-form";
@@ -73,8 +74,8 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
       post,
       snapshot: post.analyticsSnapshots[0] ?? null,
     }))
-    .filter((item) => item.snapshot !== null);
-  const topPerformers = [...latestSnapshots]
+    .filter((item) => hasPerformanceMetrics(item.snapshot));
+  const topPerformers = latestSnapshots.filter((entry) => hasEngagementRate(entry.snapshot))
     .sort((a, b) => (b.snapshot?.engagementRate ?? -1) - (a.snapshot?.engagementRate ?? -1))
     .slice(0, 5);
 
@@ -132,8 +133,8 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
           <div className="quiet-list">
             {topPerformers.length === 0 ? (
               <div className="empty-state empty-state--quiet">
-                <h3>No analytics snapshots yet</h3>
-                <p className="muted">Import past post metrics or sync connected accounts to seed this view.</p>
+                <h3>No engagement rates available yet</h3>
+                <p className="muted">Posts are ranked once engagement rates are available. Missing metrics are not treated as zero.</p>
               </div>
             ) : (
               topPerformers.map(({ post, snapshot }) => (
@@ -145,9 +146,9 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                     </div>
                     <div className="quiet-meta">
                       <span>{post.platform}</span>
-                      <span>{post.connectedAccount?.accountName ?? post.platformAccountName ?? "No account"}</span>
-                      <span>{snapshot?.engagements ?? 0} engagements</span>
-                      <span>{snapshot?.impressions ?? 0} impressions</span>
+                      <span>{post.platformAccountName ?? post.connectedAccount?.accountName ?? "No account"}</span>
+                      <span>{snapshot?.engagements ?? "—"} engagements</span>
+                      <span>{snapshot?.impressions ?? "—"} impressions</span>
                     </div>
                   </div>
                   <div className="quiet-row__aside">
@@ -204,6 +205,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                   <th>Platform</th>
                   <th>Account</th>
                   <th>Published</th>
+                  <th>Views</th>
                   <th>Engagement Rate</th>
                   <th>Engagements</th>
                   <th>Status</th>
@@ -220,8 +222,9 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
                         <strong>{post.titleSnapshot ?? post.content?.title ?? post.blog?.title ?? "Untitled post"}</strong>
                       </td>
                       <td>{post.platform}</td>
-                      <td>{post.connectedAccount?.accountName ?? post.platformAccountName ?? "—"}</td>
+                      <td>{post.platformAccountName ?? post.connectedAccount?.accountName ?? "—"}</td>
                       <td>{post.publishedAt ? new Date(post.publishedAt).toLocaleString() : "—"}</td>
+                      <td>{snapshot?.views ?? "—"}</td>
                       <td>{formatPercent(snapshot?.engagementRate ?? null)}</td>
                       <td>{snapshot?.engagements ?? "—"}</td>
                       <td>

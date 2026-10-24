@@ -20,18 +20,15 @@ function load(fetch) {
 }
 function response(data, status = 200) { return new Response(JSON.stringify(data), { status }); }
 
-test('Facebook retries unsupported insights without dropping posts', async () => {
+test('Facebook history is independent of optional insights', async () => {
   const urls = [];
   const api = load(async url => {
     urls.push(new URL(url));
-    return urls.length === 1
-      ? response({ error: { message: '(#100) The value must be a valid insights metric' } }, 400)
-      : response({ data: [{ id: 'fb1', message: 'Existing post' }] });
+    return response({ data: [{ id: 'fb1', message: 'Existing post' }] });
   });
   const posts = await api.fetchFacebookPagePosts('page', 'token');
   assert.equal(posts[0].id, 'fb1');
-  assert.match(urls[0].searchParams.get('fields'), /insights/);
-  assert.doesNotMatch(urls[1].searchParams.get('fields'), /insights/);
+  assert.doesNotMatch(urls[0].searchParams.get('fields'), /insights/);
 });
 
 test('Instagram follows sparse pages and deduplicates by provider ID', async () => {

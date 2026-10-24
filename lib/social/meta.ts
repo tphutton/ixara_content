@@ -22,6 +22,22 @@ export class MetaReauthRequiredError extends Error {
   }
 }
 
+export class MetaApiError extends Error {
+  code?: number;
+  constructor(message: string, code?: number) {
+    super(message);
+    this.name = "MetaApiError";
+    this.code = code;
+  }
+}
+
+export function isUnavailableInsight(error: unknown) {
+  return error instanceof MetaApiError && (
+    [10, 200].includes(error.code ?? 0) ||
+    (error.code === 100 && /metric|insight|not supported|not available|older than|before.*business/i.test(error.message))
+  );
+}
+
 function getMetaConfig() {
   const appId = process.env.META_APP_ID?.trim();
   const appSecret = process.env.META_APP_SECRET?.trim();
@@ -78,10 +94,11 @@ async function metaFetch<T>(path: string, accessToken: string, query?: Record<st
     cache: "no-store",
   });
 
-  const payload = (await response.json()) as T & { error?: { message?: string } };
+  const payload = (await response.json()) as T & { error?: { message?: string; code?: number } };
 
   if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Meta request failed.");
+    if (payload.error?.code === 190) throw new MetaReauthRequiredError("Meta token expired or was revoked. Reconnect the account.");
+    throw new MetaApiError(payload.error?.message ?? "Meta request failed.", payload.error?.code);
   }
 
   return payload;
@@ -263,25 +280,56 @@ async function fetchMetaCollection<T extends { id: string }>(
 }
 
 export async function fetchFacebookPagePosts(pageId: string, pageAccessToken: string) {
-  const fields = "id,message,permalink_url,created_time,shares";
-  type FacebookPost = {
+  return fetchMetaCollection<{
     id: string; message?: string; permalink_url?: string; created_time?: string;
     shares?: { count?: number };
-    insights?: { data?: Array<{ name: string; values?: Array<{ value?: number | Record<string, number> }> }> };
+  }>(`/${pageId}/published_posts`, pageAccessToken, {
+    fields: "id,message,permalink_url,created_time,shares", limit: "25",
+  });
+}
+
+export type MetaInsight = {
+  name: string;
+  values?: Array<{ value?: number }>;
+  total_value?: { value?: number };
+};
+
+// Fetch together normally; isolate only unsupported metrics so one unavailable
+// metric never discards supported data. Auth/rate-limit/network errors propagate.
+async function fetchOptionalInsights(id: string, token: string, metrics: string[]) {
+  const request = async (names: string[]) => {
+    const result = await metaFetch<{ data?: MetaInsight[] }>(`/${id}/insights`, token, {
+      metric: names.join(","),
+    });
+    return result.data ?? [];
   };
   try {
-    return await fetchMetaCollection<FacebookPost>(`/${pageId}/published_posts`, pageAccessToken, {
-      fields: fields + ",insights.metric(post_impressions,post_impressions_unique,post_engaged_users)",
-      limit: "25",
-    });
+    const data = await request(metrics);
+    return { data, unavailable: metrics.filter((name) => !data.some((item) => item.name === name)) };
   } catch (error) {
-    // Retired/unsupported metrics must not block importing published posts.
-    // Preserve authentication, permissions and other provider errors.
-    if (!(error instanceof Error) || !/valid insights metric/i.test(error.message)) throw error;
-    return fetchMetaCollection<FacebookPost>(`/${pageId}/published_posts`, pageAccessToken, {
-      fields, limit: "25",
-    });
+    if (!isUnavailableInsight(error)) throw error;
+    if (error instanceof MetaApiError && [10, 200].includes(error.code ?? 0)) {
+      return { data: [], unavailable: metrics };
+    }
+    const data: MetaInsight[] = [];
+    const unavailable: string[] = [];
+    for (const metric of metrics) {
+      try {
+        const values = await request([metric]);
+        data.push(...values);
+        if (!values.some((item) => item.name === metric)) unavailable.push(metric);
+      }
+      catch (singleError) {
+        if (!isUnavailableInsight(singleError)) throw singleError;
+        unavailable.push(metric);
+      }
+    }
+    return { data, unavailable };
   }
+}
+
+export function fetchFacebookPostInsights(postId: string, token: string) {
+  return fetchOptionalInsights(postId, token, ["post_media_view", "post_clicks"]);
 }
 
 export async function fetchInstagramMedia(igBusinessAccountId: string, accessToken: string) {
@@ -293,19 +341,6 @@ export async function fetchInstagramMedia(igBusinessAccountId: string, accessTok
   });
 }
 
-export async function fetchInstagramMediaInsights(mediaId: string, accessToken: string) {
-  try {
-    const payload = await metaFetch<{
-      data?: Array<{
-        name: string;
-        values?: Array<{ value?: number }>;
-      }>;
-    }>(`/${mediaId}/insights`, accessToken, {
-      metric: "impressions,reach,engagement,saved",
-    });
-
-    return payload.data ?? [];
-  } catch {
-    return [];
-  }
+export function fetchInstagramMediaInsights(mediaId: string, accessToken: string) {
+  return fetchOptionalInsights(mediaId, accessToken, ["views", "reach", "total_interactions", "saved", "shares"]);
 }
