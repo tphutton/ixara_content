@@ -12,6 +12,7 @@ import { parseOptionalString, parseStringArray } from "@/lib/forms/parsers";
 import { prisma } from "@/lib/prisma";
 import { isMetaConfigured, isMetaPlatform } from "@/lib/social/meta";
 import { isOAuthConfigured, isOAuthPlatform } from "@/lib/social/platform-oauth";
+import { normalizeInstagramHandle } from "@/lib/social/meta-selection";
 import { syncConnectedMetaAccount } from "@/lib/social/meta-sync";
 
 function parseEnum<T extends string>(value: FormDataEntryValue | null, allowed: readonly T[], fallback: T) {
@@ -31,7 +32,9 @@ function getConnectedAccountInput(formData: FormData) {
       ConnectedAccountStatus.pending_setup,
     ),
     accountName: String(formData.get("accountName") ?? "").trim(),
-    accountHandle: parseOptionalString(formData.get("accountHandle")),
+    accountHandle: formData.get("platform") === SocialPlatform.instagram
+      ? normalizeInstagramHandle(parseOptionalString(formData.get("accountHandle")))
+      : parseOptionalString(formData.get("accountHandle")),
     externalAccountId: parseOptionalString(formData.get("externalAccountId")),
     brandProfileId: parseOptionalString(formData.get("brandProfileId")),
     brandName: parseOptionalString(formData.get("brandName")),

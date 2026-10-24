@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ConnectedAccountStatus, SocialPlatform } from "@prisma/client";
+import { ConnectedAccountStatus, Prisma } from "@prisma/client";
+import { requireEditorialUserAccess } from "@/lib/auth/user-access";
+import { createMetaSelection, eligibleMetaPages } from "@/lib/social/meta-selection";
 import { prisma } from "@/lib/prisma";
 import {
-  buildStoredMetaAuth,
-    chooseBestMetaPage,
     exchangeMetaCodeForToken,
     exchangeForLongLivedMetaToken,
   fetchMetaPages,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/social/meta";
 
 export async function GET(request: Request) {
+  const access = await requireEditorialUserAccess();
   // Railway may expose localhost in request.url; redirect to the configured public origin.
   const redirectBase = new URL(process.env.NEXT_PUBLIC_APP_URL?.trim() || request.url).origin;
   const { searchParams } = new URL(request.url);
@@ -60,44 +61,20 @@ export async function GET(request: Request) {
     const shortLivedToken = await exchangeMetaCodeForToken(code);
     const tokenPayload = await exchangeForLongLivedMetaToken(shortLivedToken.access_token!);
     const pages = await fetchMetaPages(tokenPayload.access_token!);
-    const selectedPage = chooseBestMetaPage(account, pages);
-
-    if (!selectedPage) {
-      throw new Error("No eligible Meta pages were returned for this account.");
-    }
-
-    const tokenValue = selectedPage.access_token ?? tokenPayload.access_token!;
-    const storedAuth = buildStoredMetaAuth(tokenValue, tokenPayload.expires_in);
-    const isInstagram = account.platform === SocialPlatform.instagram;
-    const instagramBusinessAccountId = selectedPage.instagram_business_account?.id ?? null;
-
-    if (isInstagram && !instagramBusinessAccountId) {
-      throw new Error("No Instagram business account was found on the connected Meta page.");
-    }
-
+    const candidates = eligibleMetaPages(account.platform, pages);
+    if (!candidates.length) throw new Error("No eligible accounts were returned. Grant access to the intended Facebook Page and its linked Instagram account, then reconnect.");
+    const metadata = account.metadata && typeof account.metadata === "object" && !Array.isArray(account.metadata)
+      ? account.metadata as Record<string, Prisma.JsonValue> : {};
+    const encryptedSelection = createMetaSelection({
+      accountId: account.id, ownerId: access.id, pages: candidates,
+      tokenExpiresAt: tokenPayload.expires_in ? new Date(Date.now() + tokenPayload.expires_in * 1000).toISOString() : null,
+    });
+    // Keep existing credentials intact until the user explicitly selects an identity.
     await prisma.connectedAccount.update({
       where: { id: account.id },
-      data: {
-        status: ConnectedAccountStatus.active,
-        externalAccountId: isInstagram ? instagramBusinessAccountId : selectedPage.id,
-        accountHandle:
-          account.accountHandle ??
-          selectedPage.instagram_business_account?.username ??
-          null,
-        scopes: process.env.META_SCOPES?.split(",").map((value) => value.trim()).filter(Boolean) ?? [],
-        encryptedAccessToken: storedAuth.encryptedAccessToken,
-        tokenExpiresAt: storedAuth.tokenExpiresAt,
-        lastSyncStatus: `Meta connected to ${selectedPage.name}`,
-        metadata: {
-          metaPageId: selectedPage.id,
-          metaPageName: selectedPage.name,
-          instagramBusinessAccountId,
-          instagramUsername: selectedPage.instagram_business_account?.username ?? null,
-        },
-      },
+      data: { metadata: { ...metadata, pendingMetaConnection: encryptedSelection } },
     });
-
-    return NextResponse.redirect(new URL("/social-accounts?success=meta_connected", redirectBase));
+    return NextResponse.redirect(new URL("/social-accounts/select-meta?accountId=" + encodeURIComponent(account.id), redirectBase));
   } catch (error) {
     await prisma.connectedAccount.update({
       where: { id: account.id },
