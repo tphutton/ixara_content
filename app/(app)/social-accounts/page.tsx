@@ -166,7 +166,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
               const canUseMetaFlow = metaConfigured && isMetaPlatform(account.platform);
               const canUseOAuthFlow = isOAuthPlatform(account.platform) && isOAuthConfigured(account.platform);
               const expiresSoon = tokenExpiresWithinDays(account.tokenExpiresAt, 14);
-              const needsReconnect = account.status === "needs_reauth" || account.status === "error" || expiresSoon;
+              const needsReconnect = account.status === "needs_reauth" || expiresSoon;
 
               return (
                 <tr key={account.id}>
@@ -189,7 +189,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
                     ) : null}
                     {canUseMetaFlow && account.encryptedAccessToken && !needsReconnect ? (
                       <form action={syncAction}>
-                        <button className="button button--primary" type="submit">Sync posts</button>
+                        <button className="button button--primary" type="submit">{account.status === "error" ? "Retry sync" : "Sync posts"}</button>
                       </form>
                     ) : null}
                     {canUseMetaFlow && account.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${account.id}`}>Change connected account</Link> : null}
@@ -209,7 +209,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
         const canUseMetaFlow = metaConfigured && isMetaPlatform(viewingAccount.platform);
         const canUseOAuthFlow = isOAuthPlatform(viewingAccount.platform) && isOAuthConfigured(viewingAccount.platform);
         const expiresSoon = tokenExpiresWithinDays(viewingAccount.tokenExpiresAt, 14);
-        const needsReconnect = viewingAccount.status === "needs_reauth" || viewingAccount.status === "error" || expiresSoon;
+        const needsReconnect = viewingAccount.status === "needs_reauth" || expiresSoon;
         const disconnectAction = disconnectConnectedAccountAction.bind(null, viewingAccount.id);
         const deleteAction = deleteConnectedAccountAction.bind(null, viewingAccount.id);
         const syncAction = syncConnectedAccountNowAction.bind(null, viewingAccount.id);
@@ -225,7 +225,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
             <div className="editor-overlay__footer form-actions">
               <Link className="button button--primary" href={`/social-accounts?edit=${viewingAccount.id}`}>Edit account</Link>
               {canUseMetaFlow && !viewingAccount.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Connect Meta</Link> : null}
-              {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <form action={syncAction}><button className="button button--secondary" type="submit">Sync posts</button></form> : null}
+              {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <form action={syncAction}><button className="button button--secondary" type="submit">{viewingAccount.status === "error" ? "Retry sync" : "Sync posts"}</button></form> : null}
               {canUseMetaFlow && viewingAccount.encryptedAccessToken && needsReconnect ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Reconnect Meta</Link> : null}
               {canUseOAuthFlow && (!viewingAccount.encryptedAccessToken || needsReconnect) ? <Link className="button button--secondary" href={`/api/social/${viewingAccount.platform}/start?accountId=${viewingAccount.id}`}>{viewingAccount.encryptedAccessToken ? "Reconnect" : "Authorize"} {viewingAccount.platform === "x" ? "X" : "TikTok"}</Link> : null}
               {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Change connected account</Link> : null}

@@ -34,7 +34,7 @@ export class MetaApiError extends Error {
 export function isUnavailableInsight(error: unknown) {
   return error instanceof MetaApiError && (
     [10, 200].includes(error.code ?? 0) ||
-    (error.code === 100 && /metric|insight|not supported|not available|older than|before.*business/i.test(error.message))
+    (error.code === 100 && /metric|insight|invalid parameter|not supported|not available|older than|before.*business/i.test(error.message))
   );
 }
 
@@ -295,7 +295,9 @@ export type MetaInsight = {
 };
 
 // Fetch together normally; isolate only unsupported metrics so one unavailable
-// metric never discards supported data. Auth/rate-limit/network errors propagate.
+// metric never discards supported data. Meta also returns generic code 100
+// "Invalid parameter" for ineligible media: isolate those inside this insights
+// endpoint only. Auth/rate-limit/network errors propagate.
 async function fetchOptionalInsights(id: string, token: string, metrics: string[]) {
   const request = async (names: string[]) => {
     const result = await metaFetch<{ data?: MetaInsight[] }>(`/${id}/insights`, token, {
