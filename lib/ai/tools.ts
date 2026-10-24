@@ -1,3 +1,4 @@
+import { reconcilePublishedSchedule, scheduleHistoryTitle } from "@/lib/social/history-reconciliation";
 import { publishedPostBrand, hasEngagementRate, hasPerformanceMetrics } from "@/lib/social/reporting";
 import {
   AutomationStatus,
@@ -548,6 +549,7 @@ async function listScheduleEntriesTool(args: Record<string, unknown>) {
       status: status ? (status as ScheduleStatus) : undefined,
     },
     include: {
+      publishedPosts: { select: { titleSnapshot: true }, orderBy: { publishedAt: "desc" } },
       content: { select: { title: true } },
       blog: { select: { title: true } },
     },
@@ -562,7 +564,7 @@ async function listScheduleEntriesTool(args: Record<string, unknown>) {
       count: items.length,
       items: items.map((item) => ({
         id: item.id,
-        title: item.content?.title ?? item.blog?.title ?? null,
+        title: scheduleHistoryTitle(item),
         scheduledFor: item.scheduledFor.toISOString(),
         channel: item.channel,
         status: item.status,
@@ -687,6 +689,7 @@ async function createScheduleEntryTool(args: Record<string, unknown>, context: T
 }
 
 async function updateScheduleEntryTool(args: Record<string, unknown>, context: ToolContext) {
+  if (args.publishedPostId !== undefined || args.historyNote !== undefined) return reconcilePublishedSchedule(args, context.access.id);
   const id = asRequiredString(args.id, "id");
   const before = await prisma.contentSchedule.findUniqueOrThrow({ where: { id } });
 
@@ -1556,7 +1559,7 @@ async function listPublishedPostsTool(args: Record<string, unknown>) {
   const status = statusInput
     ? parseEnumValue(statusInput, Object.values(PublishedPostStatus), PublishedPostStatus.imported)
     : undefined;
-  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 25) : 12;
+  const limit = typeof args.limit === "number" ? Math.min(Math.max(args.limit, 1), 500) : 12;
 
   const items = await prisma.publishedPost.findMany({
     where: {
@@ -1590,6 +1593,11 @@ async function listPublishedPostsTool(args: Record<string, unknown>) {
       items: items.map((item) => ({
         id: item.id,
         platform: item.platform,
+        externalPostId: item.externalPostId,
+        externalPostUrl: item.externalPostUrl,
+        scheduleId: item.scheduleId,
+        contentId: item.contentId,
+        blogId: item.blogId,
         status: item.status,
         title: item.titleSnapshot ?? item.content?.title ?? item.blog?.title ?? null,
         brand: publishedPostBrand(item),
@@ -2749,6 +2757,8 @@ export const contentOpsTools: ToolDefinition[] = [
         type: "object",
         properties: {
           id: { type: "string" },
+          publishedPostId: { type: "string", description: "Historical reconciliation only: link an existing imported provider post. Cannot be combined with ordinary edits." },
+          historyNote: { type: "string", maxLength: 2000, description: "Audited note on an already-published schedule; does not verify publication without provider evidence." },
           contentId: { type: "string" },
           blogId: { type: "string" },
           scheduledFor: { type: "string" },

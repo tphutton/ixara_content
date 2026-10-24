@@ -1,3 +1,4 @@
+import { scheduleHistoryTitle } from "@/lib/social/history-reconciliation";
 import Link from "next/link";
 import {
   addMonths,
@@ -69,6 +70,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
   const [scheduleRows, campaignsResponse] = await Promise.all([
     prisma.contentSchedule.findMany({
       include: {
+        publishedPosts: { select: { titleSnapshot: true }, orderBy: { publishedAt: "desc" } },
         blog: {
           select: {
             title: true,
@@ -368,7 +370,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
               month={monthParam}
               scheduleItems={filteredRows.map((row) => ({
                 id: row.id,
-                title: row.content?.title ?? row.blog?.title ?? "Untitled link",
+                title: scheduleHistoryTitle(row),
                 href: `/schedule/${row.id}`,
                 status: row.status,
                 scheduledFor: row.scheduledFor,
@@ -391,7 +393,7 @@ export default async function SchedulePage({ searchParams }: SchedulePageProps) 
             availableBrands={availableBrands}
             rows={filteredRows.map((row) => ({
               id: row.id,
-              title: row.content?.title ?? row.blog?.title ?? "Untitled link",
+              title: scheduleHistoryTitle(row),
               channel: row.channel,
               platformAccount: row.platformAccount,
               scheduledFor: row.scheduledFor.toISOString(),

@@ -1,3 +1,4 @@
+import { validateHistoryArgs, validateHistoryLink } from "@/lib/social/history-reconciliation";
 import {campaignOperations} from './campaigns';
 import {campaignChangeRequest} from '@/lib/campaigns/client';
 import {createActionLog} from '@/lib/actions/action-log';
@@ -40,9 +41,23 @@ async function snapshot(name:string,args:any,tx:any) {
   const profile=brand?await tx.brandProfile.findFirst({where:{brandName:{equals:brand,mode:'insensitive'}}}):null;
   const brands=name==='upsert_brand_profile'?await tx.brandProfile.findMany({orderBy:{id:'asc'}}):null;
   const video=name==='update_video_brief'?await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId},include:{shots:true}}):null;
-  return {record,profile,brands,video};
+  const history = name === "update_schedule_entry" && (args.publishedPostId !== undefined || args.historyNote !== undefined) ? {
+    posts: await tx.publishedPost.findMany({ where: { scheduleId: args.id }, orderBy: { id: "asc" } }),
+    evidence: args.publishedPostId ? await tx.publishedPost.findUniqueOrThrow({ where: { id: args.publishedPostId }, include: { content: { select: { brand: true } }, blog: { select: { brand: true } }, connectedAccount: { select: { externalAccountId: true, brandName: true, brandProfile: { select: { brandName: true } } } } } }) : null,
+  } : null;
+  return {record,profile,brands,video,history};
 }
 async function guard(name:string,args:any,tx:any) {
+  if (name === "update_schedule_entry" && (args.publishedPostId !== undefined || args.historyNote !== undefined)) {
+    validateHistoryArgs(args);
+    const schedule = await tx.contentSchedule.findUniqueOrThrow({ where: { id: args.id }, include: { publishedPosts: { select: { id: true } } } });
+    if (schedule.status !== "published") throw new McpError(409, "Historical reconciliation requires an already-published schedule.");
+    if (args.publishedPostId) {
+      const post = await tx.publishedPost.findUniqueOrThrow({ where: { id: args.publishedPostId }, include: { content: { select: { brand: true } }, blog: { select: { brand: true } }, connectedAccount: { select: { externalAccountId: true, brandName: true, brandProfile: { select: { brandName: true } } } } } });
+      validateHistoryLink(schedule, post);
+    }
+    return;
+  }
   const forbidden=new Set(['approved','ready','published','queued','generating','completed']);
   const inspect=(value:any)=>{if(value&&typeof value==='object')for(const [key,v] of Object.entries(value)){
     if(key==='status'&&typeof v==='string'&&forbidden.has(v))throw new McpError(403,'Use the dedicated approval/production workflow for this status.');
@@ -59,7 +74,7 @@ const operations:Operation[]=(contentOpsTools as any[]).flatMap(def=>{
  return [{name:f.name,description:f.description,inputSchema:f.parameters,scope:`ixara-content:${mutating?'write':'read'}`,mutating,
    guard:mutating?(args:any,tx:any)=>guard(f.name,args,tx):undefined,
    snapshot:mutating?(args:any,tx:any)=>snapshot(f.name,args,tx):undefined,
-   run:async(args:any,access:any)=>executeContentOpsTool(f.name,{...args,...('limit' in (f.parameters.properties||{})?{limit:Math.min(Math.max(Number(args.limit)||30,1),100)}:{})},{access})}];
+   run:async(args:any,access:any)=>executeContentOpsTool(f.name,{...args,...('limit' in (f.parameters.properties||{})?{limit:Math.min(Math.max(Number(args.limit)||30,1),f.name === "list_published_posts" ? 500 : 100)}:{})},{access})}];
 });
 operations.push({name:'get_record',description:'Read a complete Content record, blog, plan, variant, brand, asset or video brief.',
  inputSchema:objectSchema({entity:{type:'string',enum:Object.keys(models)},id:string},['entity','id']),scope:'ixara-content:read',mutating:false,
