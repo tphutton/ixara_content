@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { prisma } from "../lib/prisma";
-import { handleMcp } from "../lib/mcp/adapter";
 async function main() {
   Object.assign(process.env, { IXARA_MCP_ENABLED: "true", IXARA_MCP_WRITE_ENABLED: "true", IXARA_MCP_ADMIN_KEY: "x".repeat(40) });
+  const { prisma } = await import("../lib/prisma");
+  const { handleMcp } = await import("../lib/mcp/adapter");
   const call = (body: unknown) => handleMcp(new Request("https://content.test/api/external/mcp", { method: "POST", headers: { "x-ixara-mcp-key": "x".repeat(40) }, body: JSON.stringify(body) }));
   const schedule = await prisma.contentSchedule.create({ data: { status: "published", brand: "StadioMate", channel: "Instagram", scheduledFor: new Date("2026-04-05T12:00:00Z") } });
   const post = await prisma.publishedPost.create({ data: { platform: "instagram", status: "published", sourceBrandName: "StadioMate", externalPostId: "history-integration-post", importedAt: new Date(), publishedAt: new Date("2026-04-05T08:00:00Z"), titleSnapshot: "Imported history" } });
