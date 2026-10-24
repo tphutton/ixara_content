@@ -994,6 +994,8 @@ model PublishedPost {
   blogId                String?
   scheduleId            String?
   platform              SocialPlatform
+  sourceExternalAccountId String?
+  sourceBrandName       String?
   platformAccountName   String?
   externalPostId        String?
   externalPostUrl       String?
@@ -1038,6 +1040,7 @@ model PostAnalyticsSnapshot {
   shares           Int?
   saves            Int?
   clicks           Int?
+  views            Int?
   videoViews       Int?
   engagementRate   Float?
   clickThroughRate Float?

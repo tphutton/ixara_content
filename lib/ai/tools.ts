@@ -1,3 +1,4 @@
+import { publishedPostBrand, hasEngagementRate, hasPerformanceMetrics } from "@/lib/social/reporting";
 import {
   AutomationStatus,
   AutomationType,
@@ -1564,7 +1565,7 @@ async function listPublishedPostsTool(args: Record<string, unknown>) {
     },
     include: {
       connectedAccount: {
-        select: { accountName: true },
+        select: { accountName: true, externalAccountId: true, brandName: true, brandProfile: { select: { brandName: true } } },
       },
       content: {
         select: { title: true, brand: true },
@@ -1591,12 +1592,14 @@ async function listPublishedPostsTool(args: Record<string, unknown>) {
         platform: item.platform,
         status: item.status,
         title: item.titleSnapshot ?? item.content?.title ?? item.blog?.title ?? null,
-        brand: item.content?.brand ?? item.blog?.brand ?? null,
-        accountName: item.connectedAccount?.accountName ?? item.platformAccountName,
+        brand: publishedPostBrand(item),
+        accountName: item.platformAccountName ?? item.connectedAccount?.accountName,
+        sourceExternalAccountId: item.sourceExternalAccountId,
         publishedAt: item.publishedAt?.toISOString() ?? null,
         latestAnalytics: item.analyticsSnapshots[0]
           ? {
               capturedAt: item.analyticsSnapshots[0].capturedAt.toISOString(),
+              views: item.analyticsSnapshots[0].views,
               impressions: item.analyticsSnapshots[0].impressions,
               engagements: item.analyticsSnapshots[0].engagements,
               engagementRate: item.analyticsSnapshots[0].engagementRate,
@@ -1621,7 +1624,7 @@ async function getTopPerformingPostsTool(args: Record<string, unknown>) {
     },
     include: {
       connectedAccount: {
-        select: { accountName: true },
+        select: { accountName: true, externalAccountId: true, brandName: true, brandProfile: { select: { brandName: true } } },
       },
       content: {
         select: { title: true, brand: true },
@@ -1642,7 +1645,7 @@ async function getTopPerformingPostsTool(args: Record<string, unknown>) {
       item,
       latest: item.analyticsSnapshots[0] ?? null,
     }))
-    .filter((entry) => entry.latest)
+    .filter((entry) => hasEngagementRate(entry.latest))
     .sort((a, b) => (b.latest?.engagementRate ?? -1) - (a.latest?.engagementRate ?? -1))
     .slice(0, limit);
 
@@ -1655,10 +1658,12 @@ async function getTopPerformingPostsTool(args: Record<string, unknown>) {
         id: item.id,
         platform: item.platform,
         title: item.titleSnapshot ?? item.content?.title ?? item.blog?.title ?? null,
-        brand: item.content?.brand ?? item.blog?.brand ?? null,
-        accountName: item.connectedAccount?.accountName ?? item.platformAccountName,
+        brand: publishedPostBrand(item),
+        accountName: item.platformAccountName ?? item.connectedAccount?.accountName,
+        sourceExternalAccountId: item.sourceExternalAccountId,
         engagementRate: latest?.engagementRate ?? null,
         engagements: latest?.engagements ?? null,
+        views: latest?.views ?? null,
         impressions: latest?.impressions ?? null,
         clicks: latest?.clicks ?? null,
       })),
@@ -1675,6 +1680,7 @@ async function getPerformanceInsightsTool(args: Record<string, unknown>) {
   const posts = await prisma.publishedPost.findMany({
     where: { platform: platform ?? undefined },
     include: {
+      connectedAccount: { select: { externalAccountId: true, brandName: true, brandProfile: { select: { brandName: true } } } },
       content: { select: { title: true, brand: true } },
       blog: { select: { title: true, brand: true } },
       analyticsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 },
@@ -1685,9 +1691,9 @@ async function getPerformanceInsightsTool(args: Record<string, unknown>) {
     .map((post) => ({
       post,
       snapshot: post.analyticsSnapshots[0] ?? null,
-      brand: post.content?.brand ?? post.blog?.brand ?? "Unassigned",
+      brand: publishedPostBrand(post) ?? "Unassigned",
     }))
-    .filter((entry) => entry.snapshot && (!brandFilter || entry.brand.toLowerCase() === brandFilter));
+    .filter((entry) => hasPerformanceMetrics(entry.snapshot) && (!brandFilter || entry.brand.toLowerCase() === brandFilter));
   const groups = new Map<string, typeof measured>();
   for (const entry of measured) {
     const key = `${entry.brand} · ${entry.post.platform}`;
@@ -1700,17 +1706,19 @@ async function getPerformanceInsightsTool(args: Record<string, unknown>) {
       const values = entries.map((entry) => selector(entry.snapshot!)).filter((value): value is number => value != null);
       return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
     };
-    const top = [...entries].sort((a, b) => (b.snapshot?.engagementRate ?? -1) - (a.snapshot?.engagementRate ?? -1))[0];
+    const top = entries.filter((entry) => hasEngagementRate(entry.snapshot)).sort((a, b) => (b.snapshot?.engagementRate ?? -1) - (a.snapshot?.engagementRate ?? -1))[0];
     return {
       group: key,
-      brand: top.brand,
-      platform: top.post.platform,
+      brand: entries[0].brand,
+      platform: entries[0].post.platform,
       sampleSize: entries.length,
       averageEngagementRate: average((snapshot) => snapshot.engagementRate),
+      rankedPosts: entries.filter((entry) => hasEngagementRate(entry.snapshot)).length,
+      averageViews: average((snapshot) => snapshot.views),
       averageImpressions: average((snapshot) => snapshot.impressions),
       averageEngagements: average((snapshot) => snapshot.engagements),
-      topPost: top.post.titleSnapshot ?? top.post.content?.title ?? top.post.blog?.title ?? null,
-      signal: entries.length < 3 ? "Small sample: treat as directional." : "Use this as a current planning benchmark.",
+      topPost: top ? top.post.titleSnapshot ?? top.post.content?.title ?? top.post.blog?.title ?? null : null,
+      signal: !top ? "Engagement rate unavailable: no strongest post can be identified." : entries.length < 3 ? "Small sample: treat as directional." : "Use this as a current planning benchmark.",
     };
   }).sort((a, b) => (b.averageEngagementRate ?? -1) - (a.averageEngagementRate ?? -1));
   return {
@@ -1719,7 +1727,7 @@ async function getPerformanceInsightsTool(args: Record<string, unknown>) {
     payload: {
       measuredPosts: measured.length,
       benchmarks,
-      recommendations: benchmarks.slice(0, 3).map((benchmark) => `Use ${benchmark.group} as a benchmark; its strongest current post is ${benchmark.topPost ?? "unlabelled"}.`),
+      recommendations: benchmarks.filter((benchmark) => benchmark.rankedPosts > 0).slice(0, 3).map((benchmark) => `Use ${benchmark.group} as a benchmark; its strongest current post is ${benchmark.topPost ?? "unlabelled"}.`),
     },
   };
 }

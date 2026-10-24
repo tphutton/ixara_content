@@ -1,5 +1,7 @@
 "use server";
 
+import { metricRate } from "@/lib/social/reporting";
+
 import {
   PublishedPostStatus,
   SocialPlatform,
@@ -44,11 +46,11 @@ export async function createImportedPublishedPostAction(formData: FormData) {
   const comments = parseOptionalInt(formData.get("comments"));
   const shares = parseOptionalInt(formData.get("shares"));
   const clicks = parseOptionalInt(formData.get("clicks"));
-  const reach = impressions;
+  const reach = null;
   const engagementRate =
-    impressions && engagements ? Number(((engagements / impressions) * 100).toFixed(2)) : null;
+    metricRate(engagements, impressions);
   const clickThroughRate =
-    impressions && clicks ? Number(((clicks / impressions) * 100).toFixed(2)) : null;
+    metricRate(clicks, impressions);
 
   const post = await prisma.publishedPost.create({
     data: {

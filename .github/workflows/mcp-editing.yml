@@ -33,4 +33,6 @@ jobs:
       - run: npx prisma db push --skip-generate
       - run: npx tsc --noEmit --incremental false
       - run: npm test
+      - run: node --test tests/meta-sync-fetch.regression.cjs
+      - run: psql "$DATABASE_URL" -f tests/social-cleanup.regression.sql
       - run: npm exec --yes --package=tsx@4.20.6 -- tsx tests/mcp-postgres.integration.ts

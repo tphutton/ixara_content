@@ -1,3 +1,4 @@
+import { metricRate } from "@/lib/social/reporting";
 import {
   BlogStatus,
   ConnectedAccountStatus,
@@ -13,6 +14,8 @@ import {
   MetaReauthRequiredError,
   assertMetaAccountReadyForSync,
   fetchFacebookPagePosts,
+  fetchFacebookPostInsights,
+  type MetaInsight,
   fetchInstagramMedia,
   fetchInstagramMediaInsights,
   getStoredMetaToken,
@@ -45,22 +48,10 @@ export function chooseDeliveryReconciliationCandidate(
   return matches.length === 1 ? matches[0] : null;
 }
 
-function getInsightValue(
-  insights: Array<{ name: string; values?: Array<{ value?: number | Record<string, number> }> }>,
-  name: string,
-) {
+export function getInsightValue(insights: MetaInsight[], name: string) {
   const metric = insights.find((item) => item.name === name);
-  const value = metric?.values?.[0]?.value;
-
-  return typeof value === "number" ? value : null;
-}
-
-function getInstagramInsightValue(
-  insights: Array<{ name: string; values?: Array<{ value?: number }> }>,
-  name: string,
-) {
-  const metric = insights.find((item) => item.name === name);
-  return metric?.values?.[0]?.value ?? null;
+  const value = metric?.total_value?.value ?? metric?.values?.[0]?.value;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 async function upsertPublishedPostBase(input: {
@@ -70,7 +61,9 @@ async function upsertPublishedPostBase(input: {
   captionSnapshot: string | null;
   externalPostUrl: string | null;
   publishedAt: Date | null;
+  unavailableMetrics?: string[];
   metrics: {
+    views?: number | null;
     impressions?: number | null;
     reach?: number | null;
     engagements?: number | null;
@@ -107,9 +100,15 @@ async function upsertPublishedPostBase(input: {
   );
 
   const publishedPost = await prisma.$transaction(async (tx) => {
+    const current = await tx.connectedAccount.findUniqueOrThrow({ where: { id: input.account.id } });
+    if (current.externalAccountId !== input.account.externalAccountId) {
+      throw new Error("Account connection changed during sync. Retry sync for the selected account.");
+    }
     const data = {
       connectedAccountId: input.account.id,
-      platformAccountName: input.account.accountName,
+      platformAccountName: existingPost?.platformAccountName ?? input.account.accountName,
+      sourceExternalAccountId: existingPost?.sourceExternalAccountId ?? input.account.externalAccountId,
+      sourceBrandName: existingPost?.sourceBrandName ?? input.account.brandName,
       externalPostId: input.externalPostId,
       externalPostUrl: input.externalPostUrl,
       titleSnapshot: input.titleSnapshot,
@@ -152,14 +151,15 @@ async function upsertPublishedPostBase(input: {
   const engagements = input.metrics.engagements ?? null;
   const clicks = input.metrics.clicks ?? null;
   const engagementRate =
-    impressions && engagements ? Number(((engagements / impressions) * 100).toFixed(2)) : null;
+    metricRate(engagements, impressions);
   const clickThroughRate =
-    impressions && clicks ? Number(((clicks / impressions) * 100).toFixed(2)) : null;
+    metricRate(clicks, impressions);
 
   await prisma.postAnalyticsSnapshot.create({
     data: {
       publishedPostId: publishedPost.id,
       impressions,
+      views: input.metrics.views ?? null,
       reach: input.metrics.reach ?? null,
       engagements,
       likes: input.metrics.likes ?? null,
@@ -169,6 +169,7 @@ async function upsertPublishedPostBase(input: {
       clicks,
       engagementRate,
       clickThroughRate,
+      metadata: { source: "meta", unavailableMetrics: input.unavailableMetrics ?? [] },
     },
   });
 
@@ -191,9 +192,12 @@ async function syncFacebookAccount(account: ConnectedAccount) {
 
   const synced = [];
   let reconciled = 0;
+  let postsWithUnavailableInsights = 0;
 
   for (const post of posts) {
-    const insights = post.insights?.data ?? [];
+    const resultInsights = await fetchFacebookPostInsights(post.id, token);
+    const insights = resultInsights.data;
+    if (resultInsights.unavailable.length) postsWithUnavailableInsights += 1;
 
     const result = await upsertPublishedPostBase({
       account,
@@ -202,10 +206,10 @@ async function syncFacebookAccount(account: ConnectedAccount) {
       captionSnapshot: post.message ?? null,
       externalPostUrl: post.permalink_url ?? null,
       publishedAt: post.created_time ? new Date(post.created_time) : null,
+      unavailableMetrics: resultInsights.unavailable,
       metrics: {
-        impressions: getInsightValue(insights, "post_impressions"),
-        reach: getInsightValue(insights, "post_impressions_unique"),
-        engagements: getInsightValue(insights, "post_engaged_users"),
+        views: getInsightValue(insights, "post_media_view"),
+        clicks: getInsightValue(insights, "post_clicks"),
         shares: post.shares?.count ?? null,
       },
     });
@@ -214,7 +218,7 @@ async function syncFacebookAccount(account: ConnectedAccount) {
     if (result.reconciled) reconciled += 1;
   }
 
-  return { synced, reconciled };
+  return { synced, reconciled, postsWithUnavailableInsights };
 }
 
 async function syncInstagramAccount(account: ConnectedAccount) {
@@ -236,9 +240,12 @@ async function syncInstagramAccount(account: ConnectedAccount) {
   const media = await fetchInstagramMedia(igBusinessId, token);
   const synced = [];
   let reconciled = 0;
+  let postsWithUnavailableInsights = 0;
 
   for (const item of media) {
-    const insights = await fetchInstagramMediaInsights(item.id, token);
+    const resultInsights = await fetchInstagramMediaInsights(item.id, token);
+    const insights = resultInsights.data;
+    if (resultInsights.unavailable.length) postsWithUnavailableInsights += 1;
 
     const result = await upsertPublishedPostBase({
       account,
@@ -247,15 +254,16 @@ async function syncInstagramAccount(account: ConnectedAccount) {
       captionSnapshot: item.caption ?? null,
       externalPostUrl: item.permalink ?? null,
       publishedAt: item.timestamp ? new Date(item.timestamp) : null,
+      unavailableMetrics: resultInsights.unavailable,
       metrics: {
-        impressions: getInstagramInsightValue(insights, "impressions"),
-        reach: getInstagramInsightValue(insights, "reach"),
+        views: getInsightValue(insights, "views"),
+        reach: getInsightValue(insights, "reach"),
         engagements:
-          getInstagramInsightValue(insights, "engagement") ??
-          ((item.like_count ?? 0) + (item.comments_count ?? 0)),
+          getInsightValue(insights, "total_interactions"),
         likes: item.like_count ?? null,
         comments: item.comments_count ?? null,
-        saves: getInstagramInsightValue(insights, "saved"),
+        saves: getInsightValue(insights, "saved"),
+        shares: getInsightValue(insights, "shares"),
       },
     });
 
@@ -263,7 +271,7 @@ async function syncInstagramAccount(account: ConnectedAccount) {
     if (result.reconciled) reconciled += 1;
   }
 
-  return { synced, reconciled };
+  return { synced, reconciled, postsWithUnavailableInsights };
 }
 
 export async function syncConnectedMetaAccount(input: {
@@ -273,6 +281,7 @@ export async function syncConnectedMetaAccount(input: {
 }) {
   const account = await prisma.connectedAccount.findUniqueOrThrow({
     where: { id: input.accountId },
+    include: { brandProfile: { select: { brandName: true } } },
   });
 
   if (
@@ -284,21 +293,23 @@ export async function syncConnectedMetaAccount(input: {
 
   let syncedIds: string[] = [];
   let reconciledCount = 0;
+  let unavailableCount = 0;
 
   try {
     const syncResult =
       account.platform === SocialPlatform.facebook
-        ? await syncFacebookAccount(account)
-        : await syncInstagramAccount(account);
+        ? await syncFacebookAccount({ ...account, brandName: account.brandProfile?.brandName ?? account.brandName })
+        : await syncInstagramAccount({ ...account, brandName: account.brandProfile?.brandName ?? account.brandName });
     syncedIds = syncResult.synced;
     reconciledCount = syncResult.reconciled;
+    unavailableCount = syncResult.postsWithUnavailableInsights;
 
     const updatedAccount = await prisma.connectedAccount.update({
       where: { id: account.id },
       data: {
         status: ConnectedAccountStatus.active,
         lastSyncedAt: new Date(),
-        lastSyncStatus: `Synced ${syncedIds.length} post${syncedIds.length === 1 ? "" : "s"} from Meta${reconciledCount > 0 ? ` and reconciled ${reconciledCount} ${reconciledCount === 1 ? "delivery" : "deliveries"}` : ""}`,
+        lastSyncStatus: `Synced ${syncedIds.length} post${syncedIds.length === 1 ? "" : "s"} from Meta${reconciledCount > 0 ? ` and reconciled ${reconciledCount} ${reconciledCount === 1 ? "delivery" : "deliveries"}` : ""}${unavailableCount ? `; insights unavailable for ${unavailableCount} posts (permissions, media eligibility or retention)` : ""}`,
       },
     });
 
@@ -319,6 +330,7 @@ export async function syncConnectedMetaAccount(input: {
     return {
       syncedCount: syncedIds.length,
       reconciledCount,
+      postsWithUnavailableInsights: unavailableCount,
       syncedPostIds: syncedIds,
       account: updatedAccount,
     };
