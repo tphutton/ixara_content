@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ProductionBriefPanel } from "@/components/content/production-brief-panel";
 import { notFound } from "next/navigation";
 import { EditorialApprovalTargetType } from "@prisma/client";
 import { EditorialApprovalPanel } from "@/components/approvals/editorial-approval-panel";
@@ -140,15 +141,17 @@ export default async function ScheduleDetailPage({ params, searchParams }: Sched
               <span className="inline-chip">{schedule.status}</span>
             </div>
             <div className="metadata-grid">
-              <div><span>Scheduled for</span><strong>{new Date(schedule.scheduledFor).toLocaleString()}</strong></div>
+              <div><span>Scheduled for · Bangkok (UTC+7)</span><strong>{new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(schedule.scheduledFor))}</strong></div>
               <div><span>Channel</span><strong>{schedule.channel ?? "Not set"}</strong></div>
               <div><span>Account</span><strong>{schedule.platformAccount ?? "Not set"}</strong></div>
               <div><span>Brand</span><strong>{schedule.brand ?? "Not set"}</strong></div>
               <div><span>Campaign</span><strong>{schedule.campaignName ?? "Not set"}</strong></div>
               <div><span>Priority</span><strong>{schedule.priority ?? "Not set"}</strong></div>
             </div>
-            {schedule.notes ? <p className="muted">{schedule.notes}</p> : null}
+            {schedule.notes ? <p className="muted preserve-lines">{schedule.notes}</p> : null}
           </section>
+
+          {schedule.content ? <ProductionBriefPanel brief={schedule.content.assetCaption} sourcePrompt={schedule.content.sourcePrompt} /> : null}
 
           <section className="quiet-panel publishing-package-panel">
             <div className="section-heading">

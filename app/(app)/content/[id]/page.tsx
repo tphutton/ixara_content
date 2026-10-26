@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContentPlanItemType, EditorialApprovalTargetType } from "@prisma/client";
 import { EditorialApprovalPanel } from "@/components/approvals/editorial-approval-panel";
+import { ProductionBriefPanel } from "@/components/content/production-brief-panel";
+import { ContentMediaPreview } from "@/components/content/content-media-preview";
 import { ContentForm } from "@/components/content/content-form";
 import { ContentVariantsPanel } from "@/components/content/content-variants-panel";
 import { EditorialActivityPanel } from "@/components/editorial/editorial-activity-panel";
@@ -38,8 +40,9 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
     prisma.content.findUnique({
       where: { id },
       include: {
+        primaryAsset: { select: { fileUrl: true, title: true, mimeType: true, mediaType: true, thumbnailUrl: true, altText: true } },
         qualityReviews: { orderBy: { createdAt: "desc" }, take: 5 },
-        schedules: { select: { id: true, scheduledFor: true, status: true }, orderBy: { scheduledFor: "asc" } },
+        schedules: { select: { id: true, scheduledFor: true, status: true, channel: true, brand: true, platformAccount: true }, orderBy: { scheduledFor: "asc" } },
         variants: { orderBy: { createdAt: "desc" }, take: 12 },
         planItems: {
           where: { itemType: ContentPlanItemType.video },
@@ -135,7 +138,7 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
         }
       />
 
-      <div className="grid" style={{ gridTemplateColumns: "1.2fr 0.8fr", alignItems: "start" }}>
+      <div className="content-detail-layout">
         <div className="stack">
           <section className="quiet-panel">
             <div className="section-heading">
@@ -176,12 +179,18 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
             <div className="metadata-grid">
               <div><span>Tone</span><strong>{content.tone ?? "Not set"}</strong></div>
               <div><span>Audience</span><strong>{content.targetAudience ?? "Not set"}</strong></div>
+              <div><span>Sport</span><strong>{content.sport ?? "Not set"}</strong></div>
               <div><span>Region</span><strong>{content.region ?? "Not set"}</strong></div>
               <div><span>Country</span><strong>{content.country ?? "Not set"}</strong></div>
               <div><span>Tags</span><strong>{content.tags.length ? content.tags.join(", ") : "Not set"}</strong></div>
-              <div><span>Asset</span><strong>{content.assetImage ?? content.primaryAssetId ?? "Not set"}</strong></div>
+              <div><span>Asset</span><strong>{content.primaryAsset?.title ?? (content.assetImage ? "Reference artwork" : "Not set")}</strong></div>
+              <div><span>Websites</span><strong>{content.websites.length ? content.websites.join(", ") : "Not set"}</strong></div>
+              <div><span>AI generated</span><strong>{content.aiGenerated ? "Yes" : "No"}</strong></div>
             </div>
           </section>
+
+          <ProductionBriefPanel brief={content.assetCaption} sourcePrompt={content.sourcePrompt} />
+          <ContentMediaPreview asset={content.primaryAsset} imageUrl={content.assetImage} />
 
           <ContentVariantsPanel
             action={generateVariantsAction}
@@ -214,10 +223,13 @@ export default async function ContentDetailPage({ params, searchParams }: Conten
             generateVariantsAction={generateVariantsAction}
           >
             {content.schedules.length > 0 ? (
-              <div className="quiet-meta">
-                {content.schedules.slice(0, 3).map((schedule) => (
-                  <Link href={`/schedule/${schedule.id}`} key={schedule.id}>
-                    {new Date(schedule.scheduledFor).toLocaleDateString()} · {schedule.status}
+              <div className="content-schedule-list">
+                <p className="kicker">All placements · Bangkok time (UTC+7)</p>
+                {content.schedules.map((schedule) => (
+                  <Link className="content-schedule-row" href={`/schedule/${schedule.id}`} key={schedule.id}>
+                    <span><strong>{schedule.channel ?? "Unassigned channel"}</strong><small>{schedule.brand ?? content.brand}{schedule.platformAccount ? ` · ${schedule.platformAccount}` : ""}</small></span>
+                    <time dateTime={schedule.scheduledFor.toISOString()}>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" }).format(schedule.scheduledFor)}</time>
+                    <StatusBadge label={schedule.status} />
                   </Link>
                 ))}
               </div>

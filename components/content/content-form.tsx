@@ -113,8 +113,8 @@ export function ContentForm({
           <input defaultValue={content?.assetImage ?? ""} id="assetImage" name="assetImage" />
         </Field>
 
-        <Field htmlFor="assetCaption" label="Asset caption">
-          <input defaultValue={content?.assetCaption ?? ""} id="assetCaption" name="assetCaption" />
+        <Field htmlFor="assetCaption" label="Production brief / asset caption" hint="Creative directions, exact card or shot copy, platform captions, AI prompts and Story instructions. Line breaks are preserved.">
+          <textarea defaultValue={content?.assetCaption ?? ""} id="assetCaption" name="assetCaption" rows={18} />
         </Field>
 
         <Field htmlFor="primaryAssetId" label="Linked asset">
