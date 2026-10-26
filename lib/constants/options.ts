@@ -16,6 +16,8 @@ export const scheduleStatusOptions = Object.values(ScheduleStatus);
 
 export const websiteOptions = [
   "StadioMate",
+  "Ixara Play",
+  "Eagles & Aces Cup",
   "Nollux Asia",
   "StadioPulse",
   "IxaraTech",

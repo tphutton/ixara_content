@@ -203,3 +203,24 @@ export async function getBlogForApi(id: string) {
 
   return mapBlogToApiShape(blog);
 }
+
+
+/** Published website feed: drafts, undated articles and future posts never leave Content. */
+export async function listPublishedWebsiteBlogsForApi(input: {
+  website: string;
+  page?: number;
+  limit?: number;
+}, now = new Date()) {
+  const page = Number.isSafeInteger(input.page) && input.page! > 0 ? input.page! : 1;
+  const limit = Number.isSafeInteger(input.limit) && input.limit! > 0 ? Math.min(input.limit!, 100) : 100;
+  const where = { websites: { has: input.website }, status: BlogStatus.published, postDate: { lte: now } };
+  const [blogs, total] = await Promise.all([
+    prisma.blog.findMany({ where, orderBy: [{ postDate: "desc" }, { id: "asc" }], skip: (page - 1) * limit, take: limit }),
+    prisma.blog.count({ where }),
+  ]);
+  return {
+    website: input.website, page, limit, total_records: total, total_pages: Math.ceil(total / limit),
+    // Keep the existing public article shape without exposing editorial/account metadata.
+    records: blogs.map(blog => Object.fromEntries(Object.entries(mapBlogToApiShape(blog)).filter(([key]) => key !== "zoho_id"))),
+  };
+}

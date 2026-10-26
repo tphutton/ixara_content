@@ -128,7 +128,7 @@ export function BlogForm({
 
         <Field hint="Select one or more destinations" label="Websites">
           <div className="card card--padded" style={{ display: "grid", gap: 10 }}>
-            {websiteOptions.map((website) => (
+            {Array.from(new Set([...websiteOptions, ...selectedWebsites])).map((website) => (
               <label
                 key={website}
                 style={{
