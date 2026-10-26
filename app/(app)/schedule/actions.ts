@@ -329,3 +329,14 @@ export async function bulkUpdateScheduleAction(
     success: `Updated ${scheduleIds.length} schedule entr${scheduleIds.length === 1 ? "y" : "ies"}.`,
   };
 }
+
+export async function linkImportedPublicationAction(formData: FormData) {
+  const access = await requireEditorialUserAccess();
+  const { linkImportedPublication } = await import("@/lib/social/publication-link");
+  const publishedPostId = parseOptionalString(formData.get("publishedPostId"));
+  const contentId = parseOptionalString(formData.get("contentId"));
+  if (!publishedPostId || !contentId) throw new Error("Choose a published post and content record.");
+  await linkImportedPublication({ publishedPostId, contentId, scheduleId: parseOptionalString(formData.get("scheduleId")) ?? undefined, variantLabel: parseOptionalString(formData.get("variantLabel")) ?? undefined }, access.id);
+  revalidatePath("/schedule");
+  revalidatePath(`/content/${contentId}`);
+}
