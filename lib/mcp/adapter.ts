@@ -1,3 +1,4 @@
+import { linkImportedPublication } from "@/lib/social/publication-link";
 import { validateHistoryArgs, validateHistoryLink } from "@/lib/social/history-reconciliation";
 import {campaignOperations} from './campaigns';
 import {campaignChangeRequest} from '@/lib/campaigns/client';
@@ -102,5 +103,9 @@ operations.push(...campaignOperations({request:campaignChangeRequest,log:createA
   prisma.campaignAsset.findMany({where:{campaignId:campaign.campaign_id},select:{assetId:true,role:true},take:100}),
  ]);return {content,schedule,plans,plan_items:items,assets,reference_note:'Content references currently use campaign names; campaign asset links use IDs.'};
 }}));
+operations.push({name:'link_imported_publication',description:'Link an imported provider post to same-brand editorial content and create published calendar history from provider evidence. Does not publish. Idempotent for the same post/content.',
+ inputSchema:objectSchema({publishedPostId:string,contentId:string,scheduleId:string,variantLabel:string},['publishedPostId','contentId']),scope:'ixara-content:write',mutating:true,
+ snapshot:async(args,tx)=>({post:await tx.publishedPost.findUniqueOrThrow({where:{id:args.publishedPostId}}),content:await tx.content.findUniqueOrThrow({where:{id:args.contentId}}),schedule:args.scheduleId?await tx.contentSchedule.findUniqueOrThrow({where:{id:args.scheduleId},include:{publishedPosts:true}}):null}),
+ run:async(args,access)=>linkImportedPublication(args,access.id)});
 const scopes=['ixara-content:read',...(process.env.IXARA_MCP_WRITE_ENABLED==='true'?['ixara-content:write','ixara-content:approve']:[])];
 export const handleMcp=createEngine(prisma,operations,{name:'Ixara Content',scopes,actor});

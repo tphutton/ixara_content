@@ -282,9 +282,9 @@ async function fetchMetaCollection<T extends { id: string }>(
 export async function fetchFacebookPagePosts(pageId: string, pageAccessToken: string) {
   return fetchMetaCollection<{
     id: string; message?: string; permalink_url?: string; created_time?: string;
-    shares?: { count?: number };
+    shares?: { count?: number }; full_picture?: string;
   }>(`/${pageId}/published_posts`, pageAccessToken, {
-    fields: "id,message,permalink_url,created_time,shares", limit: "25",
+    fields: "id,message,permalink_url,created_time,shares,full_picture", limit: "25",
   });
 }
 
@@ -337,9 +337,9 @@ export function fetchFacebookPostInsights(postId: string, token: string) {
 export async function fetchInstagramMedia(igBusinessAccountId: string, accessToken: string) {
   return fetchMetaCollection<{
     id: string; caption?: string; permalink?: string; timestamp?: string;
-    like_count?: number; comments_count?: number;
+    like_count?: number; comments_count?: number; media_url?: string; thumbnail_url?: string; media_type?: string;
   }>(`/${igBusinessAccountId}/media`, accessToken, {
-    fields: "id,caption,permalink,timestamp,like_count,comments_count", limit: "25",
+    fields: "id,caption,permalink,timestamp,like_count,comments_count,media_url,thumbnail_url,media_type", limit: "25",
   });
 }
 
