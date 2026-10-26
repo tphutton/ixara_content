@@ -29,7 +29,11 @@ export default async function SchedulePage(props: Props) {
   if (search.view === "table") return <ScheduleTablePage {...props} />;
   const [slots, posts, campaignsResult, contentOptions] = await Promise.all([
     prisma.contentSchedule.findMany({
-      include: { content: { include: { primaryAsset: true } }, blog: true },
+      include: {
+        content: { include: { primaryAsset: true } },
+        blog: true,
+        publishedPosts: { select: { id: true } },
+      },
       orderBy: { scheduledFor: "asc" },
     }),
     prisma.publishedPost.findMany({
@@ -61,6 +65,10 @@ export default async function SchedulePage(props: Props) {
   ]);
   const planned: CalendarEntry[] = slots.map((s) => ({
     id: s.id,
+    updatedAt: s.updatedAt.toISOString(),
+    movable:
+      !["published", "cancelled"].includes(s.status) &&
+      s.publishedPosts.length === 0,
     kind: "schedule",
     title: s.content?.title ?? s.blog?.title ?? "Untitled schedule",
     date: s.scheduledFor.toISOString(),
