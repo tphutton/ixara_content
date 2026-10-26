@@ -1,412 +1,183 @@
-import { scheduleHistoryTitle } from "@/lib/social/history-reconciliation";
 import Link from "next/link";
-import {
-  addMonths,
-  addWeeks,
-  endOfWeek,
-  format,
-  startOfMonth,
-  startOfWeek,
-  subMonths,
-  subWeeks,
-} from "date-fns";
-import { CampaignApiNotice } from "@/components/campaigns/campaign-api-notice";
-import { WorkspaceHeader } from "@/components/layout/workspace-header";
-import { OperationsCalendar } from "@/components/schedule/operations-calendar";
-import { BulkScheduleTable } from "@/components/schedule/bulk-schedule-table";
 import { prisma } from "@/lib/prisma";
+import { WorkspaceHeader } from "@/components/layout/workspace-header";
+import { PublishingCalendar } from "@/components/schedule/publishing-calendar";
+import ScheduleTablePage from "@/components/schedule/schedule-table-page";
 import { safeListCampaigns } from "@/lib/campaigns/client";
-import { getScheduleReadiness } from "@/lib/schedule/readiness";
-import { SummaryStats } from "@/components/ui/summary-stats";
+import { publishedPostBrand } from "@/lib/social/reporting";
+import {
+  combineCalendarEntries,
+  safeMediaUrl,
+  type CalendarEntry,
+} from "@/lib/schedule/calendar";
 
 export const dynamic = "force-dynamic";
-
-type SchedulePageProps = {
+type Props = {
   searchParams?: Promise<{
-    queue?: string;
     view?: string;
     month?: string;
     week?: string;
     brand?: string;
     period?: string;
+    queue?: string;
+    platform?: string;
+    status?: string;
   }>;
 };
-
-const queueOptions = [
-  { key: "all", label: "All entries" },
-  { key: "ready", label: "Ready queue" },
-  { key: "attention", label: "Needs attention" },
-  { key: "approved", label: "Approved only" },
-  { key: "week", label: "This week" },
-] as const;
-
-export default async function SchedulePage({ searchParams }: SchedulePageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const queue = resolvedSearchParams?.queue ?? "all";
-  const rawView = resolvedSearchParams?.view ?? "table";
-  const view = rawView === "calendar" ? "month" : rawView;
-  const period = resolvedSearchParams?.period === "past" ? "past" : resolvedSearchParams?.period === "all" ? "all" : "upcoming";
-  const monthParam = resolvedSearchParams?.month ?? format(startOfMonth(new Date()), "yyyy-MM");
-  const weekParam =
-    resolvedSearchParams?.week ?? format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
-  const brandFilter = resolvedSearchParams?.brand ?? "all";
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const weekEnd = new Date(now);
-  weekEnd.setDate(weekEnd.getDate() + 7);
-  const parsedMonth = new Date(`${monthParam}-01T00:00:00`);
-  const currentMonth = Number.isNaN(parsedMonth.getTime())
-    ? startOfMonth(new Date())
-    : startOfMonth(parsedMonth);
-  const previousMonth = format(subMonths(currentMonth, 1), "yyyy-MM");
-  const nextMonth = format(addMonths(currentMonth, 1), "yyyy-MM");
-  const parsedWeek = new Date(`${weekParam}T00:00:00`);
-  const currentWeek = Number.isNaN(parsedWeek.getTime())
-    ? startOfWeek(new Date(), { weekStartsOn: 1 })
-    : startOfWeek(parsedWeek, { weekStartsOn: 1 });
-  const previousWeek = format(subWeeks(currentWeek, 1), "yyyy-MM-dd");
-  const nextWeek = format(addWeeks(currentWeek, 1), "yyyy-MM-dd");
-
-  const [scheduleRows, campaignsResponse] = await Promise.all([
+export default async function SchedulePage(props: Props) {
+  const search = props.searchParams ? await props.searchParams : {};
+  if (search.view === "table") return <ScheduleTablePage {...props} />;
+  const [slots, posts, campaignsResult, contentOptions] = await Promise.all([
     prisma.contentSchedule.findMany({
-      include: {
-        publishedPosts: { select: { titleSnapshot: true }, orderBy: { publishedAt: "desc" } },
-        blog: {
-          select: {
-            title: true,
-            brand: true,
-            websites: true,
-            featureAssetId: true,
-            featureImage: true,
-          },
-        },
-        content: {
-          select: {
-            title: true,
-            brand: true,
-            tone: true,
-            targetAudience: true,
-            primaryAssetId: true,
-            assetImage: true,
-          },
-        },
-        approvedBy: {
-          select: {
-            fullName: true,
-            email: true,
-          },
-        },
-      },
+      include: { content: { include: { primaryAsset: true } }, blog: true },
       orderBy: { scheduledFor: "asc" },
     }),
-    safeListCampaigns({ limit: 100 }),
-  ]);
-
-  const rowsWithReadiness = scheduleRows.map((row) => ({
-    ...row,
-    readiness: getScheduleReadiness({
-      channel: row.channel,
-      platformAccount: row.platformAccount,
-      brand: row.brand,
-      approvedById: row.approvedById,
-      content: row.content,
-      blog: row.blog,
+    prisma.publishedPost.findMany({
+      where: {
+        status: { in: ["published", "imported"] },
+        publishedAt: { not: null },
+      },
+      include: {
+        content: true,
+        blog: true,
+        schedule: true,
+        connectedAccount: {
+          select: {
+            accountName: true,
+            externalAccountId: true,
+            brandName: true,
+            brandProfile: { select: { brandName: true } },
+          },
+        },
+        analyticsSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 },
+      },
+      orderBy: { publishedAt: "desc" },
     }),
-  }));
-
-  const normalizedBrandFilter = brandFilter.toLowerCase();
-  const allCampaigns = campaignsResponse.ok ? campaignsResponse.data : [];
-  const brandScopedRows = rowsWithReadiness.filter(
-    (row) =>
-      normalizedBrandFilter === "all" || (row.brand ?? "").toLowerCase() === normalizedBrandFilter,
-  );
-  const campaigns = allCampaigns.filter((campaign) => {
-    if (normalizedBrandFilter === "all") {
-      return true;
-    }
-
-    return campaign.brand.some((brand) => brand.toLowerCase() === normalizedBrandFilter);
-  });
-
-  const availableBrands = Array.from(
-    new Set(
-      [
-        ...rowsWithReadiness.map((row) => row.brand).filter(Boolean),
-        ...allCampaigns.flatMap((campaign) => campaign.brand ?? []),
-      ].map((brand) => brand?.trim()).filter(Boolean) as string[],
+    safeListCampaigns({ limit: 100 }),
+    prisma.content.findMany({
+      select: { id: true, title: true, brand: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+  ]);
+  const planned: CalendarEntry[] = slots.map((s) => ({
+    id: s.id,
+    kind: "schedule",
+    title: s.content?.title ?? s.blog?.title ?? "Untitled schedule",
+    date: s.scheduledFor.toISOString(),
+    status: s.status,
+    brand: s.brand ?? s.content?.brand ?? s.blog?.brand ?? "Unassigned",
+    platform: s.channel ?? "Unassigned",
+    account: s.platformAccount ?? "",
+    caption: s.content?.body ?? s.blog?.text1 ?? "",
+    campaign: s.campaignName,
+    contentId: s.contentId,
+    contentTitle: s.content?.title ?? null,
+    scheduleId: s.id,
+    mediaUrl: safeMediaUrl(
+      s.content?.primaryAsset?.fileUrl ??
+        s.content?.assetImage ??
+        s.blog?.featureImage,
     ),
-  ).sort((a, b) => a.localeCompare(b));
-
-  const periodRows = brandScopedRows.filter((row) => {
-    if (period === "past") return row.scheduledFor < todayStart;
-    if (period === "upcoming") return row.scheduledFor >= todayStart;
-    return true;
+    thumbnail: safeMediaUrl(s.content?.assetImage ?? s.blog?.featureImage),
+    externalUrl: null,
+    metrics: null,
+    syncedAt: null,
+    notes: s.notes,
+  }));
+  const published: CalendarEntry[] = posts.map((p) => {
+    const media = p.mediaSnapshot as {
+      url?: string;
+      thumbnail?: string;
+    } | null;
+    const metrics = p.analyticsSnapshots[0];
+    return {
+      id: p.id,
+      kind: "published",
+      title:
+        p.titleSnapshot ??
+        p.content?.title ??
+        p.blog?.title ??
+        `${p.platform} post`,
+      date: p.publishedAt!.toISOString(),
+      status: "published",
+      brand: publishedPostBrand(p) ?? "Unassigned",
+      platform: p.platform,
+      account: p.platformAccountName ?? p.connectedAccount?.accountName ?? "",
+      caption: p.captionSnapshot ?? "",
+      campaign: p.schedule?.campaignName ?? p.content?.campaignName ?? null,
+      contentId: p.contentId,
+      contentTitle: p.content?.title ?? null,
+      scheduleId: p.scheduleId,
+      mediaUrl: safeMediaUrl(media?.url),
+      thumbnail: safeMediaUrl(media?.thumbnail),
+      externalUrl: safeMediaUrl(p.externalPostUrl),
+      metrics: metrics
+        ? {
+            Views: metrics.views,
+            Reach: metrics.reach,
+            Impressions: metrics.impressions,
+            Engagements: metrics.engagements,
+            Likes: metrics.likes,
+            Comments: metrics.comments,
+            Shares: metrics.shares,
+            Saves: metrics.saves,
+            Clicks: metrics.clicks,
+            "Engagement rate (%)": metrics.engagementRate,
+          }
+        : null,
+      syncedAt:
+        metrics?.capturedAt.toISOString() ??
+        p.latestAnalyticsAt?.toISOString() ??
+        null,
+      notes: p.schedule?.notes ?? null,
+    };
   });
-
-  const filteredRows = periodRows.filter((row) => {
-    if (queue === "ready") return row.readiness.isReady;
-    if (queue === "attention") return !row.readiness.isReady;
-    if (queue === "approved") return Boolean(row.approvedById);
-    if (queue === "week") return row.scheduledFor >= now && row.scheduledFor <= weekEnd;
-    return true;
-  });
-
-  const queueSummary = {
-    all: periodRows.length,
-    ready: periodRows.filter((row) => row.readiness.isReady).length,
-    attention: periodRows.filter((row) => !row.readiness.isReady).length,
-    approved: periodRows.filter((row) => row.approvedById).length,
-    week: periodRows.filter((row) => row.scheduledFor >= now && row.scheduledFor <= weekEnd)
-      .length,
-  };
-  const scheduledCount = periodRows.filter((row) => row.status === "scheduled").length;
-  const activeCampaigns = campaigns.filter((campaign) => campaign.campaign_status === "active").length;
-
-  function buildScheduleHref(next: {
-    queue?: string;
-    view?: string;
-    month?: string;
-    week?: string;
-    brand?: string;
-    period?: string;
-  }) {
-    const params = new URLSearchParams();
-    const resolvedQueue = next.queue ?? queue;
-    const resolvedView = next.view ?? view;
-    const resolvedMonth = next.month ?? monthParam;
-    const resolvedWeek = next.week ?? weekParam;
-    const resolvedBrand = next.brand ?? brandFilter;
-    const resolvedPeriod = next.period ?? period;
-
-    if (resolvedQueue !== "all") {
-      params.set("queue", resolvedQueue);
-    }
-
-    if (resolvedView !== "month") {
-      params.set("view", resolvedView);
-    }
-
-    params.set("month", resolvedMonth);
-    params.set("week", resolvedWeek);
-
-    if (resolvedBrand !== "all") {
-      params.set("brand", resolvedBrand);
-    }
-
-    if (resolvedPeriod !== "upcoming") {
-      params.set("period", resolvedPeriod);
-    }
-
-    return `/schedule?${params.toString()}`;
-  }
-
   return (
     <section className="page-shell">
       <WorkspaceHeader
-        title="Schedule"
-        description="Publishing operations for content and blog records across channels, brands, and regions."
-        actions={<Link className="button button--primary" href="/schedule/new">Create schedule entry</Link>}
-      />
-
-      <div className="stack">
-        <SummaryStats
-          items={[
-            {
-              label: "All entries",
-              value: queueSummary.all,
-              detail: "Combined content and blog publishing operations",
-            },
-            {
-              label: "Ready queue",
-              value: queueSummary.ready,
-              detail: "Entries prepared for downstream automation or publishing",
-            },
-            {
-              label: "Scheduled",
-              value: scheduledCount,
-              detail: "Entries already committed to a date and workflow",
-            },
-            {
-              label: "Active campaigns",
-              value: activeCampaigns,
-              detail: campaignsResponse.ok
-                ? "Shown alongside schedule items in the planning calendar"
-                : "Campaign API unavailable",
-            },
-          ]}
-        />
-
-        {!campaignsResponse.ok ? (
-          <CampaignApiNotice message={campaignsResponse.error ?? "Campaign API is unavailable."} />
-        ) : null}
-
-        <nav aria-label="Schedule date range" className="plan-status-tabs schedule-period-tabs">
-          {(["upcoming", "past", "all"] as const).map((tab) => {
-            const count = tab === "upcoming"
-              ? brandScopedRows.filter((row) => row.scheduledFor >= todayStart).length
-              : tab === "past"
-                ? brandScopedRows.filter((row) => row.scheduledFor < todayStart).length
-                : brandScopedRows.length;
-            return <Link data-active={period === tab} href={buildScheduleHref({ period: tab })} key={tab}>{tab}<span>{count}</span></Link>;
-          })}
-        </nav>
-
-        <div className="toolbar">
-          <div className="toolbar__group">
-            <Link className="button button--primary" href="/schedule/new">
-              Create schedule entry
-            </Link>
-          </div>
-          <div className="toolbar__group">
-            <Link
-              className="button button--secondary"
-              data-active={view === "table"}
-              href={buildScheduleHref({ view: "table" })}
-            >
-              Table view
-            </Link>
-            <Link
-              className="button button--secondary"
-              data-active={view === "month"}
-              href={buildScheduleHref({ view: "month" })}
-            >
-              Month view
-            </Link>
-            <Link
-              className="button button--secondary"
-              data-active={view === "week"}
-              href={buildScheduleHref({ view: "week" })}
-            >
-              Week view
-            </Link>
-          </div>
-          <div className="toolbar__group">
-            {queueOptions.map((option) => (
-              <Link
-                className="button button--secondary"
-                data-active={queue === option.key}
-                href={buildScheduleHref({ queue: option.key })}
-                key={option.key}
-              >
-                {option.label} ({queueSummary[option.key]})
-              </Link>
-            ))}
-          </div>
-          <div className="toolbar__group">
-            <Link
-              className="button button--secondary"
-              data-active={brandFilter === "all"}
-              href={buildScheduleHref({ brand: "all" })}
-            >
-              All brands
-            </Link>
-            {availableBrands.map((brand) => (
-              <Link
-                className="button button--secondary"
-                data-active={brandFilter === brand}
-                href={buildScheduleHref({ brand })}
-                key={brand}
-              >
-                {brand}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {view === "month" || view === "week" ? (
+        title="Publishing calendar"
+        description="Plan content, review published posts and track their performance. All times Asia/Bangkok."
+        actions={
           <>
-            <div className="card card--padded">
-              <div className="section-heading">
-                <div>
-                  <p className="kicker">{view === "week" ? "Weekly planning" : "Monthly planning"}</p>
-                  <h3 style={{ marginTop: 0 }}>
-                    {view === "week"
-                      ? `${format(currentWeek, "d MMM")} – ${format(endOfWeek(currentWeek, { weekStartsOn: 1 }), "d MMM yyyy")}`
-                      : format(currentMonth, "MMMM yyyy")}
-                  </h3>
-                </div>
-                <div className="toolbar__group">
-                  <Link
-                    className="button button--secondary"
-                    href={
-                      view === "week"
-                        ? buildScheduleHref({ week: previousWeek })
-                        : buildScheduleHref({ month: previousMonth })
-                    }
-                  >
-                    {view === "week" ? "Previous week" : "Previous month"}
-                  </Link>
-                  <Link
-                    className="button button--secondary"
-                    href={
-                      view === "week"
-                        ? buildScheduleHref({
-                            week: format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
-                          })
-                        : buildScheduleHref({
-                            month: format(startOfMonth(new Date()), "yyyy-MM"),
-                          })
-                    }
-                  >
-                    {view === "week" ? "Current week" : "Current month"}
-                  </Link>
-                  <Link
-                    className="button button--secondary"
-                    href={
-                      view === "week"
-                        ? buildScheduleHref({ week: nextWeek })
-                        : buildScheduleHref({ month: nextMonth })
-                    }
-                  >
-                    {view === "week" ? "Next week" : "Next month"}
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            <OperationsCalendar
-              anchorDate={weekParam}
-              campaigns={campaigns}
-              month={monthParam}
-              scheduleItems={filteredRows.map((row) => ({
-                id: row.id,
-                title: scheduleHistoryTitle(row),
-                href: `/schedule/${row.id}`,
-                status: row.status,
-                scheduledFor: row.scheduledFor,
-                brand: row.brand,
-                channel: row.channel,
-              }))}
-              viewMode={view === "week" ? "week" : "month"}
-            />
+            <Link
+              className="button button--secondary"
+              href="/schedule?view=table"
+            >
+              Manage table
+            </Link>
+            <Link className="button button--primary" href="/schedule/new">
+              Create entry
+            </Link>
           </>
-        ) : filteredRows.length === 0 ? (
-          <div className="card card--padded empty-state">
-            <h3>No schedule entries in this queue</h3>
-            <p className="muted">
-              Adjust the queue filter or create a new schedule entry to populate this workflow
-              view.
-            </p>
-          </div>
-        ) : (
-          <BulkScheduleTable
-            availableBrands={availableBrands}
-            rows={filteredRows.map((row) => ({
-              id: row.id,
-              title: scheduleHistoryTitle(row),
-              channel: row.channel,
-              platformAccount: row.platformAccount,
-              scheduledFor: row.scheduledFor.toISOString(),
-              brand: row.brand,
-              approvalLabel: row.approvedBy
-                ? row.approvedBy.fullName ?? row.approvedBy.email
-                : "Unapproved",
-              isReady: row.readiness.isReady,
-              status: row.status,
-            }))}
-          />
-        )}
-      </div>
+        }
+      />
+      {!campaignsResult.ok && (
+        <p role="status" className="muted">
+          Campaigns unavailable. Your calendar posts are still shown.
+        </p>
+      )}
+      <PublishingCalendar
+        entries={combineCalendarEntries(planned, published)}
+        campaigns={
+          campaignsResult.ok
+            ? campaignsResult.data.map((c) => ({
+                id: c.campaign_id,
+                title: c.campaign_name,
+                start: c.start_date,
+                end: c.end_date,
+                brands: c.brand,
+                status: c.campaign_status,
+              }))
+            : []
+        }
+        contentOptions={contentOptions}
+        initialBrand={search.brand}
+        initialMonth={search.month}
+        initialWeek={search.week}
+        initialView={search.view}
+        initialPlatform={search.platform}
+        initialStatus={search.status}
+      />
     </section>
   );
 }
