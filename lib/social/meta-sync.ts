@@ -61,6 +61,7 @@ async function upsertPublishedPostBase(input: {
   captionSnapshot: string | null;
   externalPostUrl: string | null;
   publishedAt: Date | null;
+  mediaSnapshot?: { url?: string; thumbnail?: string; type?: string };
   unavailableMetrics?: string[];
   metrics: {
     views?: number | null;
@@ -109,6 +110,7 @@ async function upsertPublishedPostBase(input: {
       platformAccountName: existingPost?.platformAccountName ?? input.account.accountName,
       sourceExternalAccountId: existingPost?.sourceExternalAccountId ?? input.account.externalAccountId,
       sourceBrandName: existingPost?.sourceBrandName ?? input.account.brandName,
+      ...(input.mediaSnapshot ? { mediaSnapshot: input.mediaSnapshot } : {}),
       externalPostId: input.externalPostId,
       externalPostUrl: input.externalPostUrl,
       titleSnapshot: input.titleSnapshot,
@@ -202,6 +204,7 @@ async function syncFacebookAccount(account: ConnectedAccount) {
     const result = await upsertPublishedPostBase({
       account,
       externalPostId: post.id,
+      mediaSnapshot: post.full_picture ? { thumbnail: post.full_picture } : undefined,
       titleSnapshot: post.message?.split("\n")[0]?.slice(0, 120) ?? null,
       captionSnapshot: post.message ?? null,
       externalPostUrl: post.permalink_url ?? null,
@@ -250,6 +253,7 @@ async function syncInstagramAccount(account: ConnectedAccount) {
     const result = await upsertPublishedPostBase({
       account,
       externalPostId: item.id,
+      mediaSnapshot: { url: item.media_url, thumbnail: item.thumbnail_url ?? (item.media_type === "IMAGE" ? item.media_url : undefined), type: item.media_type },
       titleSnapshot: item.caption?.split("\n")[0]?.slice(0, 120) ?? null,
       captionSnapshot: item.caption ?? null,
       externalPostUrl: item.permalink ?? null,
