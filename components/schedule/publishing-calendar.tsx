@@ -6,7 +6,15 @@ import {
   calendarTime,
   type CalendarEntry,
 } from "@/lib/schedule/calendar";
-import { linkImportedPublicationAction } from "@/app/(app)/schedule/actions";
+import {
+  bangkokDateTime,
+  moveToBangkokDay,
+} from "@/lib/schedule/reschedule-time";
+import {
+  linkImportedPublicationAction,
+  rescheduleCalendarAction,
+  undoCalendarMoveAction,
+} from "@/app/(app)/schedule/actions";
 
 type CampaignWindow = {
   id: string;
@@ -78,7 +86,7 @@ function Media({
   );
 }
 export function PublishingCalendar({
-  entries,
+  entries: initialEntries,
   campaigns,
   contentOptions,
   initialBrand,
@@ -98,6 +106,16 @@ export function PublishingCalendar({
   initialPlatform?: string;
   initialStatus?: string;
 }) {
+  const [overrides, setOverrides] = useState<
+    Record<string, { date: string; updatedAt: string; status: string }>
+  >({});
+  const entries = initialEntries.map((e) => ({ ...e, ...overrides[e.id] }));
+  const [movePair, setMovePair] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropDay, setDropDay] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+  const [undoId, setUndoId] = useState<string | null>(null);
   const today = calendarDay(new Date());
   const [anchor, setAnchor] = useState(
     validDay(
@@ -184,13 +202,117 @@ export function PublishingCalendar({
     setMatchContent("");
     dialog.current?.showModal();
   }
+  function pairFor(entry: CalendarEntry) {
+    const peers = entries.filter(
+      (e) =>
+        e.id !== entry.id &&
+        e.movable &&
+        entry.contentId &&
+        e.contentId === entry.contentId &&
+        e.brand === entry.brand &&
+        calendarDay(e.date) === calendarDay(entry.date) &&
+        e.platform.toLowerCase() !== entry.platform.toLowerCase() &&
+        ["facebook", "instagram"].includes(e.platform.toLowerCase()) &&
+        ["facebook", "instagram"].includes(entry.platform.toLowerCase()),
+    );
+    return peers.length === 1 ? peers[0] : null;
+  }
+  function applyChanges(
+    changes: { id: string; after: string; updatedAt: string; status: string }[],
+  ) {
+    setOverrides((prev) => ({
+      ...prev,
+      ...Object.fromEntries(
+        changes.map((c) => [
+          c.id,
+          { date: c.after, updatedAt: c.updatedAt, status: c.status },
+        ]),
+      ),
+    }));
+    setSelected((prev) => {
+      const c = changes.find((c) => c.id === prev?.id);
+      return prev && c
+        ? { ...prev, date: c.after, updatedAt: c.updatedAt, status: c.status }
+        : prev;
+    });
+  }
+  async function move(entry: CalendarEntry, day: string, time?: string) {
+    if (moving || !entry.movable || !entry.updatedAt) return;
+    const pair = movePair ? pairFor(entry) : null;
+    const targets = pair ? [entry, pair] : [entry];
+    try {
+      const moves = targets.map((e) => ({
+        id: e.id,
+        expectedUpdatedAt: e.updatedAt!,
+        scheduledFor: (e.id === entry.id && time
+          ? bangkokDateTime(day, time)
+          : moveToBangkokDay(e.date, day)
+        ).toISOString(),
+      }));
+      if (
+        moves.every(
+          (m) => m.scheduledFor === targets.find((e) => e.id === m.id)!.date,
+        )
+      )
+        return;
+      setMoving(true);
+      setNotice("");
+      const result = await rescheduleCalendarAction(moves);
+      applyChanges(result.changes);
+      setUndoId(result.logId);
+      setNotice(
+        `Moved ${result.changes.length} ${result.changes.length === 1 ? "post" : "posts"} to ${day}.${result.approvalsCleared ? " Timing approval cleared; review required before publishing." : ""}`,
+      );
+    } catch (err) {
+      setNotice(
+        err instanceof Error
+          ? err.message
+          : "Unable to move post. No changes saved.",
+      );
+    } finally {
+      setMoving(false);
+      setDragId(null);
+      setDropDay(null);
+    }
+  }
+  async function undoMove() {
+    if (!undoId || moving) return;
+    setMoving(true);
+    try {
+      const result = await undoCalendarMoveAction(undoId);
+      applyChanges(result.changes);
+      setUndoId(null);
+      setNotice("Previous dates restored. Entries remain planned for review.");
+    } catch (err) {
+      setNotice(
+        err instanceof Error
+          ? err.message
+          : "Unable to undo. Refresh and try again.",
+      );
+    } finally {
+      setMoving(false);
+    }
+  }
   const card = (e: CalendarEntry) => (
     <button
       type="button"
       className="publishing-card"
       data-status={e.status}
       key={`${e.kind}-${e.id}`}
-      onClick={() => open(e)}
+      draggable={Boolean(e.movable && !moving)}
+      aria-label={`${e.title}, ${e.platform}, ${e.status}${e.movable ? ", drag to another day or open to edit timing" : ""}`}
+      onDragStart={(event) => {
+        event.dataTransfer.setData("application/x-ixara-schedule", e.id);
+        event.dataTransfer.effectAllowed = "move";
+        setDragId(e.id);
+      }}
+      onDragEnd={() => {
+        setDragId(null);
+        setDropDay(null);
+      }}
+      onClick={() => {
+        if (!dragId) open(e);
+      }}
     >
       <Media entry={e} small />
       <span className="publishing-card__body">
@@ -213,6 +335,35 @@ export function PublishingCalendar({
   );
   return (
     <div className="stack publishing-calendar">
+      <div className="calendar-move-controls">
+        <label>
+          <input
+            type="checkbox"
+            checked={movePair}
+            onChange={(e) => setMovePair(e.target.checked)}
+            disabled={moving}
+          />{" "}
+          Move paired Facebook + Instagram posts together
+        </label>
+        <span className="muted">
+          Drag unpublished posts to a day. Times stay in Bangkok. Click a post
+          to edit date/time.
+        </span>
+      </div>
+      {(notice || moving) && (
+        <div className="calendar-move-notice" role="status" aria-live="polite">
+          <span>{moving ? "Saving schedule…" : notice}</span>
+          {undoId && !moving && (
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={undoMove}
+            >
+              Undo
+            </button>
+          )}
+        </div>
+      )}
       <div className="quiet-panel">
         <div className="publishing-toolbar">
           <div className="toolbar__group">
@@ -355,6 +506,31 @@ export function PublishingCalendar({
               return (
                 <section
                   className="publishing-day"
+                  data-drop-target={dropDay === day}
+                  onDragOver={(event) => {
+                    if (dragId && !moving) {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                      setDropDay(day);
+                    }
+                  }}
+                  onDragLeave={(event) => {
+                    if (
+                      !event.currentTarget.contains(
+                        event.relatedTarget as Node | null,
+                      )
+                    )
+                      setDropDay(null);
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const id = event.dataTransfer.getData(
+                      "application/x-ixara-schedule",
+                    );
+                    const entry = entries.find((e) => e.id === id);
+                    if (entry) void move(entry, day);
+                    setDropDay(null);
+                  }}
                   data-today={day === today}
                   data-outside={
                     view !== "week" && day.slice(0, 7) !== anchor.slice(0, 7)
@@ -557,6 +733,71 @@ export function PublishingCalendar({
                   <button className="button button--primary" disabled={saving}>
                     {saving ? "Linking…" : "Link publication"}
                   </button>
+                </form>
+              )}
+              {selected.movable && (
+                <form
+                  className="calendar-quick-time stack"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    void move(
+                      selected,
+                      String(form.get("day")),
+                      String(form.get("time")),
+                    );
+                  }}
+                  key={`${selected.id}-${selected.date}`}
+                >
+                  <h3>Move or change time</h3>
+                  <div className="toolbar__group">
+                    <label>
+                      Date
+                      <input
+                        type="date"
+                        name="day"
+                        required
+                        defaultValue={calendarDay(selected.date)}
+                      />
+                    </label>
+                    <label>
+                      Time (Bangkok)
+                      <input
+                        type="time"
+                        name="time"
+                        required
+                        defaultValue={calendarTime(selected.date)}
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={movePair}
+                      onChange={(e) => setMovePair(e.target.checked)}
+                      disabled={moving}
+                    />{" "}
+                    Move matching Facebook/Instagram post too{" "}
+                    {pairFor(selected) ? "" : "(no matching pair on this day)"}
+                  </label>
+                  <p className="muted">
+                    Changing timing returns the entry to planned and clears
+                    timing approval. Paired posts keep their own times.
+                  </p>
+                  <button className="button button--primary" disabled={moving}>
+                    {moving ? "Saving…" : "Save date and time"}
+                  </button>
+                  {notice && <p role="status">{notice}</p>}
+                  {undoId && (
+                    <button
+                      type="button"
+                      className="button button--secondary"
+                      onClick={undoMove}
+                      disabled={moving}
+                    >
+                      Undo last move
+                    </button>
+                  )}
                 </form>
               )}
               {selected.notes && (
