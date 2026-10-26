@@ -4484,3 +4484,13 @@ html[data-theme="light"] .badge[data-status="scheduled"] {
 .publishing-metrics span { font-size:.75rem; opacity:.7; }
 .publishing-metrics strong { font-size:1.4rem; }
 @media(max-width:700px) { .publishing-dialog__inner { padding:1rem; } .publishing-toolbar .toolbar__group { flex-wrap:wrap; } }
+
+.calendar-move-controls { display:flex; gap:.6rem 1.5rem; flex-wrap:wrap; align-items:center; font-size:.82rem; }
+.calendar-move-controls label { display:flex; align-items:center; gap:.5rem; }
+.calendar-move-controls input,.calendar-quick-time input[type="checkbox"] { width:auto; }
+.publishing-card[draggable="true"] { cursor:grab; }
+.publishing-card[draggable="true"]:active { cursor:grabbing; }
+.publishing-day[data-drop-target="true"] { outline:2px dashed #7198ef; outline-offset:-3px; background:rgba(100,140,220,.15); }
+.calendar-move-notice { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.8rem 1rem; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+.calendar-quick-time { margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border); }
+.calendar-quick-time label { display:grid; gap:.4rem; }
