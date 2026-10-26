@@ -340,3 +340,23 @@ export async function linkImportedPublicationAction(formData: FormData) {
   revalidatePath("/schedule");
   revalidatePath(`/content/${contentId}`);
 }
+
+export async function rescheduleCalendarAction(moves: import("@/lib/schedule/reschedule").ScheduleMove[]) {
+  const access = await requireEditorialUserAccess();
+  const { rescheduleEntries } = await import("@/lib/schedule/reschedule");
+  const result = await rescheduleEntries(moves, access.id);
+  revalidatePath("/schedule");
+  revalidatePath("/plans");
+  for (const move of moves) revalidatePath(`/schedule/${move.id}`);
+  return result;
+}
+
+export async function undoCalendarMoveAction(logId: string) {
+  const access = await requireEditorialUserAccess();
+  const { undoScheduleMove } = await import("@/lib/schedule/reschedule");
+  const result = await undoScheduleMove(logId, access.id);
+  revalidatePath("/schedule");
+  revalidatePath("/plans");
+  for (const move of result.changes) revalidatePath(`/schedule/${move.id}`);
+  return result;
+}
