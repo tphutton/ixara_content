@@ -27,6 +27,8 @@ export function safeMediaUrl(value: unknown): string | null {
   }
 }
 export type CalendarEntry = {
+  updatedAt?: string;
+  movable?: boolean;
   id: string;
   kind: "schedule" | "published";
   title: string;

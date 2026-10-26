@@ -275,23 +275,30 @@ async function claimMetaDelivery(input: {
   const deliveryKey = `meta:schedule:${input.schedule.id}`;
 
   try {
-    const post = await prisma.publishedPost.create({
-      data: {
-        deliveryKey,
-        deliveryAttempts: 1,
-        connectedAccountId: input.account.id,
-        contentId: input.schedule.contentId,
-        blogId: input.schedule.blogId,
-        scheduleId: input.schedule.id,
-        platform: input.account.platform,
-        platformAccountName: input.account.accountName,
-        titleSnapshot: getTitle(input.schedule),
-        captionSnapshot: input.caption,
-        mediaSnapshot: input.mediaUrl ? { url: input.mediaUrl } : undefined,
-        status: PublishedPostStatus.draft,
-        createdById: input.access.id,
-        updatedById: input.access.id,
-      },
+    const post = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "ContentSchedule" WHERE id = ${input.schedule.id} FOR UPDATE`;
+      const current = await tx.contentSchedule.findUniqueOrThrow({ where: { id: input.schedule.id } });
+      if (current.updatedAt.getTime() !== input.schedule.updatedAt.getTime()) {
+        throw new Error("Schedule changed before publishing started. Review its current timing and approval.");
+      }
+      return tx.publishedPost.create({
+        data: {
+          deliveryKey,
+          deliveryAttempts: 1,
+          connectedAccountId: input.account.id,
+          contentId: input.schedule.contentId,
+          blogId: input.schedule.blogId,
+          scheduleId: input.schedule.id,
+          platform: input.account.platform,
+          platformAccountName: input.account.accountName,
+          titleSnapshot: getTitle(input.schedule),
+          captionSnapshot: input.caption,
+          mediaSnapshot: input.mediaUrl ? { url: input.mediaUrl } : undefined,
+          status: PublishedPostStatus.draft,
+          createdById: input.access.id,
+          updatedById: input.access.id,
+        },
+      });
     });
     return post;
   } catch (error) {
