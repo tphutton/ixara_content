@@ -4,11 +4,15 @@ const { state, database, provider } = vi.hoisted(() => {
   const job = () => ({ id: "job1", status: "queued", externalTaskId: null, outputUrl: null, targetType: "video_shot", targetId: "shot1", input: { prompt: "Watch", durationSeconds: 5, aspectRatio: "9:16", referenceAssetId: "asset1", brandKitReferenceId: "ref1", maxCredits: 60 } });
   const database = { mediaGenerationJob: {
     findMany: vi.fn(async () => [job()]),
-    updateMany: vi.fn(async () => { if (state.status !== "queued") return { count: 0 }; state.status = "submitted"; return { count: 1 }; }),
+    updateMany: vi.fn(async ({ where, data }: { where: { status: string; externalTaskId?: null }; data: { externalTaskId?: string } }) => {
+      if (state.status !== where.status || (where.externalTaskId === null && state.taskId !== null)) return { count: 0 };
+      if (data.externalTaskId) state.taskId = data.externalTaskId; else state.status = "submitted";
+      return { count: 1 };
+    }),
     findUniqueOrThrow: vi.fn(async () => ({ ...job(), status: state.status, externalTaskId: state.taskId, error: state.error })),
     update: vi.fn(async ({ data }: { data: { status?: string; externalTaskId?: string; error?: string | null } }) => { if (data.status) state.status = data.status; if (data.externalTaskId) state.taskId = data.externalTaskId; if (data.error !== undefined) state.error = data.error; return { ...job(), status: state.status, externalTaskId: state.taskId, error: state.error }; }),
   } };
-  const provider = { startRunwayVideo: vi.fn(async () => ({ id: "task1" })), getRunwayTask: vi.fn() };
+  const provider = { startRunwayVideo: vi.fn(async () => ({ id: "task1" })), getRunwayTask: vi.fn(async () => ({ status: "running", output: [] as string[] })) };
   return { state, database, provider };
 });
 vi.mock("@/lib/prisma", () => ({ prisma: database }));
@@ -16,12 +20,24 @@ vi.mock("@/lib/media/brand-reference", () => ({ loadApprovedBrandImage: vi.fn(as
 vi.mock("@/lib/media/providers/runway", () => provider);
 vi.mock("@/lib/media/generated-asset-storage", () => ({ ingestGeneratedMedia: vi.fn(), isGeneratedAssetStorageConfigured: vi.fn() }));
 import { runDueMediaGenerationJobs } from "@/lib/media/runner";
+import { ingestGeneratedMedia, isGeneratedAssetStorageConfigured } from "@/lib/media/generated-asset-storage";
 describe("generation submission", () => {
   beforeEach(() => { state.status = "queued"; state.taskId = null; state.error = null; vi.clearAllMocks(); vi.stubEnv("RUNWAYML_API_SECRET", "test-only"); });
   it("claims a queued job once even if two runners read it", async () => {
     await Promise.all([runDueMediaGenerationJobs(), runDueMediaGenerationJobs()]);
     expect(provider.startRunwayVideo).toHaveBeenCalledTimes(1);
     expect(state.taskId).toBe("task1");
+  });
+  it("keeps a successful task available for storage retry if ingestion fails", async () => {
+    state.status = "running"; state.taskId = "task1";
+    database.mediaGenerationJob.findMany.mockResolvedValueOnce([{ id: "job1", status: "running", externalTaskId: "task1", outputUrl: null, targetType: "video_shot", targetId: "shot1", input: { prompt: "Watch", durationSeconds: 5, aspectRatio: "9:16", referenceAssetId: "asset1", brandKitReferenceId: "ref1", maxCredits: 60 } }] as never);
+    provider.getRunwayTask.mockResolvedValueOnce({ status: "succeeded", output: ["https://example.test/output.mp4"] });
+    vi.mocked(isGeneratedAssetStorageConfigured).mockReturnValueOnce(true);
+    vi.mocked(ingestGeneratedMedia).mockRejectedValueOnce(new Error("storage offline"));
+    await runDueMediaGenerationJobs();
+    expect(state.status).toBe("awaiting_asset");
+    expect(state.error).toMatch(/retried/);
+    expect(provider.startRunwayVideo).not.toHaveBeenCalled();
   });
   it("holds an ambiguous submission instead of retrying", async () => {
     provider.startRunwayVideo.mockRejectedValueOnce(new Error("timeout"));

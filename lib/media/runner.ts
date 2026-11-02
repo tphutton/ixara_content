@@ -6,6 +6,9 @@ import { getRunwayTask, startRunwayVideo } from "@/lib/media/providers/runway";
 
 type JobInput = {
   prompt?: string;
+  model?: "gen4.5" | "seedance2_mini";
+  referenceAssetIds?: string[];
+  brandKitReferenceIds?: string[];
   referenceAssetId?: string;
   brandKitReferenceId?: string;
   visualGuidelines?: string | null;
@@ -50,10 +53,17 @@ async function processRunwayJob(job: { id: string; status: MediaGenerationStatus
     const input = asJobInput(job.input);
     if (!input.prompt || !input.durationSeconds || !input.aspectRatio) throw new Error("Generation job is missing prompt, duration, or aspect ratio.");
     if (!input.referenceAssetId || !input.brandKitReferenceId) throw new Error("Generation requires an approved first-frame reference.");
-    if (!Number.isInteger(input.maxCredits) || input.maxCredits! < input.durationSeconds * 12 || input.maxCredits! > 120) throw new Error("Generation exceeds the allowed credit limit.");
+    const model = input.model ?? "gen4.5";
+    if (!["gen4.5", "seedance2_mini"].includes(model)) throw new Error("Unsupported model.");
+    const minDuration = model === "gen4.5" ? 2 : 4, maxDuration = model === "gen4.5" ? 10 : 15;
+    if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < minDuration || input.durationSeconds > maxDuration) throw new Error("Generation duration is unsupported.");
+    const credits = input.durationSeconds * (model === "gen4.5" ? 12 : 15);
+    if (!Number.isInteger(input.maxCredits) || input.maxCredits! < credits || input.maxCredits! > 225) throw new Error("Generation exceeds the allowed credit limit.");
     if (!process.env.RUNWAYML_API_SECRET) throw new Error("Runway Dev API key is not configured.");
-    const promptImage = await loadApprovedBrandImage(input.brandKitReferenceId, input.referenceAssetId);
-    if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 2 || input.durationSeconds > 10) throw new Error("Generation duration must be 2–10 seconds per shot.");
+    const assetIds = input.referenceAssetIds ?? [input.referenceAssetId];
+    const referenceIds = input.brandKitReferenceIds ?? [input.brandKitReferenceId];
+    if (assetIds.length !== referenceIds.length || assetIds.length < 1 || assetIds.length > 4 || (model === "gen4.5" && assetIds.length !== 1)) throw new Error("Invalid image references.");
+    const referenceImages = await Promise.all(assetIds.map((assetId, i) => loadApprovedBrandImage(referenceIds[i], assetId)));
     // Claim before the chargeable request. A crash or timeout after this point is
     // ambiguous: leave it for manual reconciliation, never auto-submit again.
     const claim = await prisma.mediaGenerationJob.updateMany({
@@ -63,14 +73,17 @@ async function processRunwayJob(job: { id: string; status: MediaGenerationStatus
     if (!claim.count) return prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: job.id } });
     const task = await startRunwayVideo({
       prompt: input.prompt,
-      promptImage,
+      model,
+      referenceImages,
       durationSeconds: input.durationSeconds,
       aspectRatio: input.aspectRatio,
     });
-    return prisma.mediaGenerationJob.update({
-      where: { id: job.id },
-      data: { status: MediaGenerationStatus.submitted, externalTaskId: task.id, error: null },
+    await prisma.mediaGenerationJob.updateMany({
+      where: { id: job.id, status: MediaGenerationStatus.submitted, externalTaskId: null },
+      data: { externalTaskId: task.id, error: null },
     });
+    // Never overwrite a task ID that was reconciled while a request was in flight.
+    return prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: job.id } });
   }
 
   if (job.status === MediaGenerationStatus.awaiting_asset && job.outputUrl) {

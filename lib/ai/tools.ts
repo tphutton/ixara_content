@@ -1,3 +1,4 @@
+import { mediaRecoveryOperations } from "@/lib/mcp/media-recovery-operations";
 import { setPlanMediaBudget } from "@/lib/media/credit-budget";
 import { brandKitOperations } from "@/lib/mcp/brand-kit-operations";
 import { validate as validateMcpInput } from "@/lib/mcp/engine";
@@ -2385,6 +2386,8 @@ async function queueVideoGenerationTool(args: Record<string, unknown>, context: 
     shotId: asOptionalString(args.shotId) ?? undefined,
     guidance: asOptionalString(args.guidance),
     referenceAssetId: asRequiredString(args.referenceAssetId, "referenceAssetId"),
+    additionalReferenceAssetIds: asStringArray(args.additionalReferenceAssetIds),
+    model: (asOptionalString(args.model) ?? "gen4.5") as "gen4.5" | "seedance2_mini",
     maxCredits: Number(args.maxCredits),
   });
   return {
@@ -3348,16 +3351,18 @@ export const contentOpsTools: ToolDefinition[] = [
     type: "function",
     function: {
       name: "queue_video_generation",
-      description: "Queue an approved video brief or approved shot for provider generation. This creates a tracked job but does not call the provider until a generation runner is configured.",
+      description: "Queue an approved individual shot for Runway Dev generation. The job may run and incur charges asynchronously if the runner is enabled. Set a plan budget first.",
       parameters: {
         type: "object",
         properties: {
           planItemId: { type: "string" },
           provider: { type: "string", description: "Provider name, currently runway-ready by default." },
-          shotId: { type: "string", description: "Optional approved shot id for single-shot generation." },
+          shotId: { type: "string", description: "Approved shot id for single-shot generation." },
           guidance: { type: "string" },
-          referenceAssetId: { type: "string", description: "Approved brand kit image asset ID used as the first frame." },
-          maxCredits: { type: "number", description: "Maximum credits for this shot, at most 120." },
+          referenceAssetId: { type: "string", description: "Approved same-brand image: first frame with Gen-4.5 or image reference with Seedance Mini." },
+          additionalReferenceAssetIds: { type: "array", items: { type: "string" }, maxItems: 3, description: "Additional approved same-brand images; Seedance Mini only." },
+          model: { type: "string", enum: ["gen4.5", "seedance2_mini"], description: "Gen-4.5 animates a single first frame; Seedance Mini uses up to four image references at 720p." },
+          maxCredits: { type: "number", description: "Maximum credits for this shot, at most 225." },
         },
         required: ["planItemId", "shotId", "referenceAssetId", "maxCredits"],
         additionalProperties: false,
@@ -3466,7 +3471,7 @@ export const contentOpsTools: ToolDefinition[] = [
 contentOpsTools.push({ type: "function", function: { name: "set_plan_media_budget", description: "Set the total Runway credit reservation limit for one plan. Changing the budget never starts generation.", parameters: { type: "object", properties: { planId: { type: "string" }, creditBudget: { type: "integer" } }, required: ["planId", "creditBudget"], additionalProperties: false } } });
 
 // Quill and ChatGPT use the same brand-kit operations and validation.
-for (const operation of brandKitOperations) {
+for (const operation of [...brandKitOperations, ...mediaRecoveryOperations]) {
   contentOpsTools.push({ type: "function", function: { name: operation.name, description: operation.description, parameters: operation.inputSchema } });
   toolHandlers[operation.name] = async (args, context) => {
     validateMcpInput(operation.inputSchema, args);

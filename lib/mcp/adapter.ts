@@ -1,3 +1,4 @@
+import { mediaRecoveryOperations } from './media-recovery-operations';
 import { brandKitOperations } from './brand-kit-operations';
 import { linkImportedPublication } from "@/lib/social/publication-link";
 import { validateHistoryArgs, validateHistoryLink } from "@/lib/social/history-reconciliation";
@@ -43,7 +44,7 @@ async function snapshot(name:string,args:any,tx:any) {
   const profile=brand?await tx.brandProfile.findFirst({where:{brandName:{equals:brand,mode:'insensitive'}}}):null;
   const brands=name==='upsert_brand_profile'?await tx.brandProfile.findMany({orderBy:{id:'asc'}}):null;
   const video=['update_video_brief','queue_video_generation'].includes(name)?await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId},include:{shots:true,planItem:{include:{plan:true}}}}):null;
-  const reference=name==='queue_video_generation'?await tx.brandKitReference.findMany({where:{assetId:args.referenceAssetId},include:{asset:true,brandProfile:true},orderBy:{id:'asc'}}):null;
+  const reference=name==='queue_video_generation'?await tx.brandKitReference.findMany({where:{assetId:{in:[args.referenceAssetId,...(args.additionalReferenceAssetIds??[])]}},include:{asset:true,brandProfile:true},orderBy:{id:'asc'}}):null;
   const jobs=name==='queue_video_generation'?await tx.mediaGenerationJob.findMany({where:{targetType:'video_shot',targetId:args.shotId},orderBy:{id:'asc'}}):null;
   const history = name === "update_schedule_entry" && (args.publishedPostId !== undefined || args.historyNote !== undefined) ? {
     posts: await tx.publishedPost.findMany({ where: { scheduleId: args.id }, orderBy: { id: "asc" } }),
@@ -80,7 +81,7 @@ const operations:Operation[]=(contentOpsTools as any[]).flatMap(def=>{
    snapshot:mutating?(args:any,tx:any)=>snapshot(f.name,args,tx):undefined,
    run:async(args:any,access:any)=>executeContentOpsTool(f.name,{...args,...('limit' in (f.parameters.properties||{})?{limit:Math.min(Math.max(Number(args.limit)||30,1),f.name === "list_published_posts" ? 500 : 100)}:{})},{access})}];
 });
-operations.push(...brandKitOperations);
+operations.push(...brandKitOperations, ...mediaRecoveryOperations);
 operations.push({name:'get_record',description:'Read a complete Content record, blog, plan, variant, brand, asset or video brief.',
  inputSchema:objectSchema({entity:{type:'string',enum:Object.keys(models)},id:string},['entity','id']),scope:'ixara-content:read',mutating:false,
  run:async args=>(prisma as any)[models[args.entity]].findUniqueOrThrow({where:{id:args.id},
