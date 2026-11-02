@@ -764,6 +764,7 @@ model BrandProfile {
   automationWorkflows AutomationWorkflow[]
   connectedAccounts   ConnectedAccount[]
   kitReferences BrandKitReference[]
+  characters BrandCharacter[]
 }
 
 model Asset {
@@ -817,6 +818,7 @@ model Asset {
   sourceRecords        AssetSourceRecord[]
   generatedMediaJobs   MediaGenerationJob[] @relation("GeneratedMediaAsset")
   brandKitReferences BrandKitReference[]
+  characterReferences BrandCharacter[]
 
   @@unique([source, externalId])
   @@index([source, syncedAt])
@@ -840,6 +842,25 @@ model BrandKitReference {
   asset Asset @relation(fields: [assetId], references: [id], onDelete: Restrict)
   @@unique([brandProfileId, assetId, role])
   @@index([brandProfileId, status])
+}
+
+// A provider-neutral character definition owned by a single brand kit.
+model BrandCharacter {
+  id String @id @default(cuid())
+  brandProfileId String
+  referenceAssetId String
+  name String
+  personality String
+  voiceDescription String?
+  provider String?
+  providerCharacterId String?
+  providerVoiceId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  brandProfile BrandProfile @relation(fields: [brandProfileId], references: [id], onDelete: Cascade)
+  referenceAsset Asset @relation(fields: [referenceAssetId], references: [id], onDelete: Restrict)
+  @@unique([brandProfileId, name])
+  @@index([brandProfileId])
 }
 
 model AssetSourceRecord {
