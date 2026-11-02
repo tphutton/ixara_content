@@ -190,5 +190,11 @@ export async function syncConnectedAccountNowAction(id: string) {
   revalidatePath("/dashboard");
   revalidatePath("/publishing");
   revalidatePath("/schedule");
-  redirect(syncError ? `/social-accounts?error=${encodeURIComponent(syncError)}` : "/social-accounts?success=account_synced");
+  const resultParams = new URLSearchParams({ syncAccount: id });
+  if (syncError) {
+    resultParams.set("error", syncError);
+  } else {
+    resultParams.set("success", "account_synced");
+  }
+  redirect(`/social-accounts?${resultParams.toString()}`);
 }
