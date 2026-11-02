@@ -1,3 +1,4 @@
+import { brandKitOperations } from './brand-kit-operations';
 import { linkImportedPublication } from "@/lib/social/publication-link";
 import { validateHistoryArgs, validateHistoryLink } from "@/lib/social/history-reconciliation";
 import {campaignOperations} from './campaigns';
@@ -15,7 +16,7 @@ const reads = new Set(['list_content','list_blogs','list_schedule_entries','get_
  'get_meta_publishing_readiness','list_automations','get_automation_health','list_content_plans','get_quality_summary','get_production_status']);
 const writes = new Set(['create_content','update_content','create_blog','update_blog','create_schedule_entry',
  'update_schedule_entry','upsert_brand_profile','create_content_plan','add_content_plan_item','promote_content_plan_item',
- 'update_video_brief','add_editorial_comment','resolve_editorial_comment']);
+ 'update_video_brief','add_editorial_comment','resolve_editorial_comment','queue_video_generation']);
 const models: Record<string,string> = {content:'content',blog:'blog',schedule:'contentSchedule',plan:'contentPlan',
  plan_item:'contentPlanItem',variant:'contentVariant',brand:'brandProfile',asset:'asset',video_brief:'videoBrief'};
 const targetModels: Record<string,string> = {content:'content',blog:'blog',schedule:'contentSchedule',content_plan:'contentPlan',
@@ -41,12 +42,14 @@ async function snapshot(name:string,args:any,tx:any) {
   const brand=args.brand??record?.brand;
   const profile=brand?await tx.brandProfile.findFirst({where:{brandName:{equals:brand,mode:'insensitive'}}}):null;
   const brands=name==='upsert_brand_profile'?await tx.brandProfile.findMany({orderBy:{id:'asc'}}):null;
-  const video=name==='update_video_brief'?await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId},include:{shots:true}}):null;
+  const video=['update_video_brief','queue_video_generation'].includes(name)?await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId},include:{shots:true,planItem:{include:{plan:true}}}}):null;
+  const reference=name==='queue_video_generation'?await tx.brandKitReference.findMany({where:{assetId:args.referenceAssetId},include:{asset:true,brandProfile:true},orderBy:{id:'asc'}}):null;
+  const jobs=name==='queue_video_generation'?await tx.mediaGenerationJob.findMany({where:{targetType:'video_shot',targetId:args.shotId},orderBy:{id:'asc'}}):null;
   const history = name === "update_schedule_entry" && (args.publishedPostId !== undefined || args.historyNote !== undefined) ? {
     posts: await tx.publishedPost.findMany({ where: { scheduleId: args.id }, orderBy: { id: "asc" } }),
     evidence: args.publishedPostId ? await tx.publishedPost.findUniqueOrThrow({ where: { id: args.publishedPostId }, include: { content: { select: { brand: true } }, blog: { select: { brand: true } }, connectedAccount: { select: { externalAccountId: true, brandName: true, brandProfile: { select: { brandName: true } } } } } }) : null,
   } : null;
-  return {record,profile,brands,video,history};
+  return {record,profile,brands,video,history,reference,jobs};
 }
 async function guard(name:string,args:any,tx:any) {
   if (name === "update_schedule_entry" && (args.publishedPostId !== undefined || args.historyNote !== undefined)) {
@@ -77,6 +80,7 @@ const operations:Operation[]=(contentOpsTools as any[]).flatMap(def=>{
    snapshot:mutating?(args:any,tx:any)=>snapshot(f.name,args,tx):undefined,
    run:async(args:any,access:any)=>executeContentOpsTool(f.name,{...args,...('limit' in (f.parameters.properties||{})?{limit:Math.min(Math.max(Number(args.limit)||30,1),f.name === "list_published_posts" ? 500 : 100)}:{})},{access})}];
 });
+operations.push(...brandKitOperations);
 operations.push({name:'get_record',description:'Read a complete Content record, blog, plan, variant, brand, asset or video brief.',
  inputSchema:objectSchema({entity:{type:'string',enum:Object.keys(models)},id:string},['entity','id']),scope:'ixara-content:read',mutating:false,
  run:async args=>(prisma as any)[models[args.entity]].findUniqueOrThrow({where:{id:args.id},

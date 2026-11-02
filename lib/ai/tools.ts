@@ -1,3 +1,5 @@
+import { brandKitOperations } from "@/lib/mcp/brand-kit-operations";
+import { validate as validateMcpInput } from "@/lib/mcp/engine";
 import { reconcilePublishedSchedule, scheduleHistoryTitle } from "@/lib/social/history-reconciliation";
 import { publishedPostBrand, hasEngagementRate, hasPerformanceMetrics } from "@/lib/social/reporting";
 import {
@@ -2381,6 +2383,8 @@ async function queueVideoGenerationTool(args: Record<string, unknown>, context: 
     provider: asOptionalString(args.provider) ?? undefined,
     shotId: asOptionalString(args.shotId) ?? undefined,
     guidance: asOptionalString(args.guidance),
+    referenceAssetId: asRequiredString(args.referenceAssetId, "referenceAssetId"),
+    maxCredits: Number(args.maxCredits),
   });
   return {
     toolName: "queue_video_generation",
@@ -2403,7 +2407,7 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
         { targetType: "video_shot", targetId: { in: item.videoBrief.shots.map((shot) => shot.id) } },
       ],
     },
-    select: { id: true, status: true, provider: true, targetType: true, targetId: true, error: true, externalTaskId: true },
+    select: { id: true, status: true, provider: true, targetType: true, targetId: true, error: true, externalTaskId: true, outputAssetId: true, costCents: true, input: true },
     orderBy: { updatedAt: "desc" },
   });
   const status = getUnifiedProductionStatus({
@@ -3347,8 +3351,10 @@ export const contentOpsTools: ToolDefinition[] = [
           provider: { type: "string", description: "Provider name, currently runway-ready by default." },
           shotId: { type: "string", description: "Optional approved shot id for single-shot generation." },
           guidance: { type: "string" },
+          referenceAssetId: { type: "string", description: "Approved brand kit image asset ID used as the first frame." },
+          maxCredits: { type: "number", description: "Maximum credits for this shot, at most 120." },
         },
-        required: ["planItemId"],
+        required: ["planItemId", "shotId", "referenceAssetId", "maxCredits"],
         additionalProperties: false,
       },
     },
@@ -3451,6 +3457,16 @@ export const contentOpsTools: ToolDefinition[] = [
     },
   },
 ];
+
+// Quill and ChatGPT use the same brand-kit operations and validation.
+for (const operation of brandKitOperations) {
+  contentOpsTools.push({ type: "function", function: { name: operation.name, description: operation.description, parameters: operation.inputSchema } });
+  toolHandlers[operation.name] = async (args, context) => {
+    validateMcpInput(operation.inputSchema, args);
+    const result = await operation.run(args, context.access);
+    return { toolName: operation.name, summary: operation.description, payload: result };
+  };
+}
 
 export async function executeContentOpsTool(
   name: string,

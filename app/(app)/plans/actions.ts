@@ -291,3 +291,26 @@ export async function promoteContentPlanItemAction(
   revalidatePath("/blogs");
   revalidatePath("/schedule");
 }
+
+export async function queueShotGenerationAction(planId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { queueVideoGeneration } = await import("@/lib/media/generation-jobs");
+  const access = await requireEditorialUserAccess();
+  const planItemId = String(formData.get("planItemId") ?? "");
+  const item = await prisma.contentPlanItem.findUniqueOrThrow({ where: { id: planItemId }, select: { planId: true } });
+  if (item.planId !== planId) throw new Error("The shot does not belong to this plan.");
+  await queueVideoGeneration({ accessId: access.id, planItemId, shotId: String(formData.get("shotId") ?? ""), referenceAssetId: String(formData.get("referenceAssetId") ?? ""), maxCredits: Number(formData.get("maxCredits")) });
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function processShotGenerationAction(planId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { runSingleMediaGenerationJob } = await import("@/lib/media/runner");
+  await requireEditorialUserAccess();
+  const job = await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: String(formData.get("jobId") ?? "") } });
+  const input = job.input as { planItemId?: string };
+  const item = input.planItemId ? await prisma.contentPlanItem.findUnique({ where: { id: input.planItemId }, select: { planId: true } }) : null;
+  if (item?.planId !== planId) throw new Error("Job does not belong to this plan.");
+  await runSingleMediaGenerationJob(job.id);
+  revalidatePath(`/plans/${planId}`);
+}

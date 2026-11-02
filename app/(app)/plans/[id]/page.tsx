@@ -12,6 +12,8 @@ import { prisma } from "@/lib/prisma";
 import { reviewPlanItemQualityAction } from "../../quality/actions";
 import {
   addContentPlanItemAction,
+  queueShotGenerationAction,
+  processShotGenerationAction,
   deleteContentPlanAction,
   deleteContentPlanItemAction,
   promoteContentPlanItemAction,
@@ -103,6 +105,10 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
   const addItem = addContentPlanItemAction.bind(null, plan.id);
   const editingItem = editingItemId ? plan.items.find((item) => item.id === editingItemId) : null;
   const viewingItem = viewingItemId ? plan.items.find((item) => item.id === viewingItemId) : null;
+  const itemBrand = viewingItem?.brand ?? plan.brand;
+  const kitReferences = viewingItem?.videoBrief && itemBrand ? await prisma.brandKitReference.findMany({ where: { status: "approved", brandProfile: { brandName: { equals: itemBrand, mode: "insensitive" } }, asset: { mimeType: { startsWith: "image/" } } }, include: { asset: true }, orderBy: { createdAt: "desc" } }) : [];
+  const shotIds = viewingItem?.videoBrief?.shots.map(shot => shot.id) ?? [];
+  const generationJobs = shotIds.length ? await prisma.mediaGenerationJob.findMany({ where: { targetType: "video_shot", targetId: { in: shotIds } }, include: { outputAsset: { select: { fileUrl: true, title: true } } }, orderBy: { createdAt: "desc" }, take: 30 }) : [];
   const updateItem = editingItem ? updateContentPlanItemAction.bind(null, plan.id, editingItem.id) : null;
   const brandProfileByName = new Map(
     brandProfiles.map((profile) => [profile.brandName.toLowerCase(), profile]),
@@ -265,6 +271,16 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
                   {viewingItem.videoBrief.script ? <div><p className="kicker">Script</p><p className="preserve-lines">{viewingItem.videoBrief.script}</p></div> : null}
                   {viewingItem.videoBrief.voiceover ? <div><p className="kicker">Voiceover</p><p className="preserve-lines">{viewingItem.videoBrief.voiceover}</p></div> : null}
                   <div className="table-shell"><table className="table"><thead><tr><th>#</th><th>Shot</th><th>Time</th><th>Prompt</th></tr></thead><tbody>{viewingItem.videoBrief.shots.map((shot) => <tr key={shot.id}><td>{shot.sortOrder + 1}</td><td><strong>{shot.title}</strong><div className="table-subtext">{shot.purpose ?? "No purpose"}</div></td><td>{shot.durationSeconds}s</td><td><span className="table-subtext preserve-lines">{shot.prompt}</span></td></tr>)}</tbody></table></div>
+                  {generationJobs.length ? <div className="stack"><strong>Generation jobs</strong>{generationJobs.map(job => <div key={job.id} className="quiet-panel"><strong>{viewingItem.videoBrief?.shots.find(shot => shot.id === job.targetId)?.title ?? "Shot"}</strong> · {job.status}{job.error ? <p>{job.error}</p> : null}{job.outputAsset ? <p><a href={job.outputAsset.fileUrl} target="_blank" rel="noreferrer">Open {job.outputAsset.title}</a></p> : null}{["queued", "submitted", "running", "awaiting_asset"].includes(job.status) && !(job.status === "submitted" && !job.externalTaskId) ? <form action={processShotGenerationAction.bind(null, plan.id)}><input type="hidden" name="jobId" value={job.id}/><button type="submit" className="button button--secondary">{job.status === "queued" ? "Start generation" : "Check progress"}</button></form> : null}</div>)}</div> : null}
+                  <div className="quiet-panel stack"><strong>Queue a shot with Runway Dev</strong><p className="muted">Choose an approved shot and a matching first-frame image. Gen-4.5 costs 12 credits per second; actual billing is determined by Runway. A Runway Dev key must be configured to start queued jobs.</p>
+                    <form action={queueShotGenerationAction.bind(null, plan.id)} className="stack">
+                      <input type="hidden" name="planItemId" value={viewingItem.id} />
+                      <label>Approved shot <select name="shotId" defaultValue="" required><option value="" disabled>Select a shot</option>{viewingItem.videoBrief.shots.filter(shot => shot.status === "approved" && shot.durationSeconds >= 2 && shot.durationSeconds <= 10).map(shot => <option key={shot.id} value={shot.id}>{shot.title} · {shot.durationSeconds}s · {shot.durationSeconds * 12} credits</option>)}</select></label>
+                      <label>First-frame image <select name="referenceAssetId" defaultValue="" required><option value="" disabled>Select an approved image</option>{kitReferences.map(ref => <option key={ref.id} value={ref.assetId}>{ref.asset.title} · {ref.role}</option>)}</select></label>
+                      <label>Maximum credits for this shot <input type="number" name="maxCredits" min="24" max="120" required /></label>
+                      <button type="submit" className="button button--secondary">Queue shot</button>
+                    </form>
+                  </div>
                 </section>
               ) : viewingItem.itemType === "video" ? <div className="plan-brief-gaps"><strong>Video brief missing:</strong> Generate a storyboard before requesting video assets.</div> : null}
               <div><p className="kicker">Next action</p><p className="quality-next-step">{nextBestAction(viewingItem, readiness.ready)}</p></div>

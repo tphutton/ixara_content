@@ -25,11 +25,14 @@ function runwayRatio(aspectRatio: string) {
   const ratios: Record<string, string> = {
     "9:16": "720:1280",
     "16:9": "1280:720",
-    "1:1": "1024:1024",
-    "4:5": "1024:1280",
-    "4:3": "1120:832",
+    "1:1": "960:960",
+    "4:3": "1104:832",
+    "3:4": "832:1104",
+    "21:9": "1584:672",
   };
-  return ratios[aspectRatio] ?? aspectRatio;
+  const ratio = ratios[aspectRatio] ?? aspectRatio;
+  if (!["1280:720", "720:1280", "960:960", "1104:832", "832:1104", "1584:672"].includes(ratio)) throw new Error("Unsupported Gen-4.5 aspect ratio.");
+  return ratio;
 }
 
 async function runwayRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -51,6 +54,11 @@ async function runwayRequest<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function startRunwayVideo(input: RunwayInput) {
+  if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 2 || input.durationSeconds > 10) {
+    throw new Error("Gen-4.5 supports 2–10 seconds per shot; split longer videos into shots.");
+  }
+  if (!input.prompt.trim() || input.prompt.length > 1000) throw new Error("Prompt must contain 1–1000 characters.");
+  if (!input.promptImage) throw new Error("A first-frame image is required for image-to-video generation.");
   return runwayRequest<RunwayTask>("/v1/image_to_video", {
     method: "POST",
     body: JSON.stringify({
@@ -58,7 +66,7 @@ export async function startRunwayVideo(input: RunwayInput) {
       promptText: input.prompt,
       promptImage: input.promptImage || undefined,
       ratio: runwayRatio(input.aspectRatio),
-      duration: Math.min(Math.max(Math.round(input.durationSeconds), 2), 10),
+      duration: input.durationSeconds,
     }),
   });
 }
