@@ -58,4 +58,11 @@ describe("getMetaPublishReadiness", () => {
       "A Meta delivery is already in progress and must be reconciled before retrying.",
     );
   });
+  it("blocks private media from being sent to Meta", () => {
+    const base = readySchedule() as unknown as { content: { primaryAsset: unknown } };
+    base.content.primaryAsset = { fileUrl: "/api/assets/abc/file", title: "Draft", mediaType: "video", mimeType: "video/mp4" };
+    const result = getMetaPublishReadiness(base as never, accounts);
+    expect(result.ready).toBe(false);
+    expect(result.reasons).toContain("Private media must be explicitly published to a public media host before Meta can access it.");
+  });
 });

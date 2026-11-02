@@ -181,6 +181,8 @@ export function getMetaPublishReadiness(schedule: ScheduleForPublish, accounts: 
       account.externalAccountId;
     if (!igBusinessId) reasons.push("Instagram account is missing the business account ID.");
   }
+  if (mediaUrl?.startsWith("/api/assets/")) reasons.push("Private media must be explicitly published to a public media host before Meta can access it.");
+  if ((schedule.content?.primaryAsset ?? schedule.blog?.featureAsset)?.mediaType === "audio") reasons.push("Audio-only files cannot be published as Meta image or video media.");
   if (!caption) reasons.push("No publishable caption/body copy is available.");
   if (platform === SocialPlatform.instagram && !mediaUrl) reasons.push("Instagram publishing requires an image or video URL.");
 
