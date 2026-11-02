@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+import { AccountSyncForm } from "@/components/social/account-sync-form";
 import { ConnectedAccountForm } from "@/components/social/connected-account-form";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { SummaryStats } from "@/components/ui/summary-stats";
@@ -21,6 +22,7 @@ type SocialAccountsPageProps = {
   searchParams?: Promise<{
     error?: string;
     success?: string;
+    syncAccount?: string;
     new?: string;
     edit?: string;
     view?: string;
@@ -58,6 +60,11 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
   const creatingAccount = resolvedSearchParams?.new === "1";
   const editingAccount = accounts.find((account) => account.id === resolvedSearchParams?.edit) ?? null;
   const viewingAccount = accounts.find((account) => account.id === resolvedSearchParams?.view) ?? null;
+
+  const syncedAccount = resolvedSearchParams?.success === "account_synced"
+    ? accounts.find((account) => account.id === resolvedSearchParams.syncAccount)
+    : null;
+  const syncHasWarnings = syncedAccount?.lastSyncStatus?.includes("insights unavailable") ?? false;
 
   return (
     <section className="page-shell">
@@ -98,8 +105,10 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
 
 
       {resolvedSearchParams?.success ? (
-        <div className="card card--padded">
-          <strong>Connection updated</strong>
+        <div className="card card--padded" role="status" aria-live="polite">
+          <strong>{resolvedSearchParams.success === "account_synced"
+            ? syncHasWarnings ? "Sync complete — some analytics unavailable" : "Sync complete"
+            : "Connection updated"}</strong>
           <p className="muted" style={{ margin: "8px 0 0" }}>
             {resolvedSearchParams.success === "meta_connected"
               ? "Meta account connected successfully. You can sync posts and analytics now."
@@ -110,19 +119,22 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
               : resolvedSearchParams.success === "account_updated"
                 ? "Account updated."
               : resolvedSearchParams.success === "account_synced"
-                ? "Account synced. Published posts and analytics are now refreshed."
+                ? syncedAccount
+                  ? `${syncedAccount.accountName}: ${syncedAccount.lastSyncStatus ?? "Posts refreshed."}`
+                  : "Sync completed. Check the account’s latest sync result below."
               : resolvedSearchParams.success === "account_disconnected"
                 ? "Account disconnected."
               : resolvedSearchParams.success === "account_deleted"
                 ? "Account deleted."
               : resolvedSearchParams.success}
           </p>
+          {syncHasWarnings ? <p className="muted" style={{ margin: "8px 0 0" }}>Your posts were imported successfully. Meta did not return some analytics; this does not mean the post sync failed.</p> : null}
         </div>
       ) : null}
 
       {resolvedSearchParams?.error ? (
-        <div className="card card--padded">
-          <strong>Connection issue</strong>
+        <div className="card card--padded" role="alert">
+          <strong>{resolvedSearchParams.syncAccount ? "Sync failed" : "Connection issue"}</strong>
           <p className="muted" style={{ margin: "8px 0 0" }}>
             {resolvedSearchParams.error}
           </p>
@@ -188,9 +200,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
                       </Link>
                     ) : null}
                     {canUseMetaFlow && account.encryptedAccessToken && !needsReconnect ? (
-                      <form action={syncAction}>
-                        <button className="button button--primary" type="submit">{account.status === "error" ? "Retry sync" : "Sync posts"}</button>
-                      </form>
+                      <AccountSyncForm action={syncAction} accountName={account.accountName} retry={account.status === "error"} />
                     ) : null}
                     {canUseMetaFlow && account.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${account.id}`}>Change connected account</Link> : null}
                     <Link className="button button--secondary" href={`/social-accounts?view=${account.id}`}>
@@ -225,7 +235,7 @@ export default async function SocialAccountsPage({ searchParams }: SocialAccount
             <div className="editor-overlay__footer form-actions">
               <Link className="button button--primary" href={`/social-accounts?edit=${viewingAccount.id}`}>Edit account</Link>
               {canUseMetaFlow && !viewingAccount.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Connect Meta</Link> : null}
-              {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <form action={syncAction}><button className="button button--secondary" type="submit">{viewingAccount.status === "error" ? "Retry sync" : "Sync posts"}</button></form> : null}
+              {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <AccountSyncForm action={syncAction} accountName={viewingAccount.accountName} retry={viewingAccount.status === "error"} variant="secondary" /> : null}
               {canUseMetaFlow && viewingAccount.encryptedAccessToken && needsReconnect ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Reconnect Meta</Link> : null}
               {canUseOAuthFlow && (!viewingAccount.encryptedAccessToken || needsReconnect) ? <Link className="button button--secondary" href={`/api/social/${viewingAccount.platform}/start?accountId=${viewingAccount.id}`}>{viewingAccount.encryptedAccessToken ? "Reconnect" : "Authorize"} {viewingAccount.platform === "x" ? "X" : "TikTok"}</Link> : null}
               {canUseMetaFlow && viewingAccount.encryptedAccessToken ? <Link className="button button--secondary" href={`/api/social/meta/start?accountId=${viewingAccount.id}`}>Change connected account</Link> : null}
