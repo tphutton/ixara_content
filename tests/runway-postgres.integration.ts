@@ -78,6 +78,18 @@ async function main() {
   await call({ action: "apply", change_set_id: startPreview.id });
   await call({ action: "apply", change_set_id: startPreview.id });
   assert.equal(((await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: queuedForStart.id } })).input as any).startRequested, true);
+  const originalFetch = globalThis.fetch;
+  const runwayAvatarId = "1513d91b-b1fc-481d-acd9-9813ee6e38a9";
+  globalThis.fetch = async () => new Response(JSON.stringify({ id: runwayAvatarId, name: "Kit", status: "READY", updatedAt: "2026-01-01T00:00:00Z", voice: { type: "custom", id: "314c172c-0e68-45a1-a27a-464f74aed02d", name: "Kit Does Sports", deleted: false } }), { status: 200, headers: { "content-type": "application/json" } });
+  try {
+    const linkPreview: any = await call({ action: "preview", tool: "link_existing_runway_character", request_key: "runway-link-character-test", args: { characterId: characterApplied.result.id, avatarId: runwayAvatarId } });
+    assert.equal((await prisma.brandCharacter.findUniqueOrThrow({ where: { id: characterApplied.result.id } })).providerCharacterId, null, "link preview must not write");
+    const linked: any = await call({ action: "apply", change_set_id: linkPreview.id });
+    assert.equal(linked.result.avatarId, runwayAvatarId);
+    assert.equal(linked.result.voiceType, "custom");
+    await call({ action: "apply", change_set_id: linkPreview.id });
+    assert.equal(await prisma.contentActionLog.count({ where: { targetType: "brand_character", targetId: characterApplied.result.id, summary: "Linked existing verified Runway character" } }), 1);
+  } finally { globalThis.fetch = originalFetch; }
   await prisma.$disconnect();
   console.log("Runway PostgreSQL integration: concurrent budget, preview rollback and idempotent apply PASS");
 }
