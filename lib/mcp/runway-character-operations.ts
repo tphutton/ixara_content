@@ -2,11 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { privateObjectKey } from "@/lib/media/private-storage";
 import type { Operation } from "./engine";
 
-const voices = ["victoria", "vincent", "clara", "drew", "skye", "max", "morgan", "felix", "mia", "marcus", "summer", "ruby", "aurora", "jasper", "leo", "adrian", "nina", "emma", "blake", "david", "maya", "nathan", "sam", "georgia", "petra", "adam", "zach", "violet", "roman", "luna"];
+export const runwayVoicePresets = ["victoria", "vincent", "clara", "drew", "skye", "max", "morgan", "felix", "mia", "marcus", "summer", "ruby", "aurora", "jasper", "leo", "adrian", "nina", "emma", "blake", "david", "maya", "nathan", "sam", "georgia", "petra", "adam", "zach", "violet", "roman", "luna"];
 const active = ["queued", "submitted", "running"] as const;
 export const runwayCharacterOperations: Operation[] = [{
   name: "queue_runway_character", description: "Prepare a Runway avatar creation for a saved brand character, with a selected preset voice. Does not contact Runway; starting is a separate action.", scope: "ixara-content:write", mutating: true,
-  inputSchema: { type: "object", properties: { characterId: { type: "string" }, voicePreset: { type: "string", enum: voices } }, required: ["characterId", "voicePreset"], additionalProperties: false },
+  inputSchema: { type: "object", properties: { characterId: { type: "string" }, voicePreset: { type: "string", enum: runwayVoicePresets } }, required: ["characterId", "voicePreset"], additionalProperties: false },
   snapshot: async (args, tx) => {
     const character = await tx.brandCharacter.findUniqueOrThrow({ where: { id: args.characterId } });
     return { character, references: await tx.brandKitReference.findMany({ where: { brandProfileId: character.brandProfileId, assetId: character.referenceAssetId }, include: { asset: true }, orderBy: { id: "asc" } }), jobs: await tx.mediaGenerationJob.findMany({ where: { provider: "runway", targetType: "brand_character", targetId: character.id }, orderBy: { id: "asc" } }) };
@@ -21,7 +21,7 @@ export const runwayCharacterOperations: Operation[] = [{
     const existing = await tx.mediaGenerationJob.findFirst({ where: { provider: "runway", targetType: "brand_character", targetId: character.id, status: { in: [...active] } } });
     if (existing) throw new Error("A character creation is already in progress; inspect that job instead.");
     const job = await tx.mediaGenerationJob.create({ data: { provider: "runway", targetType: "brand_character", targetId: character.id, createdById: actor.id, input: { characterUpdatedAt: character.updatedAt.toISOString(), referenceAssetId: character.referenceAssetId, brandKitReferenceId: reference.id, voicePreset: args.voicePreset } } });
-    await tx.contentActionLog.create({ data: { userId: actor.id, actionType: "create", targetType: "media_generation_job", targetId: job.id, summary: "Prepared Runway character creation", afterData: JSON.parse(JSON.stringify(job)), source: "ai" } });
+    await tx.contentActionLog.create({ data: { userId: actor.id, actionType: "create", targetType: "media_generation_job", targetId: job.id, summary: "Prepared Runway character creation", afterData: JSON.parse(JSON.stringify(job)), source: actor.source === "manual" ? "manual" : "ai" } });
     return { id: job.id, status: job.status, note: "No Runway call was made. Avatar creation pricing should be verified before starting." };
   }),
 }, {

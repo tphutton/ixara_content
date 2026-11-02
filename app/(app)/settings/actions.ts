@@ -179,3 +179,35 @@ export async function updateBrandCharacterAction(id: string, formData: FormData)
     voiceDescription: String(formData.get("voiceDescription") ?? ""),
   });
 }
+
+
+async function applyRunwayCharacterOperation(name: string, args: Record<string, string>) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { runwayCharacterOperations } = await import("@/lib/mcp/runway-character-operations");
+  const { runwayStartOperations } = await import("@/lib/mcp/runway-start-operation");
+  const { mediaRecoveryOperations } = await import("@/lib/mcp/media-recovery-operations");
+  const { validate } = await import("@/lib/mcp/engine");
+  const { withMcpTransaction } = await import("@/lib/mcp/transaction");
+  const access = await requireEditorialUserAccess();
+  const operation = [...runwayCharacterOperations, ...runwayStartOperations, ...mediaRecoveryOperations].find(item => item.name === name && item.mutating);
+  if (!operation) throw new Error("Runway character action unavailable.");
+  validate(operation.inputSchema, args);
+  await prisma.$transaction(tx => withMcpTransaction(tx, async () => {
+    if (args.jobId) await tx.mediaGenerationJob.findFirstOrThrow({ where: { id: args.jobId, provider: "runway", targetType: "brand_character" } });
+    if (operation.guard) await operation.guard(args, tx);
+    await operation.run(args, { ...access, source: "manual" });
+  }), { isolationLevel: "Serializable" });
+  revalidatePath("/brands");
+}
+
+export async function queueRunwayCharacterAction(characterId: string, formData: FormData) {
+  await applyRunwayCharacterOperation("queue_runway_character", { characterId, voicePreset: String(formData.get("voicePreset") ?? "") });
+}
+
+export async function startRunwayCharacterAction(jobId: string) {
+  await applyRunwayCharacterOperation("request_start_queued_runway_job", { jobId });
+}
+
+export async function cancelRunwayCharacterAction(jobId: string) {
+  await applyRunwayCharacterOperation("cancel_queued_runway_job", { jobId });
+}
