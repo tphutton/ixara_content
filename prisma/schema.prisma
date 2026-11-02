@@ -762,6 +762,7 @@ model BrandProfile {
 
   automationWorkflows AutomationWorkflow[]
   connectedAccounts   ConnectedAccount[]
+  kitReferences BrandKitReference[]
 }
 
 model Asset {
@@ -814,6 +815,7 @@ model Asset {
   campaignLinks        CampaignAsset[]
   sourceRecords        AssetSourceRecord[]
   generatedMediaJobs   MediaGenerationJob[] @relation("GeneratedMediaAsset")
+  brandKitReferences BrandKitReference[]
 
   @@unique([source, externalId])
   @@index([source, syncedAt])
@@ -821,6 +823,22 @@ model Asset {
   @@index([category, itemType, imageType])
   @@index([wordpressAttachmentId])
   @@index([featured])
+}
+
+// References are curated separately from episode-specific shot assets.
+model BrandKitReference {
+  id String @id @default(cuid())
+  brandProfileId String
+  assetId String
+  role String
+  notes String?
+  status String @default("draft")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  brandProfile BrandProfile @relation(fields: [brandProfileId], references: [id], onDelete: Cascade)
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  @@unique([brandProfileId, assetId, role])
+  @@index([brandProfileId, status])
 }
 
 model AssetSourceRecord {

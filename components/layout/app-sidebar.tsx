@@ -57,7 +57,7 @@ const navGroups = [
   {
     label: "Intelligence",
     items: [
-      { href: "/brands", label: "Brands", icon: BadgeCheck },
+      { href: "/brands", label: "Brand Kits", icon: BadgeCheck },
       { href: "/quality", label: "Quality", icon: Gauge },
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/social-accounts", label: "Social", icon: ShieldCheck },

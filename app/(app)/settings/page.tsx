@@ -15,13 +15,13 @@ export default async function SettingsPage() {
         <div className="section-heading">
           <div>
             <p className="kicker">Brand intelligence</p>
-            <h3>Brand profiles now live in Brands</h3>
+            <h3>Brand profiles now live in Brand Kits</h3>
             <p className="muted">
-              Manage the AI memory for tone, audience, offers, channels, and publishing rules from the dedicated Brands workspace.
+              Manage the AI memory for tone, audience, offers, channels, and publishing rules from the dedicated Brand Kits workspace.
             </p>
           </div>
           <Link className="button button--primary" href="/brands">
-            Open Brands
+            Open Brand Kits
           </Link>
         </div>
       </section>

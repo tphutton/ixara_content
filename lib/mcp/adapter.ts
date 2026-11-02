@@ -80,7 +80,7 @@ const operations:Operation[]=(contentOpsTools as any[]).flatMap(def=>{
 operations.push({name:'get_record',description:'Read a complete Content record, blog, plan, variant, brand, asset or video brief.',
  inputSchema:objectSchema({entity:{type:'string',enum:Object.keys(models)},id:string},['entity','id']),scope:'ixara-content:read',mutating:false,
  run:async args=>(prisma as any)[models[args.entity]].findUniqueOrThrow({where:{id:args.id},
- ...(args.entity==='plan'?{include:{items:true}}:args.entity==='video_brief'?{include:{shots:true}}:{})})});
+ ...(args.entity==='plan'?{include:{items:true}}:args.entity==='video_brief'?{include:{shots:true}}:args.entity==='brand'?{include:{kitReferences:{include:{asset:{select:{id:true,title:true,fileUrl:true,mimeType:true}}}}}}:{})})});
 const targetSchema=objectSchema({type:{type:'string',enum:Object.keys(targetModels)},id:string,comment:string},['type','id']);
 operations.push({name:'get_editorial_activity',description:'Read editorial comments, versions and approvals.',
  inputSchema:targetSchema,scope:'ixara-content:read',mutating:false,

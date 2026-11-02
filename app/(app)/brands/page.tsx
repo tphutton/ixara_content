@@ -5,6 +5,9 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { getBrandProfileReadiness } from "@/lib/brand-profiles/intelligence";
 import { prisma } from "@/lib/prisma";
 import {
+  addBrandKitReferenceAction,
+  removeBrandKitReferenceAction,
+  updateBrandKitReferenceAction,
   createBrandProfileAction,
   deleteBrandProfileAction,
   updateBrandProfileAction,
@@ -26,7 +29,9 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
   const isCreating = resolvedSearchParams?.new === "1";
   const profiles = await prisma.brandProfile.findMany({
     orderBy: { brandName: "asc" },
+    include: { kitReferences: { include: { asset: true }, orderBy: { createdAt: "desc" } } },
   });
+  const availableAssets = resolvedSearchParams?.view ? await prisma.asset.findMany({ where: { OR: [{ source: "manual" }, { brand: profiles.find(p => p.id === resolvedSearchParams.view)?.brandName ?? "" }] }, orderBy: { createdAt: "desc" }, take: 200, select: { id: true, title: true } }) : [];
   const editingProfile = resolvedSearchParams?.edit
     ? profiles.find((profile) => profile.id === resolvedSearchParams.edit) ?? null
     : null;
@@ -49,17 +54,17 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
   return (
     <section className="page-shell">
       <WorkspaceHeader
-        title="Brands"
-        description="Manage the brand intelligence Quill and Atlas use for tone, audience, offers, channels, and publishing constraints."
+        title="Brand Kits"
+        description="Manage editorial guidance and approved creative references for each brand."
         actions={
           <Link className="button button--primary" href="/brands?new=1">
-            New brand profile
+            New brand kit
           </Link>
         }
       />
 
       <div className="summary-strip">
-        <div className="summary-tile"><p className="summary-tile__label">Profiles</p><strong>{profiles.length}</strong></div>
+        <div className="summary-tile"><p className="summary-tile__label">Brand kits</p><strong>{profiles.length}</strong></div>
         <div className="summary-tile"><p className="summary-tile__label">AI-ready</p><strong>{readinessRows.filter(({ readiness }) => readiness.score >= 80).length}</strong></div>
         <div className="summary-tile"><p className="summary-tile__label">Needs work</p><strong>{readinessRows.filter(({ readiness }) => readiness.score < 80).length}</strong></div>
         <div className="summary-tile"><p className="summary-tile__label">Average readiness</p><strong>{profiles.length ? Math.round(readinessRows.reduce((total, row) => total + row.readiness.score, 0) / profiles.length) : 0}%</strong></div>
@@ -67,9 +72,9 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
 
       {profiles.length === 0 ? (
           <div className="card card--padded empty-state">
-            <h3>No brand profiles yet</h3>
+            <h3>No brand kits yet</h3>
             <p className="muted">
-              Add your first brand profile to give the team and assistant a shared editorial rule
+              Add your first brand kit to give the team and assistant a shared editorial rule
               set.
             </p>
           </div>
@@ -103,15 +108,36 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
         return <div className="editor-overlay editor-overlay--dialog">
           <div className="editor-overlay__backdrop"><Link aria-label="Close brand details" href="/brands" /></div>
           <section className="editor-overlay__panel brand-detail-panel">
-            <div className="editor-overlay__header"><div><p className="kicker">Brand profile</p><h3>{viewingProfile.brandName}</h3><div className="toolbar__group"><StatusBadge label={readiness.status} /><span className="inline-chip">{readiness.score}% AI-ready</span></div></div><Link className="button button--secondary" href="/brands">Close</Link></div>
+            <div className="editor-overlay__header"><div><p className="kicker">Brand kit</p><h3>{viewingProfile.brandName}</h3><div className="toolbar__group"><StatusBadge label={readiness.status} /><span className="inline-chip">{readiness.score}% AI-ready</span></div></div><Link className="button button--secondary" href="/brands">Close</Link></div>
             <div className="editor-overlay__content stack">
               <div><p className="kicker">Positioning</p><p>{viewingProfile.description ?? "No description added."}</p><p className="muted">{viewingProfile.positioning ?? "No positioning guidance added."}</p></div>
               <div className="metadata-grid"><div><span>Tone</span><strong>{viewingProfile.defaultTone ?? "Not set"}</strong></div><div><span>Audience</span><strong>{viewingProfile.targetAudience ?? "Not set"}</strong></div><div><span>Markets</span><strong>{listSummary([...viewingProfile.regions, ...viewingProfile.countries])}</strong></div><div><span>Sports</span><strong>{listSummary(viewingProfile.sports)}</strong></div></div>
+              <div><p className="kicker">Visual direction</p><p>{viewingProfile.visualGuidelines ?? "No visual guidelines added."}</p></div>
+              <div className="stack"><div><p className="kicker">Creative references</p><p className="muted">Keep reusable character, prop, style, logo and sound references here. Upload media in Assets first; episode-specific material belongs with the episode. Draft and retired references are not approved for reuse.</p></div>
+                {viewingProfile.kitReferences.length ? viewingProfile.kitReferences.map(ref => <div className="quiet-panel" key={ref.id}>
+                  <strong>{ref.asset.title}</strong> <span className="inline-chip">{ref.role} · {ref.status}</span>
+                  <form action={updateBrandKitReferenceAction.bind(null, ref.id)} className="stack">
+                    <label>Status <select name="status" defaultValue={ref.status}><option value="draft">Draft</option><option value="approved">Approved</option><option value="retired">Retired</option></select></label>
+                    <label>Usage notes <textarea name="notes" defaultValue={ref.notes ?? ""} rows={2} /></label>
+                    <button className="button button--secondary" type="submit">Save reference</button>
+                  </form>
+                  <p><a href={ref.asset.fileUrl} target="_blank" rel="noreferrer">Open asset</a></p>
+                  <form action={removeBrandKitReferenceAction.bind(null, ref.id)}><button className="button button--secondary" type="submit">Remove from kit</button></form>
+                </div>) : <p className="muted">No references added yet.</p>}
+                <form action={addBrandKitReferenceAction.bind(null, viewingProfile.id)} className="stack quiet-panel">
+                  <strong>Add reference</strong>
+                  <label>Asset <select name="assetId" required defaultValue=""><option value="" disabled>Select a recent uploaded or brand asset</option>{availableAssets.map(asset => <option key={asset.id} value={asset.id}>{asset.title}</option>)}</select></label>
+                  <label>Role <select name="role" defaultValue="character"><option value="character">Character</option><option value="prop">Prop</option><option value="style">Style</option><option value="logo">Logo</option><option value="voice">Voice</option><option value="music">Music / sound</option><option value="other">Other</option></select></label>
+                  <label>Status <select name="status" defaultValue="draft"><option value="draft">Draft</option><option value="approved">Approved</option><option value="retired">Retired</option></select></label>
+                  <label>Usage notes <textarea name="notes" rows={2} placeholder="How and when should this reference be used?" /></label>
+                  <button className="button button--secondary" type="submit">Add to kit</button>
+                </form>
+              </div>
               <div><p className="kicker">Content intelligence</p><div className="quiet-meta">{viewingProfile.contentPillars.map((item) => <span key={item}>{item}</span>)}{viewingProfile.contentPillars.length === 0 ? <span>No pillars</span> : null}</div></div>
               <div><p className="kicker">Offers & proof</p><p><strong>Offers:</strong> {listSummary(viewingProfile.keyOffers)}</p><p><strong>Proof:</strong> {listSummary(viewingProfile.proofPoints)}</p><p><strong>Preferred CTAs:</strong> {listSummary(viewingProfile.preferredCTAs)}</p></div>
               {readiness.missing.length ? <div><p className="kicker">AI context gaps</p><div className="quiet-meta">{readiness.missing.map((item) => <span key={item.key}>{item.label}</span>)}</div></div> : null}
             </div>
-            <div className="editor-overlay__footer form-actions"><Link className="button button--primary" href={`/brands?edit=${viewingProfile.id}`}>Edit brand profile</Link></div>
+            <div className="editor-overlay__footer form-actions"><Link className="button button--primary" href={`/brands?edit=${viewingProfile.id}`}>Edit brand kit</Link></div>
           </section>
         </div>;
       })() : null}
@@ -125,7 +151,7 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
             <div className="editor-overlay__header">
               <div>
                 <p className="kicker">Brand intelligence</p>
-                <h3>Create brand profile</h3>
+                <h3>Create brand kit</h3>
                 <p className="muted">Add the core operating context Quill and Atlas need for brand-safe work.</p>
               </div>
               <Link className="button button--secondary" href="/brands">
@@ -136,7 +162,7 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
               <BrandProfileForm
                 action={createBrandProfileAction}
                 pendingLabel="Creating profile..."
-                submitLabel="Create brand profile"
+                submitLabel="Create brand kit"
               />
             </div>
           </div>
@@ -164,7 +190,7 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
                 action={updateBrandProfileAction.bind(null, editingProfile.id)}
                 pendingLabel="Saving profile..."
                 profile={editingProfile}
-                submitLabel="Save brand profile"
+                submitLabel="Save brand kit"
               />
             </div>
           </div>

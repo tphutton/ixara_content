@@ -108,3 +108,38 @@ export async function deleteBrandProfileAction(id: string) {
   revalidatePath("/settings");
   revalidatePath("/brands");
 }
+
+export async function addBrandKitReferenceAction(brandProfileId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const access = await requireEditorialUserAccess();
+  const assetId = String(formData.get("assetId") ?? "").trim();
+  const role = String(formData.get("role") ?? "").trim();
+  const status = String(formData.get("status") ?? "draft");
+  const notes = parseOptionalString(formData.get("notes"));
+  const roles = ["character", "prop", "style", "logo", "voice", "music", "other"];
+  if (!assetId || !roles.includes(role) || !["draft", "approved", "retired"].includes(status)) throw new Error("Choose a valid asset, role and status.");
+  await prisma.brandProfile.findUniqueOrThrow({ where: { id: brandProfileId } });
+  await prisma.asset.findUniqueOrThrow({ where: { id: assetId } });
+  const reference = await prisma.brandKitReference.create({ data: { brandProfileId, assetId, role, status, notes } });
+  await createActionLog({ userId: access.id, actionType: "create", targetType: "brand_kit_reference", targetId: reference.id, summary: "Added brand kit reference", afterData: reference, source: "manual" });
+  revalidatePath("/brands");
+}
+
+export async function removeBrandKitReferenceAction(id: string) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const access = await requireEditorialUserAccess();
+  const before = await prisma.brandKitReference.delete({ where: { id } });
+  await createActionLog({ userId: access.id, actionType: "delete", targetType: "brand_kit_reference", targetId: id, summary: "Removed brand kit reference (asset retained)", beforeData: before, source: "manual" });
+  revalidatePath("/brands");
+}
+
+export async function updateBrandKitReferenceAction(id: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const access = await requireEditorialUserAccess();
+  const status = String(formData.get("status") ?? "");
+  if (!["draft", "approved", "retired"].includes(status)) throw new Error("Invalid reference status.");
+  const before = await prisma.brandKitReference.findUniqueOrThrow({ where: { id } });
+  const after = await prisma.brandKitReference.update({ where: { id }, data: { status, notes: parseOptionalString(formData.get("notes")) } });
+  await createActionLog({ userId: access.id, actionType: "update", targetType: "brand_kit_reference", targetId: id, summary: "Updated brand kit reference", beforeData: before, afterData: after, source: "manual" });
+  revalidatePath("/brands");
+}
