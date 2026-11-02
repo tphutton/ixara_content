@@ -39,6 +39,7 @@ export const brandCharacterOperations: Operation[] = [{
   guard: async (args, tx) => {
     const character = await tx.brandCharacter.findUniqueOrThrow({ where: { id: args.id } });
     if (character.providerCharacterId) throw new McpError(409, "Linked provider characters require a synchronised update; this operation is not available yet.");
+    if (await tx.mediaGenerationJob.findFirst({ where: { provider: "runway", targetType: "brand_character", targetId: character.id, status: { in: ["queued", "submitted", "running"] } } })) throw new McpError(409, "Cancel or complete the active character job before editing.");
     if (["referenceAssetId", "name", "personality", "voiceDescription"].every(key => args[key] === undefined)) throw new McpError(400, "Provide a change.");
     await validateCharacter({ ...character, ...args }, tx);
   },
