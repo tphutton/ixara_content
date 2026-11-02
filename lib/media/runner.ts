@@ -6,6 +6,8 @@ import { getRunwayTask, startRunwayVideo } from "@/lib/media/providers/runway";
 
 type JobInput = {
   prompt?: string;
+  shotId?: string;
+  shotUpdatedAt?: string;
   model?: "gen4.5" | "seedance2_mini";
   referenceAssetIds?: string[];
   brandKitReferenceIds?: string[];
@@ -66,9 +68,12 @@ async function processRunwayJob(job: { id: string; status: MediaGenerationStatus
     const referenceImages = await Promise.all(assetIds.map((assetId, i) => loadApprovedBrandImage(referenceIds[i], assetId)));
     // Claim before the chargeable request. A crash or timeout after this point is
     // ambiguous: leave it for manual reconciliation, never auto-submit again.
-    const claim = await prisma.mediaGenerationJob.updateMany({
-      where: { id: job.id, status: MediaGenerationStatus.queued },
-      data: { status: MediaGenerationStatus.submitted, submittedAt: new Date(), attempts: { increment: 1 }, error: "Submission in progress; do not retry automatically." },
+    if (!input.shotId || input.shotId !== job.targetId || job.targetType !== "video_shot" || !input.shotUpdatedAt) throw new Error("Job is missing its reviewed shot version.");
+    const claim = await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT "id" FROM "VideoShot" WHERE "id" = ${input.shotId} FOR SHARE`;
+      const shot = await tx.videoShot.findUniqueOrThrow({ where: { id: input.shotId } });
+      if (shot.status !== "approved" || shot.updatedAt.toISOString() !== input.shotUpdatedAt) throw new Error("Shot approval or content changed after queueing; create a new reviewed job.");
+      return tx.mediaGenerationJob.updateMany({ where: { id: job.id, status: MediaGenerationStatus.queued }, data: { status: MediaGenerationStatus.submitted, submittedAt: new Date(), attempts: { increment: 1 }, error: "Submission in progress; do not retry automatically." } });
     });
     if (!claim.count) return prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: job.id } });
     const task = await startRunwayVideo({
@@ -109,6 +114,7 @@ async function processRunwayJob(job: { id: string; status: MediaGenerationStatus
 export async function runSingleMediaGenerationJob(id: string) {
   const job = await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id } });
   if (job.provider !== "runway") throw new Error("Unsupported provider.");
+  if (!process.env.RUNWAYML_API_SECRET) throw new Error("Runway Dev API key is not configured; the job remains unchanged.");
   if (job.status === MediaGenerationStatus.submitted && !job.externalTaskId) throw new Error("Submission outcome unknown. Check Runway before attempting another generation.");
   try { return await processRunwayJob(job); }
   catch (error) {
@@ -121,6 +127,7 @@ export async function runSingleMediaGenerationJob(id: string) {
 }
 
 export async function runDueMediaGenerationJobs(limit = 5) {
+  if (!process.env.RUNWAYML_API_SECRET) return { processed: 0, results: [], reason: "Runway Dev API key is not configured." };
   const jobs = await prisma.mediaGenerationJob.findMany({
     where: { provider: "runway", OR: [{ status: MediaGenerationStatus.queued }, { status: { in: [MediaGenerationStatus.submitted, MediaGenerationStatus.running] }, externalTaskId: { not: null } }, { status: MediaGenerationStatus.awaiting_asset, outputUrl: { not: null } }] },
     orderBy: { updatedAt: "asc" },

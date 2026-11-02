@@ -1,3 +1,4 @@
+import { videoApprovalOperations } from "@/lib/mcp/video-approval-operations";
 import { mediaRecoveryOperations } from "@/lib/mcp/media-recovery-operations";
 import { setPlanMediaBudget } from "@/lib/media/credit-budget";
 import { brandKitOperations } from "@/lib/mcp/brand-kit-operations";
@@ -3362,7 +3363,7 @@ export const contentOpsTools: ToolDefinition[] = [
           referenceAssetId: { type: "string", description: "Approved same-brand image: first frame with Gen-4.5 or image reference with Seedance Mini." },
           additionalReferenceAssetIds: { type: "array", items: { type: "string" }, maxItems: 3, description: "Additional approved same-brand images; Seedance Mini only." },
           model: { type: "string", enum: ["gen4.5", "seedance2_mini"], description: "Gen-4.5 animates a single first frame; Seedance Mini uses up to four image references at 720p." },
-          maxCredits: { type: "number", description: "Maximum credits for this shot, at most 225." },
+          maxCredits: { type: "number", description: "Maximum estimated credits for this shot, at most 225; not a provider-enforced billing cap." },
         },
         required: ["planItemId", "shotId", "referenceAssetId", "maxCredits"],
         additionalProperties: false,
@@ -3471,7 +3472,7 @@ export const contentOpsTools: ToolDefinition[] = [
 contentOpsTools.push({ type: "function", function: { name: "set_plan_media_budget", description: "Set the total Runway credit reservation limit for one plan. Changing the budget never starts generation.", parameters: { type: "object", properties: { planId: { type: "string" }, creditBudget: { type: "integer" } }, required: ["planId", "creditBudget"], additionalProperties: false } } });
 
 // Quill and ChatGPT use the same brand-kit operations and validation.
-for (const operation of [...brandKitOperations, ...mediaRecoveryOperations]) {
+for (const operation of [...brandKitOperations, ...mediaRecoveryOperations, ...videoApprovalOperations]) {
   contentOpsTools.push({ type: "function", function: { name: operation.name, description: operation.description, parameters: operation.inputSchema } });
   toolHandlers[operation.name] = async (args, context) => {
     validateMcpInput(operation.inputSchema, args);

@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const { state, db } = vi.hoisted(() => {
-  const state = { status: "approved", referenceStatus: "approved", duration: 5, created: 0, budget: 100, reserved: 0 };
+  const state = { status: "approved", referenceStatus: "approved", duration: 5, created: 0, budget: 100, reserved: 0, shotUpdatedAt: new Date("2026-01-01") };
   const db = {
-    videoBrief: { findUniqueOrThrow: vi.fn(async () => ({ id: "brief", aspectRatio: "9:16", targetPlatforms: [], planItem: { title: "Pilot", brand: "Kit", plan: { id: "plan1", brand: "Kit" } }, shots: [{ id: "shot", status: state.status, durationSeconds: state.duration, prompt: "Watch ticking" }] })) },
+    videoBrief: { findUniqueOrThrow: vi.fn(async () => ({ id: "brief", aspectRatio: "9:16", targetPlatforms: [], planItem: { title: "Pilot", brand: "Kit", plan: { id: "plan1", brand: "Kit" } }, shots: [{ id: "shot", status: state.status, durationSeconds: state.duration, prompt: "Watch ticking", updatedAt: state.shotUpdatedAt }] })) },
     brandKitReference: { findFirst: vi.fn(async () => state.referenceStatus === "approved" ? ({ id: "ref", assetId: "asset", asset: { mimeType: "image/png", fileSize: 100, metadata: { storage: "private-s3", objectKey: "uploads/example.png" } }, brandProfile: { visualGuidelines: "Bright" } }) : null) },
+    videoShot: { findUniqueOrThrow: vi.fn(async () => ({ status: state.status, updatedAt: state.shotUpdatedAt })) },
     contentPlan: { findUniqueOrThrow: vi.fn(async () => ({ mediaCreditBudget: state.budget })) },
     mediaGenerationJob: { findMany: vi.fn(async () => state.reserved ? [{ input: { estimatedCredits: state.reserved } }] : []), findFirst: vi.fn(async () => null), create: vi.fn(async ({ data }: { data: object }) => { state.created++; return { id: "job", ...data }; }) },
     contentActionLog: { create: vi.fn(async () => ({})) },

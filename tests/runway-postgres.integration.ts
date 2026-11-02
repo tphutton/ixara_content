@@ -5,6 +5,8 @@ async function main() {
   const { prisma } = await import("../lib/prisma");
   const { queueVideoGeneration } = await import("../lib/media/generation-jobs");
   const { handleMcp } = await import("../lib/mcp/adapter");
+  const { cancelQueuedRunwayJob } = await import("../lib/media/recovery");
+  const { updateVideoBrief } = await import("../lib/planner/video-brief-editor");
   const user = await prisma.userAccess.create({ data: { clerkUserId: "test-runway-budget", email: "runway-budget@example.invalid", role: "editor", approvalStatus: "approved" } });
   const brand = await prisma.brandProfile.create({ data: { brandName: "Runway integration brand", preferredWebsites: [], sports: [], regions: [], countries: [], bannedPhrases: [], preferredCTAs: [] } });
   const asset = await prisma.asset.create({ data: { source: "manual", title: "reference", fileUrl: "/test-runway-reference.png", mimeType: "image/png", tags: [], metadata: { storage: "private-s3", objectKey: "uploads/example.png" } } });
@@ -17,6 +19,10 @@ async function main() {
   const results = await Promise.allSettled([queueVideoGeneration(make(shots[0].id)), queueVideoGeneration(make(shots[1].id))]);
   assert.equal(results.filter(result => result.status === "fulfilled").length, 1, "concurrent reservations must not exceed budget");
   assert.equal(await prisma.mediaGenerationJob.count({ where: { targetId: { in: shots.map(shot => shot.id) } } }), 1);
+  const queued = await prisma.mediaGenerationJob.findFirstOrThrow({ where: { targetId: { in: shots.map(shot => shot.id) } } });
+  await assert.rejects(updateVideoBrief({ accessId: user.id, planItemId: item.id, shotEdits: [{ shotId: queued.targetId, status: "planned" }] }), /active generation job/);
+  await cancelQueuedRunwayJob(queued.id, user.id);
+  await assert.rejects(queueVideoGeneration(make(shots.find(shot => shot.id !== queued.targetId)!.id)), /budget exceeded/, "cancelled jobs must retain their reservation");
   await prisma.contentPlan.update({ where: { id: plan.id }, data: { mediaCreditBudget: 120 } });
   const call = (body: unknown) => handleMcp(new Request("https://content.test/api/external/mcp", { method: "POST", headers: { "x-ixara-mcp-key": "x".repeat(40) }, body: JSON.stringify(body) }));
   const preview: any = await call({ action: "preview", tool: "queue_video_generation", request_key: "runway-integration-queue", args: { planItemId: item.id, shotId: shots[2].id, referenceAssetId: asset.id, maxCredits: 60 } });
@@ -25,6 +31,12 @@ async function main() {
   assert.equal(applied.applied, true);
   await call({ action: "apply", change_set_id: preview.id });
   assert.equal(await prisma.mediaGenerationJob.count({ where: { targetId: shots[2].id } }), 1, "apply retry must not duplicate a job");
+  const reviewed = await prisma.videoShot.create({ data: { videoBriefId: brief.id, sortOrder: 3, title: "Reviewed", durationSeconds: 5, prompt: "Reviewed prompt", status: "planned" } });
+  const approval: any = await call({ action: "preview", tool: "approve_video_shots", request_key: "runway-approve-shots", args: { planItemId: item.id, shotIds: [reviewed.id], note: "Batch reviewed" } });
+  assert.equal((await prisma.videoShot.findUniqueOrThrow({ where: { id: reviewed.id } })).status, "planned", "approval preview must roll back");
+  await call({ action: "apply", change_set_id: approval.id });
+  assert.equal((await prisma.videoShot.findUniqueOrThrow({ where: { id: reviewed.id } })).status, "approved");
+  await assert.rejects(updateVideoBrief({ accessId: user.id, planItemId: item.id, shotEdits: [{ shotId: reviewed.id, prompt: "Unreviewed edit" }] }), /Return the approved shot/);
   await prisma.$disconnect();
   console.log("Runway PostgreSQL integration: concurrent budget, preview rollback and idempotent apply PASS");
 }

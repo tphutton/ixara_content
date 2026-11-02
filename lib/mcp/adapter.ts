@@ -1,3 +1,4 @@
+import { videoApprovalOperations } from './video-approval-operations';
 import { mediaRecoveryOperations } from './media-recovery-operations';
 import { brandKitOperations } from './brand-kit-operations';
 import { linkImportedPublication } from "@/lib/social/publication-link";
@@ -81,7 +82,7 @@ const operations:Operation[]=(contentOpsTools as any[]).flatMap(def=>{
    snapshot:mutating?(args:any,tx:any)=>snapshot(f.name,args,tx):undefined,
    run:async(args:any,access:any)=>executeContentOpsTool(f.name,{...args,...('limit' in (f.parameters.properties||{})?{limit:Math.min(Math.max(Number(args.limit)||30,1),f.name === "list_published_posts" ? 500 : 100)}:{})},{access})}];
 });
-operations.push(...brandKitOperations, ...mediaRecoveryOperations);
+operations.push(...brandKitOperations, ...mediaRecoveryOperations, ...videoApprovalOperations);
 operations.push({name:'get_record',description:'Read a complete Content record, blog, plan, variant, brand, asset or video brief.',
  inputSchema:objectSchema({entity:{type:'string',enum:Object.keys(models)},id:string},['entity','id']),scope:'ixara-content:read',mutating:false,
  run:async args=>(prisma as any)[models[args.entity]].findUniqueOrThrow({where:{id:args.id},

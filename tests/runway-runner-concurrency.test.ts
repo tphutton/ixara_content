@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const { state, database, provider } = vi.hoisted(() => {
+  const shotTime = new Date("2026-01-01T00:00:00Z");
   const state = { status: "queued", taskId: null as string | null, error: null as string | null };
-  const job = () => ({ id: "job1", status: "queued", externalTaskId: null, outputUrl: null, targetType: "video_shot", targetId: "shot1", input: { prompt: "Watch", durationSeconds: 5, aspectRatio: "9:16", referenceAssetId: "asset1", brandKitReferenceId: "ref1", maxCredits: 60 } });
-  const database = { mediaGenerationJob: {
+  const job = () => ({ id: "job1", status: "queued", externalTaskId: null, outputUrl: null, targetType: "video_shot", targetId: "shot1", input: { shotId: "shot1", shotUpdatedAt: "2026-01-01T00:00:00.000Z", prompt: "Watch", durationSeconds: 5, aspectRatio: "9:16", referenceAssetId: "asset1", brandKitReferenceId: "ref1", maxCredits: 60 } });
+  const database = { $queryRaw: vi.fn(async () => []), $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(database)), videoShot: { findUniqueOrThrow: vi.fn(async () => ({ status: "approved", updatedAt: shotTime })) }, mediaGenerationJob: {
     findMany: vi.fn(async () => [job()]),
     updateMany: vi.fn(async ({ where, data }: { where: { status: string; externalTaskId?: null }; data: { externalTaskId?: string } }) => {
       if (state.status !== where.status || (where.externalTaskId === null && state.taskId !== null)) return { count: 0 };
@@ -30,7 +31,7 @@ describe("generation submission", () => {
   });
   it("keeps a successful task available for storage retry if ingestion fails", async () => {
     state.status = "running"; state.taskId = "task1";
-    database.mediaGenerationJob.findMany.mockResolvedValueOnce([{ id: "job1", status: "running", externalTaskId: "task1", outputUrl: null, targetType: "video_shot", targetId: "shot1", input: { prompt: "Watch", durationSeconds: 5, aspectRatio: "9:16", referenceAssetId: "asset1", brandKitReferenceId: "ref1", maxCredits: 60 } }] as never);
+    database.mediaGenerationJob.findMany.mockResolvedValueOnce([{ id: "job1", status: "running", externalTaskId: "task1", outputUrl: null, targetType: "video_shot", targetId: "shot1", input: { shotId: "shot1", shotUpdatedAt: "2026-01-01T00:00:00.000Z", prompt: "Watch", durationSeconds: 5, aspectRatio: "9:16", referenceAssetId: "asset1", brandKitReferenceId: "ref1", maxCredits: 60 } }] as never);
     provider.getRunwayTask.mockResolvedValueOnce({ status: "succeeded", output: ["https://example.test/output.mp4"] });
     vi.mocked(isGeneratedAssetStorageConfigured).mockReturnValueOnce(true);
     vi.mocked(ingestGeneratedMedia).mockRejectedValueOnce(new Error("storage offline"));

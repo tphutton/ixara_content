@@ -3,7 +3,7 @@ import { executeContentOpsTool } from "@/lib/ai/tools";
 import { prisma } from "@/lib/prisma";
 
 const MUTATION_TOOLS = new Set([
-  "attach_verified_runway_task", "set_plan_media_budget", "add_brand_kit_reference", "update_brand_kit_reference", "remove_brand_kit_reference",
+  "cancel_queued_runway_job", "approve_video_shots", "attach_verified_runway_task", "set_plan_media_budget", "add_brand_kit_reference", "update_brand_kit_reference", "remove_brand_kit_reference",
   "create_content", "update_content", "create_blog", "update_blog",
   "create_schedule_entry", "update_schedule_entry", "sync_wordpress_assets",
   "sync_tsadb_assets", "upsert_brand_profile", "upsert_campaign", "delete_campaign",
@@ -14,6 +14,8 @@ const MUTATION_TOOLS = new Set([
 ]);
 
 const TOOL_LABELS: Record<string, string> = {
+  cancel_queued_runway_job: "Cancel queued Runway job",
+  approve_video_shots: "Approve video shots",
   attach_verified_runway_task: "Attach verified Runway task",
   set_plan_media_budget: "Set plan media budget",
   add_brand_kit_reference: "Add brand kit reference", update_brand_kit_reference: "Update brand kit reference", remove_brand_kit_reference: "Remove brand kit reference",

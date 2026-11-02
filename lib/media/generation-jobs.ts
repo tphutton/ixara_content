@@ -57,6 +57,9 @@ export async function queueVideoGeneration(input: {
   // All budget and reservation changes use the same plan lock.
   const planId = brief.planItem.plan.id;
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`media-budget:${planId}`}, 0))::text`;
+  await tx.$queryRaw`SELECT "id" FROM "VideoShot" WHERE "id" = ${shot.id} FOR SHARE`;
+  const currentShot = await tx.videoShot.findUniqueOrThrow({ where: { id: shot.id } });
+  if (currentShot.status !== "approved" || currentShot.updatedAt.getTime() !== shot.updatedAt.getTime()) throw new Error("Shot changed after review; inspect it before queueing.");
   const planBudget = await tx.contentPlan.findUniqueOrThrow({ where: { id: planId }, select: { mediaCreditBudget: true } });
   if (planBudget.mediaCreditBudget === null) throw new Error("Set a plan credit budget before queuing generation.");
   const existing = await tx.mediaGenerationJob.findFirst({
@@ -86,7 +89,8 @@ export async function queueVideoGeneration(input: {
         planItemId: input.planItemId,
         title: brief.planItem.title,
         briefId: brief.id,
-        shotId: shot?.id ?? null,
+        shotId: shot.id,
+        shotUpdatedAt: shot.updatedAt.toISOString(),
         durationSeconds: shot?.durationSeconds ?? brief.durationSeconds,
         aspectRatio: brief.aspectRatio,
         targetPlatforms: brief.targetPlatforms,

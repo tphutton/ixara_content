@@ -17,3 +17,15 @@ export async function attachVerifiedRunwayTask(jobId: string, taskId: string, ac
     return after;
   });
 }
+
+/** Cancels only an unsubmitted job; reservation stays conservative. */
+export async function cancelQueuedRunwayJob(jobId: string, accessId: string) {
+  return prisma.$transaction(async tx => {
+    const before = await tx.mediaGenerationJob.findUniqueOrThrow({ where: { id: jobId } });
+    if (before.provider !== "runway" || before.status !== MediaGenerationStatus.queued) throw new Error("Only an unsubmitted queued Runway job can be cancelled here.");
+    const updated = await tx.mediaGenerationJob.updateMany({ where: { id: jobId, status: MediaGenerationStatus.queued }, data: { status: MediaGenerationStatus.cancelled, completedAt: new Date(), error: "Cancelled before submission; credit reservation retained." } });
+    if (updated.count !== 1) throw new Error("Job changed; read its status before taking action.");
+    await tx.contentActionLog.create({ data: { userId: accessId, actionType: "cancel", targetType: "media_generation_job", targetId: jobId, summary: "Cancelled queued Runway job before submission", beforeData: { status: before.status }, afterData: { status: "cancelled" }, source: "manual" } });
+    return { id: jobId, status: "cancelled" };
+  });
+}
