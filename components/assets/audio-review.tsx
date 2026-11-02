@@ -9,6 +9,8 @@ export function AudioReview({ assetId, initialReview }: { assetId: string; initi
     setBusy(true); setError(""); setReview("");
     try {
       const response = await fetch(`/api/assets/${encodeURIComponent(assetId)}/review`, { method: "POST" });
+      const isJson = response.headers.get("content-type")?.includes("application/json");
+      if (!isJson) throw new Error(response.redirected ? "Your session may have expired. Please sign in and try again." : "The server returned an unexpected response. Please try again.");
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Review failed.");
       setReview(result.review);

@@ -36,3 +36,14 @@ describe("audio review", () => {
     expect(state.update.mock.calls[0][0].data.metadata).toMatchObject({ storage: "private-s3", objectKey: "uploads/a.mp3", audioReview: { review: "The opening needs more energy." } });
   });
 });
+
+describe("audio review failures", () => {
+  it("reports storage failure without leaking provider details", async () => {
+    state.user = { id: "u", approvalStatus: "approved", role: "editor" };
+    state.asset = { metadata: { storage: "private-s3", objectKey: "uploads/a.mp3" }, mediaType: "audio", mimeType: "audio/mpeg", fileSize: 3 };
+    state.send.mockRejectedValueOnce(new Error("secret provider details"));
+    const response = await POST(req(), ctx);
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({ error: "Could not read the private audio file." });
+  });
+});
