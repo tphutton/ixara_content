@@ -1,3 +1,4 @@
+import { AudioReview } from "@/components/assets/audio-review";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Search, Sparkles, Trash2 } from "lucide-react";
@@ -257,6 +258,7 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {selectedAsset.mediaType === "audio" ? <audio controls preload="metadata" src={selectedAsset.fileUrl} /> : selectedAsset.mediaType === "video" ? <video controls preload="metadata" src={selectedAsset.fileUrl} /> : <img alt={selectedAsset.altText ?? selectedAsset.title} src={selectedAsset.fileUrl} />}
                 <div className="asset-preview__details">
+                  {selectedAsset.mediaType === "audio" && selectedAsset.fileUrl?.startsWith("/api/assets/") ? <AudioReview assetId={selectedAsset.id} initialReview={getSavedAudioReview(selectedAsset.metadata)} /> : null}
                   <div className="asset-recommendation-note">
                     <Sparkles aria-hidden="true" size={18} />
                     <p>
@@ -487,4 +489,12 @@ function usageCount(asset: {
     asset._count.blogLinks +
     asset._count.campaignLinks
   );
+}
+
+function getSavedAudioReview(metadata: unknown): string {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return "";
+  const value = (metadata as Record<string, unknown>).audioReview;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  const review = (value as Record<string, unknown>).review;
+  return typeof review === "string" ? review : "";
 }
