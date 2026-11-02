@@ -433,6 +433,7 @@ model ContentPlan {
   brand        String?
   campaignName String?
   sourcePrompt String?
+  mediaCreditBudget Int?
   createdById  String?
   updatedById  String?
   createdAt    DateTime          @default(now())

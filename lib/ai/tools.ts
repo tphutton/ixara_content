@@ -1,3 +1,8 @@
+import { videoApprovalOperations } from "@/lib/mcp/video-approval-operations";
+import { mediaRecoveryOperations } from "@/lib/mcp/media-recovery-operations";
+import { setPlanMediaBudget } from "@/lib/media/credit-budget";
+import { brandKitOperations } from "@/lib/mcp/brand-kit-operations";
+import { validate as validateMcpInput } from "@/lib/mcp/engine";
 import { reconcilePublishedSchedule, scheduleHistoryTitle } from "@/lib/social/history-reconciliation";
 import { publishedPostBrand, hasEngagementRate, hasPerformanceMetrics } from "@/lib/social/reporting";
 import {
@@ -2381,6 +2386,10 @@ async function queueVideoGenerationTool(args: Record<string, unknown>, context: 
     provider: asOptionalString(args.provider) ?? undefined,
     shotId: asOptionalString(args.shotId) ?? undefined,
     guidance: asOptionalString(args.guidance),
+    referenceAssetId: asRequiredString(args.referenceAssetId, "referenceAssetId"),
+    additionalReferenceAssetIds: asStringArray(args.additionalReferenceAssetIds),
+    model: (asOptionalString(args.model) ?? "gen4.5") as "gen4.5" | "seedance2_mini",
+    maxCredits: Number(args.maxCredits),
   });
   return {
     toolName: "queue_video_generation",
@@ -2403,7 +2412,7 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
         { targetType: "video_shot", targetId: { in: item.videoBrief.shots.map((shot) => shot.id) } },
       ],
     },
-    select: { id: true, status: true, provider: true, targetType: true, targetId: true, error: true, externalTaskId: true },
+    select: { id: true, status: true, provider: true, targetType: true, targetId: true, error: true, externalTaskId: true, outputAssetId: true, costCents: true, input: true },
     orderBy: { updatedAt: "desc" },
   });
   const status = getUnifiedProductionStatus({
@@ -2468,6 +2477,10 @@ const toolHandlers: Record<string, ToolHandler> = {
   update_video_brief: updateVideoBriefTool,
   add_editorial_comment: addEditorialCommentTool,
   resolve_editorial_comment: resolveEditorialCommentTool,
+  set_plan_media_budget: async (args, context) => {
+    const plan = await setPlanMediaBudget(asRequiredString(args.planId, "planId"), Number(args.creditBudget), context.access.id);
+    return { toolName: "set_plan_media_budget", summary: "Updated plan production credit budget.", payload: { planId: plan.id, creditBudget: plan.mediaCreditBudget } };
+  },
   queue_video_generation: queueVideoGenerationTool,
   get_production_status: async (args) => getProductionStatusTool(args),
   get_quality_summary: async () => getQualitySummaryTool(),
@@ -3339,16 +3352,20 @@ export const contentOpsTools: ToolDefinition[] = [
     type: "function",
     function: {
       name: "queue_video_generation",
-      description: "Queue an approved video brief or approved shot for provider generation. This creates a tracked job but does not call the provider until a generation runner is configured.",
+      description: "Queue an approved individual shot for Runway Dev generation. The job may run and incur charges asynchronously if the runner is enabled. Set a plan budget first.",
       parameters: {
         type: "object",
         properties: {
           planItemId: { type: "string" },
           provider: { type: "string", description: "Provider name, currently runway-ready by default." },
-          shotId: { type: "string", description: "Optional approved shot id for single-shot generation." },
+          shotId: { type: "string", description: "Approved shot id for single-shot generation." },
           guidance: { type: "string" },
+          referenceAssetId: { type: "string", description: "Approved same-brand image: first frame with Gen-4.5 or image reference with Seedance Mini." },
+          additionalReferenceAssetIds: { type: "array", items: { type: "string" }, maxItems: 3, description: "Additional approved same-brand images; Seedance Mini only." },
+          model: { type: "string", enum: ["gen4.5", "seedance2_mini"], description: "Gen-4.5 animates a single first frame; Seedance Mini uses up to four image references at 720p." },
+          maxCredits: { type: "number", description: "Maximum estimated credits for this shot, at most 225; not a provider-enforced billing cap." },
         },
-        required: ["planItemId"],
+        required: ["planItemId", "shotId", "referenceAssetId", "maxCredits"],
         additionalProperties: false,
       },
     },
@@ -3451,6 +3468,18 @@ export const contentOpsTools: ToolDefinition[] = [
     },
   },
 ];
+
+contentOpsTools.push({ type: "function", function: { name: "set_plan_media_budget", description: "Set the total Runway credit reservation limit for one plan. Changing the budget never starts generation.", parameters: { type: "object", properties: { planId: { type: "string" }, creditBudget: { type: "integer" } }, required: ["planId", "creditBudget"], additionalProperties: false } } });
+
+// Quill and ChatGPT use the same brand-kit operations and validation.
+for (const operation of [...brandKitOperations, ...mediaRecoveryOperations, ...videoApprovalOperations]) {
+  contentOpsTools.push({ type: "function", function: { name: operation.name, description: operation.description, parameters: operation.inputSchema } });
+  toolHandlers[operation.name] = async (args, context) => {
+    validateMcpInput(operation.inputSchema, args);
+    const result = await operation.run(args, context.access);
+    return { toolName: operation.name, summary: operation.description, payload: result };
+  };
+}
 
 export async function executeContentOpsTool(
   name: string,

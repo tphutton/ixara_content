@@ -12,6 +12,12 @@ import { prisma } from "@/lib/prisma";
 import { reviewPlanItemQualityAction } from "../../quality/actions";
 import {
   addContentPlanItemAction,
+  approveVideoShotsAction,
+  queueShotGenerationAction,
+  setPlanMediaBudgetAction,
+  processShotGenerationAction,
+  cancelShotGenerationAction,
+  recoverShotGenerationAction,
   deleteContentPlanAction,
   deleteContentPlanItemAction,
   promoteContentPlanItemAction,
@@ -103,6 +109,12 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
   const addItem = addContentPlanItemAction.bind(null, plan.id);
   const editingItem = editingItemId ? plan.items.find((item) => item.id === editingItemId) : null;
   const viewingItem = viewingItemId ? plan.items.find((item) => item.id === viewingItemId) : null;
+  const itemBrand = viewingItem?.brand ?? plan.brand;
+  const kitReferences = viewingItem?.videoBrief && itemBrand ? await prisma.brandKitReference.findMany({ where: { status: "approved", brandProfile: { brandName: { equals: itemBrand, mode: "insensitive" } }, asset: { mimeType: { startsWith: "image/" } } }, include: { asset: true }, orderBy: { createdAt: "desc" } }) : [];
+  const budgetJobs = viewingItem?.videoBrief ? await prisma.mediaGenerationJob.findMany({ where: { provider: "runway", input: { path: ["planId"], equals: plan.id } }, select: { input: true } }) : [];
+  const reservedCredits = budgetJobs.reduce((sum, job) => { const data = job.input as { estimatedCredits?: unknown }; return sum + (typeof data?.estimatedCredits === "number" && Number.isFinite(data.estimatedCredits) ? data.estimatedCredits : 0); }, 0);
+  const shotIds = viewingItem?.videoBrief?.shots.map(shot => shot.id) ?? [];
+  const generationJobs = shotIds.length ? await prisma.mediaGenerationJob.findMany({ where: { targetType: "video_shot", targetId: { in: shotIds } }, include: { outputAsset: { select: { fileUrl: true, title: true } } }, orderBy: { createdAt: "desc" }, take: 30 }) : [];
   const updateItem = editingItem ? updateContentPlanItemAction.bind(null, plan.id, editingItem.id) : null;
   const brandProfileByName = new Map(
     brandProfiles.map((profile) => [profile.brandName.toLowerCase(), profile]),
@@ -265,6 +277,20 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
                   {viewingItem.videoBrief.script ? <div><p className="kicker">Script</p><p className="preserve-lines">{viewingItem.videoBrief.script}</p></div> : null}
                   {viewingItem.videoBrief.voiceover ? <div><p className="kicker">Voiceover</p><p className="preserve-lines">{viewingItem.videoBrief.voiceover}</p></div> : null}
                   <div className="table-shell"><table className="table"><thead><tr><th>#</th><th>Shot</th><th>Time</th><th>Prompt</th></tr></thead><tbody>{viewingItem.videoBrief.shots.map((shot) => <tr key={shot.id}><td>{shot.sortOrder + 1}</td><td><strong>{shot.title}</strong><div className="table-subtext">{shot.purpose ?? "No purpose"}</div></td><td>{shot.durationSeconds}s</td><td><span className="table-subtext preserve-lines">{shot.prompt}</span></td></tr>)}</tbody></table></div>
+                  <form action={approveVideoShotsAction.bind(null, plan.id)} className="quiet-panel stack"><strong>Approve reviewed shots</strong><p className="muted">Select the shots you have reviewed. Approval does not create a video or spend credits.</p><input type="hidden" name="planItemId" value={viewingItem.id}/>{viewingItem.videoBrief.shots.filter(shot => ["planned", "needs_changes"].includes(shot.status)).map(shot => <label key={shot.id}><input type="checkbox" name="shotIds" value={shot.id}/> {shot.title} · {shot.durationSeconds}s · {shot.status}</label>)}<label>Approval note <input name="note" placeholder="What was reviewed?" required maxLength={1000}/></label><button type="submit" className="button button--secondary">Approve selected shots</button></form>
+                  <div className="quiet-panel stack"><strong>Plan estimated credit limit</strong><p className="muted">Current limit: {plan.mediaCreditBudget === null ? "Not set" : `${plan.mediaCreditBudget} credits`}; reserved: {reservedCredits} credits. Reservations remain counted if a job fails or is cancelled. Prices can change; this is not a provider-enforced spending cap.</p><form action={setPlanMediaBudgetAction.bind(null, plan.id)}><label>Maximum credits <input type="number" name="creditBudget" min="0" max="1000000" defaultValue={plan.mediaCreditBudget ?? ""} required /></label><button className="button button--secondary" type="submit">Save budget</button></form></div>
+                  {generationJobs.length ? <div className="stack"><strong>Generation jobs</strong>{generationJobs.map(job => <div key={job.id} className="quiet-panel"><strong>{viewingItem.videoBrief?.shots.find(shot => shot.id === job.targetId)?.title ?? "Shot"}</strong> · {job.status}{job.error ? <p>{job.error}</p> : null}{job.outputAsset ? <p><a href={job.outputAsset.fileUrl} target="_blank" rel="noreferrer">Open {job.outputAsset.title}</a></p> : null}{job.status === "queued" ? <form action={cancelShotGenerationAction.bind(null, plan.id)}><input type="hidden" name="jobId" value={job.id}/><button type="submit" className="button button--secondary">Cancel queued job</button></form> : null}{job.status === "submitted" && !job.externalTaskId ? <form action={recoverShotGenerationAction.bind(null, plan.id)} className="stack"><input type="hidden" name="jobId" value={job.id}/><label>Verified Runway task ID <input name="taskId" required /></label><label><input type="checkbox" name="verified" value="yes" required /> I checked this is the matching task in Runway</label><button type="submit" className="button button--secondary">Attach existing task</button></form> : null}{["queued", "submitted", "running", "awaiting_asset"].includes(job.status) && !(job.status === "submitted" && !job.externalTaskId) ? <form action={processShotGenerationAction.bind(null, plan.id)}><input type="hidden" name="jobId" value={job.id}/><button type="submit" className="button button--secondary">{job.status === "queued" ? "Start generation" : "Check progress"}</button></form> : null}</div>)}</div> : null}
+                  <div className="quiet-panel stack"><strong>Queue a shot with Runway Dev</strong><p className="muted">Gen-4.5 uses a first frame at 12 credits per second. Seedance Mini uses up to four image references at 15 credits per second for 720p. Prices are estimates; Runway determines billing. A Runway Dev key must be configured to start queued jobs.</p>
+                    <form action={queueShotGenerationAction.bind(null, plan.id)} className="stack">
+                      <input type="hidden" name="planItemId" value={viewingItem.id} />
+                      <label>Model <select name="model" defaultValue="gen4.5"><option value="gen4.5">Gen-4.5 · first-frame animation</option><option value="seedance2_mini">Seedance Mini · image references (720p)</option></select></label>
+                      <label>Approved shot <select name="shotId" defaultValue="" required><option value="" disabled>Select a shot</option>{viewingItem.videoBrief.shots.filter(shot => shot.status === "approved" && shot.durationSeconds >= 2 && shot.durationSeconds <= 15).map(shot => <option key={shot.id} value={shot.id}>{shot.title} · {shot.durationSeconds}s</option>)}</select></label>
+                      <label>First-frame image <select name="referenceAssetId" defaultValue="" required><option value="" disabled>Select an approved image</option>{kitReferences.map(ref => <option key={ref.id} value={ref.assetId}>{ref.asset.title} · {ref.role}</option>)}</select></label>
+                      <label>Additional references (Seedance Mini only; select up to three) <select name="additionalReferenceAssetIds" multiple>{kitReferences.map(ref => <option key={ref.id} value={ref.assetId}>{ref.asset.title} · {ref.role}</option>)}</select></label>
+                      <label>Maximum estimated credits for this shot <input type="number" name="maxCredits" min="24" max="225" required /></label>
+                      <button type="submit" className="button button--secondary">Queue shot</button>
+                    </form>
+                  </div>
                 </section>
               ) : viewingItem.itemType === "video" ? <div className="plan-brief-gaps"><strong>Video brief missing:</strong> Generate a storyboard before requesting video assets.</div> : null}
               <div><p className="kicker">Next action</p><p className="quality-next-step">{nextBestAction(viewingItem, readiness.ready)}</p></div>

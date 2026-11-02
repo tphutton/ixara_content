@@ -291,3 +291,74 @@ export async function promoteContentPlanItemAction(
   revalidatePath("/blogs");
   revalidatePath("/schedule");
 }
+
+export async function queueShotGenerationAction(planId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { queueVideoGeneration } = await import("@/lib/media/generation-jobs");
+  const access = await requireEditorialUserAccess();
+  const planItemId = String(formData.get("planItemId") ?? "");
+  const item = await prisma.contentPlanItem.findUniqueOrThrow({ where: { id: planItemId }, select: { planId: true } });
+  if (item.planId !== planId) throw new Error("The shot does not belong to this plan.");
+  await queueVideoGeneration({ accessId: access.id, planItemId, shotId: String(formData.get("shotId") ?? ""), referenceAssetId: String(formData.get("referenceAssetId") ?? ""), additionalReferenceAssetIds: formData.getAll("additionalReferenceAssetIds").map(String), model: String(formData.get("model") ?? "gen4.5") as "gen4.5" | "seedance2_mini", maxCredits: Number(formData.get("maxCredits")) });
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function processShotGenerationAction(planId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { runSingleMediaGenerationJob } = await import("@/lib/media/runner");
+  await requireEditorialUserAccess();
+  const job = await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: String(formData.get("jobId") ?? "") } });
+  const input = job.input as { planItemId?: string };
+  const item = input.planItemId ? await prisma.contentPlanItem.findUnique({ where: { id: input.planItemId }, select: { planId: true } }) : null;
+  if (item?.planId !== planId) throw new Error("Job does not belong to this plan.");
+  await runSingleMediaGenerationJob(job.id);
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function setPlanMediaBudgetAction(planId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { setPlanMediaBudget } = await import("@/lib/media/credit-budget");
+  const access = await requireEditorialUserAccess();
+  const raw = String(formData.get("creditBudget") ?? "").trim();
+  if (!/^\d+$/.test(raw)) throw new Error("Enter a whole-number credit budget.");
+  await setPlanMediaBudget(planId, Number(raw), access.id);
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function recoverShotGenerationAction(planId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { attachVerifiedRunwayTask } = await import("@/lib/media/recovery");
+  const access = await requireEditorialUserAccess();
+  if (formData.get("verified") !== "yes") throw new Error("Verify the task in Runway before attaching it.");
+  const jobId = String(formData.get("jobId") ?? "");
+  const job = await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: jobId } });
+  const input = job.input as { planItemId?: string };
+  const item = input.planItemId ? await prisma.contentPlanItem.findUnique({ where: { id: input.planItemId }, select: { planId: true } }) : null;
+  if (item?.planId !== planId) throw new Error("Job does not belong to this plan.");
+  await attachVerifiedRunwayTask(jobId, String(formData.get("taskId") ?? "").trim(), access.id);
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function approveVideoShotsAction(planId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { approveVideoShots } = await import("@/lib/approvals/video-shots");
+  const access = await requireEditorialUserAccess();
+  const planItemId = String(formData.get("planItemId") ?? "");
+  const item = await prisma.contentPlanItem.findUniqueOrThrow({ where: { id: planItemId }, select: { planId: true } });
+  if (item.planId !== planId) throw new Error("The shots do not belong to this plan.");
+  await approveVideoShots({ planItemId, shotIds: formData.getAll("shotIds").map(String), note: String(formData.get("note") ?? ""), accessId: access.id });
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function cancelShotGenerationAction(planId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { cancelQueuedRunwayJob } = await import("@/lib/media/recovery");
+  const access = await requireEditorialUserAccess();
+  const jobId = String(formData.get("jobId") ?? "");
+  const job = await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: jobId } });
+  const input = job.input as { planItemId?: string };
+  const item = input.planItemId ? await prisma.contentPlanItem.findUnique({ where: { id: input.planItemId }, select: { planId: true } }) : null;
+  if (item?.planId !== planId) throw new Error("Job does not belong to this plan.");
+  await cancelQueuedRunwayJob(jobId, access.id);
+  revalidatePath(`/plans/${planId}`);
+}

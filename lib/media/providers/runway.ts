@@ -1,6 +1,8 @@
 type RunwayInput = {
   prompt: string;
   promptImage?: string | null;
+  referenceImages?: string[];
+  model?: "gen4.5" | "seedance2_mini";
   durationSeconds: number;
   aspectRatio: string;
 };
@@ -25,16 +27,20 @@ function runwayRatio(aspectRatio: string) {
   const ratios: Record<string, string> = {
     "9:16": "720:1280",
     "16:9": "1280:720",
-    "1:1": "1024:1024",
-    "4:5": "1024:1280",
-    "4:3": "1120:832",
+    "1:1": "960:960",
+    "4:3": "1104:832",
+    "3:4": "832:1104",
+    "21:9": "1584:672",
   };
-  return ratios[aspectRatio] ?? aspectRatio;
+  const ratio = ratios[aspectRatio] ?? aspectRatio;
+  if (!["1280:720", "720:1280", "960:960", "1104:832", "832:1104", "1584:672"].includes(ratio)) throw new Error("Unsupported Gen-4.5 aspect ratio.");
+  return ratio;
 }
 
 async function runwayRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${runwayBaseUrl}${path}`, {
     ...init,
+    signal: init?.signal ?? AbortSignal.timeout(60_000),
     headers: {
       Authorization: `Bearer ${getSecret()}`,
       "Content-Type": "application/json",
@@ -51,14 +57,25 @@ async function runwayRequest<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function startRunwayVideo(input: RunwayInput) {
+  const model = input.model ?? "gen4.5";
+  if (model !== "gen4.5" && model !== "seedance2_mini") throw new Error("Unsupported model.");
+  const min = model === "gen4.5" ? 2 : 4;
+  const max = model === "gen4.5" ? 10 : 15;
+  if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < min || input.durationSeconds > max) throw new Error(`${model} supports ${min}–${max} seconds per shot; split longer videos into shots.`);
+  if (!input.prompt.trim() || input.prompt.length > 1000) throw new Error("Prompt must contain 1–1000 characters.");
+  const images = input.referenceImages ?? (input.promptImage ? [input.promptImage] : []);
+  if (!images.length || images.length > 4 || (model === "gen4.5" && images.length !== 1)) throw new Error("A valid first-frame or reference image is required.");
+  const ratio = runwayRatio(input.aspectRatio);
+  if (model === "seedance2_mini" && !["1280:720", "720:1280", "960:960"].includes(ratio)) throw new Error("Unsupported Seedance Mini aspect ratio.");
   return runwayRequest<RunwayTask>("/v1/image_to_video", {
     method: "POST",
     body: JSON.stringify({
-      model: "gen4.5",
+      model,
       promptText: input.prompt,
-      promptImage: input.promptImage || undefined,
-      ratio: runwayRatio(input.aspectRatio),
-      duration: Math.min(Math.max(Math.round(input.durationSeconds), 2), 10),
+      promptImage: model === "gen4.5" ? images[0] : images.map(uri => ({ uri })),
+      ratio,
+      duration: input.durationSeconds,
+      ...(model === "seedance2_mini" ? { audio: false } : {}),
     }),
   });
 }
