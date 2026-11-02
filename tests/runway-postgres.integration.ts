@@ -25,6 +25,18 @@ async function main() {
   await assert.rejects(queueVideoGeneration(make(shots.find(shot => shot.id !== queued.targetId)!.id)), /budget exceeded/, "cancelled jobs must retain their reservation");
   await prisma.contentPlan.update({ where: { id: plan.id }, data: { mediaCreditBudget: 120 } });
   const call = (body: unknown) => handleMcp(new Request("https://content.test/api/external/mcp", { method: "POST", headers: { "x-ixara-mcp-key": "x".repeat(40) }, body: JSON.stringify(body) }));
+  await assert.rejects(call({ action: "preview", tool: "create_brand_character", request_key: "character-not-approved", args: { brandProfileId: brand.id, referenceAssetId: asset.id, name: "Kit", personality: "A curious sports storyteller." } }), /approved character image/);
+  await prisma.brandKitReference.create({ data: { brandProfileId: brand.id, assetId: asset.id, role: "character", status: "approved" } });
+  const characterPreview: any = await call({ action: "preview", tool: "create_brand_character", request_key: "character-create-test", args: { brandProfileId: brand.id, referenceAssetId: asset.id, name: "Kit", personality: "A curious sports storyteller." } });
+  assert.equal(await prisma.brandCharacter.count({ where: { brandProfileId: brand.id } }), 0, "character preview must roll back");
+  const characterApplied: any = await call({ action: "apply", change_set_id: characterPreview.id });
+  await call({ action: "apply", change_set_id: characterPreview.id });
+  assert.equal(await prisma.brandCharacter.count({ where: { brandProfileId: brand.id } }), 1, "character apply must be idempotent");
+  const characterList: any = await call({ action: "read", tool: "list_brand_characters", args: { brandProfileId: brand.id } });
+  assert.equal(characterList[0].id, characterApplied.result.id);
+  const characterEdit: any = await call({ action: "preview", tool: "update_brand_character", request_key: "character-update-test", args: { id: characterApplied.result.id, voiceDescription: "Warm and lively" } });
+  await call({ action: "apply", change_set_id: characterEdit.id });
+  assert.equal((await prisma.brandCharacter.findUniqueOrThrow({ where: { id: characterApplied.result.id } })).voiceDescription, "Warm and lively");
   const readBrief: any = await call({ action: "read", tool: "get_video_brief_for_plan_item", args: { planItemId: item.id } });
   assert.equal(readBrief.id, brief.id);
   const editPreview: any = await call({ action: "preview", tool: "update_video_brief", request_key: "runway-edit-no-status", args: { planItemId: item.id, changeSummary: "Review metadata" } });
