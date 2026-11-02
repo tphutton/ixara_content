@@ -39,6 +39,12 @@ export async function generateVideoBrief(access: UserAccess, input: VideoBriefIn
     throw new Error("Video briefs can only be generated for video plan items.");
   }
 
+  const brandName = item.brand ?? item.plan.brand;
+  const brandKit = brandName ? await prisma.brandProfile.findFirst({
+    where: { brandName: { equals: brandName, mode: "insensitive" } },
+    include: { kitReferences: { where: { status: "approved" }, include: { asset: { select: { id: true, title: true } } } } },
+  }) : null;
+
   const totalDuration = duration(input.durationSeconds ?? item.videoBrief?.durationSeconds);
   const platforms = input.targetPlatforms?.filter(Boolean) ?? (item.channel ? [item.channel] : ["Instagram Reels", "TikTok"]);
   const response = await getOpenAIClient().chat.completions.create({
@@ -56,7 +62,9 @@ Make each shot specific: subject, action, environment, lighting, camera movement
 For videos longer than 15 seconds, generationStrategy must explain how the storyboard will be split into Runway segments of no more than 15 seconds and assembled afterward.
 Platforms: ${platforms.join(", ")}.
 Aspect ratio: ${clean(input.aspectRatio) ?? "9:16"}.
-Brand: ${item.brand ?? item.plan.brand ?? "not specified"}.
+Brand: ${brandName ?? "not specified"}.
+Brand visual guidelines: ${brandKit?.visualGuidelines ?? "not specified"}.
+Approved reusable references (descriptions only; an operator must attach assets to shots): ${JSON.stringify(brandKit?.kitReferences.map(ref => ({ id: ref.asset.id, title: ref.asset.title, role: ref.role, notes: ref.notes })) ?? [])}.
 Campaign: ${item.campaignName ?? item.plan.campaignName ?? "not specified"}.
 Objective: ${item.objective ?? item.plan.goal ?? "not specified"}.
 Audience: ${item.targetAudience ?? "not specified"}.

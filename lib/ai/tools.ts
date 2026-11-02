@@ -1254,6 +1254,7 @@ async function getBrandProfileTool(args: Record<string, unknown>) {
   }
 
   const profile = await prisma.brandProfile.findFirstOrThrow({
+    include: { kitReferences: { include: { asset: { select: { id: true, title: true, fileUrl: true, mimeType: true } } }, orderBy: { createdAt: "desc" } } },
     where: id
       ? { id }
       : {
