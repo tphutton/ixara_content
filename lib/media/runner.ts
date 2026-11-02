@@ -129,7 +129,7 @@ export async function runSingleMediaGenerationJob(id: string) {
 export async function runDueMediaGenerationJobs(limit = 5) {
   if (!process.env.RUNWAYML_API_SECRET) return { processed: 0, results: [], reason: "Runway Dev API key is not configured." };
   const jobs = await prisma.mediaGenerationJob.findMany({
-    where: { provider: "runway", OR: [{ status: MediaGenerationStatus.queued }, { status: { in: [MediaGenerationStatus.submitted, MediaGenerationStatus.running] }, externalTaskId: { not: null } }, { status: MediaGenerationStatus.awaiting_asset, outputUrl: { not: null } }] },
+    where: { provider: "runway", OR: [{ status: MediaGenerationStatus.queued, input: { path: ["startRequested"], equals: true } }, { status: { in: [MediaGenerationStatus.submitted, MediaGenerationStatus.running] }, externalTaskId: { not: null } }, { status: MediaGenerationStatus.awaiting_asset, outputUrl: { not: null } }] },
     orderBy: { updatedAt: "asc" },
     take: Math.min(Math.max(limit, 1), 20),
   });

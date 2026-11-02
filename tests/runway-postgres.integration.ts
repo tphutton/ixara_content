@@ -25,6 +25,10 @@ async function main() {
   await assert.rejects(queueVideoGeneration(make(shots.find(shot => shot.id !== queued.targetId)!.id)), /budget exceeded/, "cancelled jobs must retain their reservation");
   await prisma.contentPlan.update({ where: { id: plan.id }, data: { mediaCreditBudget: 120 } });
   const call = (body: unknown) => handleMcp(new Request("https://content.test/api/external/mcp", { method: "POST", headers: { "x-ixara-mcp-key": "x".repeat(40) }, body: JSON.stringify(body) }));
+  const readBrief: any = await call({ action: "read", tool: "get_video_brief_for_plan_item", args: { planItemId: item.id } });
+  assert.equal(readBrief.id, brief.id);
+  const editPreview: any = await call({ action: "preview", tool: "update_video_brief", request_key: "runway-edit-no-status", args: { planItemId: item.id, changeSummary: "Review metadata" } });
+  assert.equal(editPreview.previewJson.payload.id, brief.id, "omitted status must not be sent as null");
   const preview: any = await call({ action: "preview", tool: "queue_video_generation", request_key: "runway-integration-queue", args: { planItemId: item.id, shotId: shots[2].id, referenceAssetId: asset.id, maxCredits: 60 } });
   assert.equal(await prisma.mediaGenerationJob.count({ where: { targetId: shots[2].id } }), 0, "preview must not queue or spend");
   const applied: any = await call({ action: "apply", change_set_id: preview.id });
@@ -37,6 +41,21 @@ async function main() {
   await call({ action: "apply", change_set_id: approval.id });
   assert.equal((await prisma.videoShot.findUniqueOrThrow({ where: { id: reviewed.id } })).status, "approved");
   await assert.rejects(updateVideoBrief({ accessId: user.id, planItemId: item.id, shotEdits: [{ shotId: reviewed.id, prompt: "Unreviewed edit" }] }), /Return the approved shot/);
+  const testPreview: any = await call({ action: "preview", tool: "create_video_test", request_key: "runway-create-isolated-test", args: { planId: plan.id, title: "Watch movement test", prompt: "A second hand advances.", durationSeconds: 5, aspectRatio: "9:16" } });
+  assert.equal(await prisma.contentPlanItem.count({ where: { title: "Watch movement test" } }), 0);
+  const testApplied: any = await call({ action: "apply", change_set_id: testPreview.id });
+  const testId = testApplied.result.planItemId;
+  const testBrief = await call({ action: "read", tool: "get_video_brief_for_plan_item", args: { planItemId: testId } }) as any;
+  assert.equal(testBrief.shots.length, 1);
+  assert.equal(testBrief.shots[0].status, "planned");
+  Object.assign(process.env, { RUNWAY_RUNNER_ENABLED: "true", RUNWAYML_API_SECRET: "test-only-no-provider-call" });
+  const queuedForStart = await prisma.mediaGenerationJob.findFirstOrThrow({ where: { targetId: shots[2].id } });
+  const startPreview: any = await call({ action: "preview", tool: "request_start_queued_runway_job", request_key: "runway-request-start-test", args: { jobId: queuedForStart.id } });
+  assert.equal((await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: queuedForStart.id } })).status, "queued");
+  assert.equal(((await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: queuedForStart.id } })).input as any).startRequested, undefined);
+  await call({ action: "apply", change_set_id: startPreview.id });
+  await call({ action: "apply", change_set_id: startPreview.id });
+  assert.equal(((await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: queuedForStart.id } })).input as any).startRequested, true);
   await prisma.$disconnect();
   console.log("Runway PostgreSQL integration: concurrent budget, preview rollback and idempotent apply PASS");
 }
