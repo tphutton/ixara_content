@@ -12,6 +12,7 @@ export type AssetTableRow = {
   previewHref: string;
   thumbnailUrl: string | null;
   fileUrl: string;
+  mediaType: string | null;
   altText: string | null;
   source: string;
   description: string | null;
@@ -68,7 +69,7 @@ export function AssetTable({ assets }: { assets: AssetTableRow[] }) {
                 <div className="asset-table__identity">
                   <Link className="asset-table__thumb" href={asset.previewHref}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img alt={asset.altText ?? asset.title} src={asset.thumbnailUrl ?? asset.fileUrl} />
+                    {asset.mediaType === "video" || asset.mediaType === "audio" ? <span>{asset.mediaType === "audio" ? "Audio" : "Video"}</span> : <img alt={asset.altText ?? asset.title} src={asset.thumbnailUrl ?? asset.fileUrl} />}
                   </Link>
                   <div><Link href={asset.previewHref}><strong>{asset.title}</strong></Link><div className="table-subtext">{asset.description ?? "No description yet"}</div></div>
                 </div>

@@ -1,59 +1,35 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { randomUUID } from "node:crypto";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { AssetSource, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { privateAssetUrl, privateStorageClient, privateStorageConfig } from "@/lib/media/private-storage";
 
-function storageConfig() {
-  const bucket = process.env.MEDIA_S3_BUCKET?.trim();
-  const region = process.env.MEDIA_S3_REGION?.trim() || "auto";
-  const accessKeyId = process.env.MEDIA_S3_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = process.env.MEDIA_S3_SECRET_ACCESS_KEY?.trim();
-  const publicBaseUrl = process.env.MEDIA_ASSET_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (!bucket || !accessKeyId || !secretAccessKey || !publicBaseUrl) return null;
-  return { bucket, region, accessKeyId, secretAccessKey, endpoint: process.env.MEDIA_S3_ENDPOINT?.trim(), publicBaseUrl };
-}
+export function isGeneratedAssetStorageConfigured() { return Boolean(privateStorageConfig()); }
 
-export function isGeneratedAssetStorageConfigured() {
-  return Boolean(storageConfig());
-}
-
-export async function ingestGeneratedMedia(input: {
-  jobId: string;
-  outputUrl: string;
-  title: string;
-  targetType: string;
-  targetId: string;
-}) {
-  const config = storageConfig();
+export async function ingestGeneratedMedia(input: { jobId: string; outputUrl: string; title: string; targetType: string; targetId: string }) {
+  const config = privateStorageConfig();
   if (!config) throw new Error("Generated media storage is not configured.");
-
   const response = await fetch(input.outputUrl);
-  if (!response.ok) throw new Error(`Could not download generated media (${response.status}).`);
+  if (!response.ok || !response.body) throw new Error(`Could not download generated media (${response.status}).`);
+  const limit = 100 * 1024 * 1024;
+  const declaredSize = Number(response.headers.get("content-length"));
+  if (declaredSize > limit) throw new Error("Generated media exceeds the 100 MB ingestion limit.");
+  const chunks: Uint8Array[] = []; let total = 0;
+  for await (const part of response.body as unknown as AsyncIterable<Uint8Array>) {
+    total += part.byteLength;
+    if (total > limit) throw new Error("Generated media exceeds the 100 MB ingestion limit.");
+    chunks.push(part);
+  }
   const contentType = response.headers.get("content-type")?.split(";")[0] || "video/mp4";
-  const bytes = Buffer.from(await response.arrayBuffer());
-  const key = `generated/video/${input.jobId}.mp4`;
-  const client = new S3Client({
-    region: config.region,
-    endpoint: config.endpoint || undefined,
-    forcePathStyle: Boolean(config.endpoint),
-    credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
-  });
-  await client.send(new PutObjectCommand({ Bucket: config.bucket, Key: key, Body: bytes, ContentType: contentType, CacheControl: "public, max-age=31536000, immutable" }));
-
-  const fileUrl = `${config.publicBaseUrl}/${key}`;
-  return prisma.asset.upsert({
-    where: { source_externalId: { source: AssetSource.manual, externalId: `media-generation:${input.jobId}` } },
-    create: {
-      source: AssetSource.manual,
-      externalId: `media-generation:${input.jobId}`,
-      title: input.title,
-      fileUrl,
-      thumbnailUrl: fileUrl,
-      mimeType: contentType,
-      mediaType: "video",
-      fileSize: bytes.length,
-      metadata: { generatedBy: "runway", generationJobId: input.jobId, targetType: input.targetType, targetId: input.targetId } as Prisma.InputJsonValue,
-      syncedAt: new Date(),
-    },
-    update: { title: input.title, fileUrl, thumbnailUrl: fileUrl, mimeType: contentType, mediaType: "video", fileSize: bytes.length, syncedAt: new Date() },
-  });
+  if (!contentType.startsWith("video/")) throw new Error("Generated media is not a video.");
+  const bytes = Buffer.concat(chunks); const key = `generated/video/${input.jobId}.mp4`;
+  const { client, bucket } = privateStorageClient();
+  await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: bytes, ContentType: contentType, CacheControl: "private, no-store" }));
+  const externalId = `media-generation:${input.jobId}`;
+  const existing = await prisma.asset.findUnique({ where: { source_externalId: { source: AssetSource.manual, externalId } }, select: { id: true } });
+  const id = existing?.id ?? randomUUID(); const fileUrl = privateAssetUrl(id);
+  const metadata = { storage: "private-s3", objectKey: key, generatedBy: "runway", generationJobId: input.jobId, targetType: input.targetType, targetId: input.targetId } as Prisma.InputJsonValue;
+  return prisma.asset.upsert({ where: { source_externalId: { source: AssetSource.manual, externalId } },
+    create: { id, source: AssetSource.manual, externalId, title: input.title, fileUrl, mimeType: contentType, mediaType: "video", fileSize: bytes.length, metadata, tags: [], syncedAt: new Date() },
+    update: { title: input.title, fileUrl, mimeType: contentType, mediaType: "video", fileSize: bytes.length, metadata, syncedAt: new Date() } });
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Search, Sparkles, Trash2 } from "lucide-react";
 import { AssetSyncButton } from "@/components/assets/asset-sync-button";
+import { PrivateMediaUpload } from "@/components/assets/private-media-upload";
 import { AssetTable } from "@/components/assets/asset-table";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -118,6 +119,8 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
         }
       />
 
+      <PrivateMediaUpload />
+
       <div className="asset-summary-grid">
         <article className="quiet-panel">
           <p className="kicker">Library</p>
@@ -218,6 +221,7 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
             previewHref: assetLink(params, asset.id),
             thumbnailUrl: asset.thumbnailUrl,
             fileUrl: asset.fileUrl,
+            mediaType: asset.mediaType,
             altText: asset.altText,
             source: asset.source,
             description: asset.description ?? asset.caption,
@@ -251,7 +255,7 @@ export default async function AssetsPage({ searchParams }: AssetsPageProps) {
             <div className="editor-overlay__content">
               <div className="asset-preview">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img alt={selectedAsset.altText ?? selectedAsset.title} src={selectedAsset.fileUrl} />
+                {selectedAsset.mediaType === "audio" ? <audio controls preload="metadata" src={selectedAsset.fileUrl} /> : selectedAsset.mediaType === "video" ? <video controls preload="metadata" src={selectedAsset.fileUrl} /> : <img alt={selectedAsset.altText ?? selectedAsset.title} src={selectedAsset.fileUrl} />}
                 <div className="asset-preview__details">
                   <div className="asset-recommendation-note">
                     <Sparkles aria-hidden="true" size={18} />
