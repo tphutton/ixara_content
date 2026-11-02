@@ -6,6 +6,8 @@ import { getBrandProfileReadiness } from "@/lib/brand-profiles/intelligence";
 import { prisma } from "@/lib/prisma";
 import {
   addBrandKitReferenceAction,
+  createBrandCharacterAction,
+  updateBrandCharacterAction,
   removeBrandKitReferenceAction,
   updateBrandKitReferenceAction,
   createBrandProfileAction,
@@ -29,7 +31,7 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
   const isCreating = resolvedSearchParams?.new === "1";
   const profiles = await prisma.brandProfile.findMany({
     orderBy: { brandName: "asc" },
-    include: { kitReferences: { include: { asset: true }, orderBy: { createdAt: "desc" } } },
+    include: { kitReferences: { include: { asset: true }, orderBy: { createdAt: "desc" } }, characters: { include: { referenceAsset: true }, orderBy: { name: "asc" } } },
   });
   const availableAssets = resolvedSearchParams?.view ? await prisma.asset.findMany({ where: { OR: [{ source: "manual" }, { brand: profiles.find(p => p.id === resolvedSearchParams.view)?.brandName ?? "" }] }, orderBy: { createdAt: "desc" }, take: 200, select: { id: true, title: true } }) : [];
   const editingProfile = resolvedSearchParams?.edit
@@ -38,6 +40,11 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
   const viewingProfile = resolvedSearchParams?.view
     ? profiles.find((profile) => profile.id === resolvedSearchParams.view) ?? null
     : null;
+  const characterJobs = viewingProfile?.characters.length ? await prisma.mediaGenerationJob.findMany({
+    where: { provider: "runway", targetType: "brand_character", targetId: { in: viewingProfile.characters.map(character => character.id) } },
+    orderBy: { createdAt: "desc" },
+    select: { targetId: true, status: true, error: true },
+  }) : [];
   const readinessRows = profiles.map((profile) => ({
     profile,
     readiness: getBrandProfileReadiness(profile),
@@ -113,6 +120,36 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
               <div><p className="kicker">Positioning</p><p>{viewingProfile.description ?? "No description added."}</p><p className="muted">{viewingProfile.positioning ?? "No positioning guidance added."}</p></div>
               <div className="metadata-grid"><div><span>Tone</span><strong>{viewingProfile.defaultTone ?? "Not set"}</strong></div><div><span>Audience</span><strong>{viewingProfile.targetAudience ?? "Not set"}</strong></div><div><span>Markets</span><strong>{listSummary([...viewingProfile.regions, ...viewingProfile.countries])}</strong></div><div><span>Sports</span><strong>{listSummary(viewingProfile.sports)}</strong></div></div>
               <div><p className="kicker">Visual direction</p><p>{viewingProfile.visualGuidelines ?? "No visual guidelines added."}</p></div>
+              <div className="stack">
+                <div><p className="kicker">Characters</p><p className="muted">Save each presenter’s appearance, personality and voice guidance in this brand kit. Creating or editing a profile does not generate video or spend credits.</p></div>
+                {viewingProfile.characters.length ? viewingProfile.characters.map(character => {
+                  const job = characterJobs.find(item => item.targetId === character.id);
+                  const active = job && ["queued", "submitted", "running"].includes(job.status);
+                  const locked = Boolean(character.providerCharacterId || active);
+                  const references = viewingProfile.kitReferences.filter(ref => ref.role === "character" && ref.status === "approved" && ["image/png", "image/jpeg", "image/webp"].includes(ref.asset.mimeType ?? ""));
+                  return <div className="quiet-panel stack" key={character.id}>
+                    <div><strong>{character.name}</strong> <span className="inline-chip">{character.providerCharacterId ? "Connected to Runway" : active ? `Runway: ${job.status}` : "Profile saved · not connected to Runway"}</span></div>
+                    <p><a href={character.referenceAsset.fileUrl} target="_blank" rel="noreferrer">View reference image</a></p>
+                    {locked ? <><p><strong>Personality:</strong> {character.personality}</p><p><strong>Voice guidance:</strong> {character.voiceDescription || "Not set"}</p><p className="muted">{active ? "This profile is locked while its Runway job is active." : "Editing connected characters is not available yet."}</p></> :
+                    <form action={updateBrandCharacterAction.bind(null, character.id)} className="stack">
+                      <label>Name <input name="name" defaultValue={character.name} required maxLength={100} /></label>
+                      <label>Approved reference <select name="referenceAssetId" defaultValue={character.referenceAssetId} required>{references.map(ref => <option key={ref.id} value={ref.assetId}>{ref.asset.title}</option>)}</select></label>
+                      <label>Personality <textarea name="personality" defaultValue={character.personality} required maxLength={10000} rows={3} /></label>
+                      <label>Voice guidance <textarea name="voiceDescription" defaultValue={character.voiceDescription ?? ""} maxLength={2000} rows={2} /></label>
+                      <button className="button button--secondary" type="submit">Save character</button>
+                    </form>}
+                    {job?.status === "failed" ? <p className="muted">The last Runway job failed; check its status before trying again.</p> : null}
+                  </div>;
+                }) : <p className="muted">No characters added yet.</p>}
+                {viewingProfile.kitReferences.some(ref => ref.role === "character" && ref.status === "approved" && ["image/png", "image/jpeg", "image/webp"].includes(ref.asset.mimeType ?? "")) ? <form action={createBrandCharacterAction.bind(null, viewingProfile.id)} className="stack quiet-panel">
+                  <strong>Add character</strong>
+                  <label>Name <input name="name" required maxLength={100} /></label>
+                  <label>Approved reference <select name="referenceAssetId" required defaultValue=""><option value="" disabled>Select an approved character image</option>{viewingProfile.kitReferences.filter(ref => ref.role === "character" && ref.status === "approved" && ["image/png", "image/jpeg", "image/webp"].includes(ref.asset.mimeType ?? "")).map(ref => <option key={ref.id} value={ref.assetId}>{ref.asset.title}</option>)}</select></label>
+                  <label>Personality <textarea name="personality" required maxLength={10000} rows={3} /></label>
+                  <label>Voice guidance <textarea name="voiceDescription" maxLength={2000} rows={2} /></label>
+                  <button className="button button--secondary" type="submit">Add character</button>
+                </form> : <p className="muted">To add a character, first approve an image with the Character role in Creative references below.</p>}
+              </div>
               <div className="stack"><div><p className="kicker">Creative references</p><p className="muted">Keep reusable character, prop, style, logo and sound references here. Upload media in Assets first; episode-specific material belongs with the episode. Draft and retired references are not approved for reuse.</p></div>
                 {viewingProfile.kitReferences.length ? viewingProfile.kitReferences.map(ref => <div className="quiet-panel" key={ref.id}>
                   <strong>{ref.asset.title}</strong> <span className="inline-chip">{ref.role} · {ref.status}</span>

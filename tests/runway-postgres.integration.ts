@@ -34,6 +34,9 @@ async function main() {
   assert.equal(await prisma.brandCharacter.count({ where: { brandProfileId: brand.id } }), 1, "character apply must be idempotent");
   const characterList: any = await call({ action: "read", tool: "list_brand_characters", args: { brandProfileId: brand.id } });
   assert.equal(characterList[0].id, characterApplied.result.id);
+  const nameOnlyEdit: any = await call({ action: "preview", tool: "update_brand_character", request_key: "character-name-only", args: { id: characterApplied.result.id, name: "Kit Original" } });
+  await call({ action: "apply", change_set_id: nameOnlyEdit.id });
+  assert.equal((await prisma.brandCharacter.findUniqueOrThrow({ where: { id: characterApplied.result.id } })).name, "Kit Original", "editing a character with no voice guidance must work");
   const characterEdit: any = await call({ action: "preview", tool: "update_brand_character", request_key: "character-update-test", args: { id: characterApplied.result.id, voiceDescription: "Warm and lively" } });
   await call({ action: "apply", change_set_id: characterEdit.id });
   assert.equal((await prisma.brandCharacter.findUniqueOrThrow({ where: { id: characterApplied.result.id } })).voiceDescription, "Warm and lively");
