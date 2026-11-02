@@ -143,3 +143,39 @@ export async function updateBrandKitReferenceAction(id: string, formData: FormDa
   await createActionLog({ userId: access.id, actionType: "update", targetType: "brand_kit_reference", targetId: id, summary: "Updated brand kit reference", beforeData: before, afterData: after, source: "manual" });
   revalidatePath("/brands");
 }
+
+
+// Manual and plugin edits share the same validation and audit workflow.
+async function applyCharacterOperation(name: string, args: Record<string, string>) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { brandCharacterOperations } = await import("@/lib/mcp/brand-character-operations");
+  const { withMcpTransaction } = await import("@/lib/mcp/transaction");
+  const access = await requireEditorialUserAccess();
+  const operation = brandCharacterOperations.find(item => item.name === name);
+  if (!operation) throw new Error("Character operation unavailable.");
+  await prisma.$transaction(tx => withMcpTransaction(tx, async () => {
+    if (operation.guard) await operation.guard(args, tx);
+    await operation.run(args, { ...access, source: "manual" });
+  }), { isolationLevel: "Serializable" });
+  revalidatePath("/brands");
+}
+
+export async function createBrandCharacterAction(brandProfileId: string, formData: FormData) {
+  await applyCharacterOperation("create_brand_character", {
+    brandProfileId,
+    referenceAssetId: String(formData.get("referenceAssetId") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    personality: String(formData.get("personality") ?? ""),
+    voiceDescription: String(formData.get("voiceDescription") ?? ""),
+  });
+}
+
+export async function updateBrandCharacterAction(id: string, formData: FormData) {
+  await applyCharacterOperation("update_brand_character", {
+    id,
+    referenceAssetId: String(formData.get("referenceAssetId") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    personality: String(formData.get("personality") ?? ""),
+    voiceDescription: String(formData.get("voiceDescription") ?? ""),
+  });
+}

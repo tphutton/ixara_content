@@ -9,7 +9,7 @@ const characterFields = { brandProfileId: str, referenceAssetId: str, name: str,
 async function validateCharacter(args: any, tx: any) {
   if (!args.name.trim() || args.name.trim().length > 100) throw new McpError(400, "Character name must contain 1–100 characters.");
   if (!args.personality.trim() || args.personality.length > 10000) throw new McpError(400, "Character personality must contain 1–10000 characters.");
-  if (args.voiceDescription !== undefined && args.voiceDescription.length > 2000) throw new McpError(400, "Voice description is too long.");
+  if (args.voiceDescription != null && args.voiceDescription.length > 2000) throw new McpError(400, "Voice description is too long.");
   const reference = await tx.brandKitReference.findFirst({ where: { brandProfileId: args.brandProfileId, assetId: args.referenceAssetId, role: "character", status: "approved" }, include: { asset: true } });
   if (!reference || !["image/png", "image/jpeg", "image/webp"].includes(reference.asset.mimeType || "")) throw new McpError(400, "Choose an approved character image from this brand kit.");
 }
@@ -25,7 +25,7 @@ export const brandCharacterOperations: Operation[] = [{
   guard: validateCharacter,
   run: async (args, actor) => {
     const character = await prisma.brandCharacter.create({ data: { brandProfileId: args.brandProfileId, referenceAssetId: args.referenceAssetId, name: args.name.trim(), personality: args.personality.trim(), voiceDescription: args.voiceDescription?.trim() || null } });
-    await prisma.contentActionLog.create({ data: { userId: actor.id, actionType: "create", targetType: "brand_character", targetId: character.id, summary: "Created brand character profile", afterData: JSON.parse(JSON.stringify(character)), source: "ai" } });
+    await prisma.contentActionLog.create({ data: { userId: actor.id, actionType: "create", targetType: "brand_character", targetId: character.id, summary: "Created brand character profile", afterData: JSON.parse(JSON.stringify(character)), source: actor.source === "manual" ? "manual" : "ai" } });
     return character;
   },
 }, {
@@ -46,7 +46,7 @@ export const brandCharacterOperations: Operation[] = [{
   run: async (args, actor) => {
     const before = await prisma.brandCharacter.findUniqueOrThrow({ where: { id: args.id } });
     const character = await prisma.brandCharacter.update({ where: { id: args.id }, data: { referenceAssetId: args.referenceAssetId, name: args.name?.trim(), personality: args.personality?.trim(), voiceDescription: args.voiceDescription === undefined ? undefined : args.voiceDescription.trim() || null } });
-    await prisma.contentActionLog.create({ data: { userId: actor.id, actionType: "update", targetType: "brand_character", targetId: character.id, summary: "Updated brand character profile", beforeData: JSON.parse(JSON.stringify(before)), afterData: JSON.parse(JSON.stringify(character)), source: "ai" } });
+    await prisma.contentActionLog.create({ data: { userId: actor.id, actionType: "update", targetType: "brand_character", targetId: character.id, summary: "Updated brand character profile", beforeData: JSON.parse(JSON.stringify(before)), afterData: JSON.parse(JSON.stringify(character)), source: actor.source === "manual" ? "manual" : "ai" } });
     return character;
   },
 }];
