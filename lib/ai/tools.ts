@@ -1,3 +1,5 @@
+import { runwayStartOperations } from "@/lib/mcp/runway-start-operation";
+import { videoTestOperations } from "@/lib/mcp/video-test-operations";
 import { videoApprovalOperations } from "@/lib/mcp/video-approval-operations";
 import { mediaRecoveryOperations } from "@/lib/mcp/media-recovery-operations";
 import { setPlanMediaBudget } from "@/lib/media/credit-budget";
@@ -2333,7 +2335,7 @@ async function updateVideoBriefTool(args: Record<string, unknown>, context: Tool
     durationSeconds: typeof args.durationSeconds === "number" ? args.durationSeconds : undefined,
     aspectRatio: args.aspectRatio !== undefined ? asOptionalString(args.aspectRatio) ?? "9:16" : undefined,
     targetPlatforms: Array.isArray(args.targetPlatforms) ? asStringArray(args.targetPlatforms) : undefined,
-    status: asOptionalString(args.status) as "draft" | "review" | "approved" | "generating" | "ready" | "rejected" | undefined,
+    status: (asOptionalString(args.status) ?? undefined) as "draft" | "review" | "approved" | "generating" | "ready" | "rejected" | undefined,
     shotEdits,
     changeSummary: asOptionalString(args.changeSummary) ?? undefined,
   });
@@ -3472,7 +3474,7 @@ export const contentOpsTools: ToolDefinition[] = [
 contentOpsTools.push({ type: "function", function: { name: "set_plan_media_budget", description: "Set the total Runway credit reservation limit for one plan. Changing the budget never starts generation.", parameters: { type: "object", properties: { planId: { type: "string" }, creditBudget: { type: "integer" } }, required: ["planId", "creditBudget"], additionalProperties: false } } });
 
 // Quill and ChatGPT use the same brand-kit operations and validation.
-for (const operation of [...brandKitOperations, ...mediaRecoveryOperations, ...videoApprovalOperations]) {
+for (const operation of [...brandKitOperations, ...mediaRecoveryOperations, ...videoApprovalOperations, ...videoTestOperations, ...runwayStartOperations]) {
   contentOpsTools.push({ type: "function", function: { name: operation.name, description: operation.description, parameters: operation.inputSchema } });
   toolHandlers[operation.name] = async (args, context) => {
     validateMcpInput(operation.inputSchema, args);
