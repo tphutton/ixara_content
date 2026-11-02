@@ -1,3 +1,4 @@
+import { setPlanMediaBudget } from "@/lib/media/credit-budget";
 import { brandKitOperations } from "@/lib/mcp/brand-kit-operations";
 import { validate as validateMcpInput } from "@/lib/mcp/engine";
 import { reconcilePublishedSchedule, scheduleHistoryTitle } from "@/lib/social/history-reconciliation";
@@ -2472,6 +2473,10 @@ const toolHandlers: Record<string, ToolHandler> = {
   update_video_brief: updateVideoBriefTool,
   add_editorial_comment: addEditorialCommentTool,
   resolve_editorial_comment: resolveEditorialCommentTool,
+  set_plan_media_budget: async (args, context) => {
+    const plan = await setPlanMediaBudget(asRequiredString(args.planId, "planId"), Number(args.creditBudget), context.access.id);
+    return { toolName: "set_plan_media_budget", summary: "Updated plan production credit budget.", payload: { planId: plan.id, creditBudget: plan.mediaCreditBudget } };
+  },
   queue_video_generation: queueVideoGenerationTool,
   get_production_status: async (args) => getProductionStatusTool(args),
   get_quality_summary: async () => getQualitySummaryTool(),
@@ -3457,6 +3462,8 @@ export const contentOpsTools: ToolDefinition[] = [
     },
   },
 ];
+
+contentOpsTools.push({ type: "function", function: { name: "set_plan_media_budget", description: "Set the total Runway credit reservation limit for one plan. Changing the budget never starts generation.", parameters: { type: "object", properties: { planId: { type: "string" }, creditBudget: { type: "integer" } }, required: ["planId", "creditBudget"], additionalProperties: false } } });
 
 // Quill and ChatGPT use the same brand-kit operations and validation.
 for (const operation of brandKitOperations) {

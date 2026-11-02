@@ -13,6 +13,7 @@ import { reviewPlanItemQualityAction } from "../../quality/actions";
 import {
   addContentPlanItemAction,
   queueShotGenerationAction,
+  setPlanMediaBudgetAction,
   processShotGenerationAction,
   deleteContentPlanAction,
   deleteContentPlanItemAction,
@@ -107,6 +108,8 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
   const viewingItem = viewingItemId ? plan.items.find((item) => item.id === viewingItemId) : null;
   const itemBrand = viewingItem?.brand ?? plan.brand;
   const kitReferences = viewingItem?.videoBrief && itemBrand ? await prisma.brandKitReference.findMany({ where: { status: "approved", brandProfile: { brandName: { equals: itemBrand, mode: "insensitive" } }, asset: { mimeType: { startsWith: "image/" } } }, include: { asset: true }, orderBy: { createdAt: "desc" } }) : [];
+  const budgetJobs = viewingItem?.videoBrief ? await prisma.mediaGenerationJob.findMany({ where: { provider: "runway", input: { path: ["planId"], equals: plan.id } }, select: { input: true } }) : [];
+  const reservedCredits = budgetJobs.reduce((sum, job) => { const data = job.input as { estimatedCredits?: unknown }; return sum + (typeof data?.estimatedCredits === "number" && Number.isFinite(data.estimatedCredits) ? data.estimatedCredits : 0); }, 0);
   const shotIds = viewingItem?.videoBrief?.shots.map(shot => shot.id) ?? [];
   const generationJobs = shotIds.length ? await prisma.mediaGenerationJob.findMany({ where: { targetType: "video_shot", targetId: { in: shotIds } }, include: { outputAsset: { select: { fileUrl: true, title: true } } }, orderBy: { createdAt: "desc" }, take: 30 }) : [];
   const updateItem = editingItem ? updateContentPlanItemAction.bind(null, plan.id, editingItem.id) : null;
@@ -271,6 +274,7 @@ export default async function PlanDetailPage({ params, searchParams }: PlanDetai
                   {viewingItem.videoBrief.script ? <div><p className="kicker">Script</p><p className="preserve-lines">{viewingItem.videoBrief.script}</p></div> : null}
                   {viewingItem.videoBrief.voiceover ? <div><p className="kicker">Voiceover</p><p className="preserve-lines">{viewingItem.videoBrief.voiceover}</p></div> : null}
                   <div className="table-shell"><table className="table"><thead><tr><th>#</th><th>Shot</th><th>Time</th><th>Prompt</th></tr></thead><tbody>{viewingItem.videoBrief.shots.map((shot) => <tr key={shot.id}><td>{shot.sortOrder + 1}</td><td><strong>{shot.title}</strong><div className="table-subtext">{shot.purpose ?? "No purpose"}</div></td><td>{shot.durationSeconds}s</td><td><span className="table-subtext preserve-lines">{shot.prompt}</span></td></tr>)}</tbody></table></div>
+                  <div className="quiet-panel stack"><strong>Plan production budget</strong><p className="muted">Current limit: {plan.mediaCreditBudget === null ? "Not set" : `${plan.mediaCreditBudget} credits`}; reserved: {reservedCredits} credits. Reservations remain counted if a job fails or is cancelled; review them before increasing the limit. Runway can change its prices.</p><form action={setPlanMediaBudgetAction.bind(null, plan.id)}><label>Maximum credits <input type="number" name="creditBudget" min="0" max="1000000" defaultValue={plan.mediaCreditBudget ?? ""} required /></label><button className="button button--secondary" type="submit">Save budget</button></form></div>
                   {generationJobs.length ? <div className="stack"><strong>Generation jobs</strong>{generationJobs.map(job => <div key={job.id} className="quiet-panel"><strong>{viewingItem.videoBrief?.shots.find(shot => shot.id === job.targetId)?.title ?? "Shot"}</strong> · {job.status}{job.error ? <p>{job.error}</p> : null}{job.outputAsset ? <p><a href={job.outputAsset.fileUrl} target="_blank" rel="noreferrer">Open {job.outputAsset.title}</a></p> : null}{["queued", "submitted", "running", "awaiting_asset"].includes(job.status) && !(job.status === "submitted" && !job.externalTaskId) ? <form action={processShotGenerationAction.bind(null, plan.id)}><input type="hidden" name="jobId" value={job.id}/><button type="submit" className="button button--secondary">{job.status === "queued" ? "Start generation" : "Check progress"}</button></form> : null}</div>)}</div> : null}
                   <div className="quiet-panel stack"><strong>Queue a shot with Runway Dev</strong><p className="muted">Choose an approved shot and a matching first-frame image. Gen-4.5 costs 12 credits per second; actual billing is determined by Runway. A Runway Dev key must be configured to start queued jobs.</p>
                     <form action={queueShotGenerationAction.bind(null, plan.id)} className="stack">

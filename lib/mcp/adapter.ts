@@ -16,7 +16,7 @@ const reads = new Set(['list_content','list_blogs','list_schedule_entries','get_
  'get_meta_publishing_readiness','list_automations','get_automation_health','list_content_plans','get_quality_summary','get_production_status']);
 const writes = new Set(['create_content','update_content','create_blog','update_blog','create_schedule_entry',
  'update_schedule_entry','upsert_brand_profile','create_content_plan','add_content_plan_item','promote_content_plan_item',
- 'update_video_brief','add_editorial_comment','resolve_editorial_comment','queue_video_generation']);
+ 'update_video_brief','add_editorial_comment','resolve_editorial_comment','queue_video_generation','set_plan_media_budget']);
 const models: Record<string,string> = {content:'content',blog:'blog',schedule:'contentSchedule',plan:'contentPlan',
  plan_item:'contentPlanItem',variant:'contentVariant',brand:'brandProfile',asset:'asset',video_brief:'videoBrief'};
 const targetModels: Record<string,string> = {content:'content',blog:'blog',schedule:'contentSchedule',content_plan:'contentPlan',
@@ -34,7 +34,7 @@ async function actor(id:string) {
 async function snapshot(name:string,args:any,tx:any) {
   const mapping: Record<string,[string,string]>={update_content:['content','id'],update_blog:['blog','id'],
     update_schedule_entry:['contentSchedule','id'],add_content_plan_item:['contentPlan','planId'],
-    promote_content_plan_item:['contentPlanItem','planItemId'],
+    promote_content_plan_item:['contentPlanItem','planItemId'],set_plan_media_budget:['contentPlan','planId'],
     resolve_editorial_comment:['editorialComment','commentId']};
   const target=mapping[name];
   const record=target&&args[target[1]]?await tx[target[0]].findUniqueOrThrow({where:{id:args[target[1]]}}):null;

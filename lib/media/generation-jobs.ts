@@ -16,7 +16,7 @@ export async function queueVideoGeneration(input: {
 }) {
   const brief = await prisma.videoBrief.findUniqueOrThrow({
     where: { planItemId: input.planItemId },
-    include: { shots: { orderBy: { sortOrder: "asc" } }, planItem: { select: { title: true, brand: true, plan: { select: { brand: true } } } } },
+    include: { shots: { orderBy: { sortOrder: "asc" } }, planItem: { select: { title: true, brand: true, plan: { select: { id: true, brand: true } } } } },
   });
   const shot = input.shotId ? brief.shots.find((item) => item.id === input.shotId) : null;
   if (input.shotId && !shot) throw new Error("The selected shot does not belong to this video brief.");
@@ -39,7 +39,11 @@ export async function queueVideoGeneration(input: {
   const targetType = shot ? "video_shot" : "video_brief";
   const targetId = shot?.id ?? brief.id;
   return prisma.$transaction(async (tx) => {
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`runway:${targetId}`}, 0))::text`;
+  // All budget and reservation changes use the same plan lock.
+  const planId = brief.planItem.plan.id;
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`media-budget:${planId}`}, 0))::text`;
+  const planBudget = await tx.contentPlan.findUniqueOrThrow({ where: { id: planId }, select: { mediaCreditBudget: true } });
+  if (planBudget.mediaCreditBudget === null) throw new Error("Set a plan credit budget before queuing generation.");
   const existing = await tx.mediaGenerationJob.findFirst({
     where: { provider, targetType, targetId, status: { in: [MediaGenerationStatus.queued, MediaGenerationStatus.submitted, MediaGenerationStatus.running, MediaGenerationStatus.awaiting_asset] } },
     orderBy: { createdAt: "desc" },
@@ -50,6 +54,12 @@ export async function queueVideoGeneration(input: {
     return existing;
   }
 
+  // Keep reservations even for failures or cancellations: provider charges may
+  // be ambiguous. An operator can set a new budget after reconciling spend.
+  const previousJobs = await tx.mediaGenerationJob.findMany({ where: { provider: "runway", input: { path: ["planId"], equals: planId } }, select: { input: true } });
+  const reserved = previousJobs.reduce((sum, item) => { const data = item.input as { estimatedCredits?: unknown }; return sum + (typeof data?.estimatedCredits === "number" && Number.isFinite(data.estimatedCredits) ? data.estimatedCredits : 0); }, 0);
+  if (reserved + estimatedCredits > planBudget.mediaCreditBudget) throw new Error(`Plan credit budget exceeded: ${reserved} reserved of ${planBudget.mediaCreditBudget} credits.`);
+
   const job = await tx.mediaGenerationJob.create({
     data: {
       provider,
@@ -57,6 +67,7 @@ export async function queueVideoGeneration(input: {
       targetId,
       createdById: input.accessId,
       input: jsonValue({
+        planId,
         planItemId: input.planItemId,
         title: brief.planItem.title,
         briefId: brief.id,

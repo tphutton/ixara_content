@@ -3,7 +3,7 @@ import { executeContentOpsTool } from "@/lib/ai/tools";
 import { prisma } from "@/lib/prisma";
 
 const MUTATION_TOOLS = new Set([
-  "add_brand_kit_reference", "update_brand_kit_reference", "remove_brand_kit_reference",
+  "set_plan_media_budget", "add_brand_kit_reference", "update_brand_kit_reference", "remove_brand_kit_reference",
   "create_content", "update_content", "create_blog", "update_blog",
   "create_schedule_entry", "update_schedule_entry", "sync_wordpress_assets",
   "sync_tsadb_assets", "upsert_brand_profile", "upsert_campaign", "delete_campaign",
@@ -14,6 +14,7 @@ const MUTATION_TOOLS = new Set([
 ]);
 
 const TOOL_LABELS: Record<string, string> = {
+  set_plan_media_budget: "Set plan media budget",
   add_brand_kit_reference: "Add brand kit reference", update_brand_kit_reference: "Update brand kit reference", remove_brand_kit_reference: "Remove brand kit reference",
   create_content: "Create content", update_content: "Update content",
   create_blog: "Create blog", update_blog: "Update blog",

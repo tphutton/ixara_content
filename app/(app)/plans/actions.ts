@@ -314,3 +314,13 @@ export async function processShotGenerationAction(planId: string, formData: Form
   await runSingleMediaGenerationJob(job.id);
   revalidatePath(`/plans/${planId}`);
 }
+
+export async function setPlanMediaBudgetAction(planId: string, formData: FormData) {
+  const { requireEditorialUserAccess } = await import("@/lib/auth/user-access");
+  const { setPlanMediaBudget } = await import("@/lib/media/credit-budget");
+  const access = await requireEditorialUserAccess();
+  const raw = String(formData.get("creditBudget") ?? "").trim();
+  if (!/^\d+$/.test(raw)) throw new Error("Enter a whole-number credit budget.");
+  await setPlanMediaBudget(planId, Number(raw), access.id);
+  revalidatePath(`/plans/${planId}`);
+}
