@@ -37,6 +37,13 @@ async function main() {
   const characterEdit: any = await call({ action: "preview", tool: "update_brand_character", request_key: "character-update-test", args: { id: characterApplied.result.id, voiceDescription: "Warm and lively" } });
   await call({ action: "apply", change_set_id: characterEdit.id });
   assert.equal((await prisma.brandCharacter.findUniqueOrThrow({ where: { id: characterApplied.result.id } })).voiceDescription, "Warm and lively");
+  const avatarPreview: any = await call({ action: "preview", tool: "queue_runway_character", request_key: "character-queue-test", args: { characterId: characterApplied.result.id, voicePreset: "clara" } });
+  assert.equal(await prisma.mediaGenerationJob.count({ where: { targetType: "brand_character", targetId: characterApplied.result.id } }), 0, "preview must not queue or call Runway");
+  const avatarQueued: any = await call({ action: "apply", change_set_id: avatarPreview.id });
+  await call({ action: "apply", change_set_id: avatarPreview.id });
+  assert.equal(await prisma.mediaGenerationJob.count({ where: { targetType: "brand_character", targetId: characterApplied.result.id } }), 1);
+  await assert.rejects(call({ action: "preview", tool: "update_brand_character", request_key: "character-block-edit", args: { id: characterApplied.result.id, name: "Other" } }), /active character job/);
+  await cancelQueuedRunwayJob(avatarQueued.result.id, user.id);
   const readBrief: any = await call({ action: "read", tool: "get_video_brief_for_plan_item", args: { planItemId: item.id } });
   assert.equal(readBrief.id, brief.id);
   const editPreview: any = await call({ action: "preview", tool: "update_video_brief", request_key: "runway-edit-no-status", args: { planItemId: item.id, changeSummary: "Review metadata" } });

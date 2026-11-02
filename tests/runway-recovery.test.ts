@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const { state, db } = vi.hoisted(() => {
-  const state = { job: { id: "job1", provider: "runway", status: "submitted", externalTaskId: null as string | null, submittedAt: new Date(Date.now() - 300_000) }, existing: false };
+  const state = { job: { id: "job1", provider: "runway", targetType: "video_shot", status: "submitted", externalTaskId: null as string | null, submittedAt: new Date(Date.now() - 300_000) }, existing: false };
   const db = { mediaGenerationJob: {
     findUniqueOrThrow: vi.fn(async () => ({ ...state.job })),
     findFirst: vi.fn(async () => state.existing ? { id: "other" } : null),

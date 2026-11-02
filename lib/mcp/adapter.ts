@@ -1,3 +1,4 @@
+import { runwayCharacterOperations } from './runway-character-operations';
 import { brandCharacterOperations } from './brand-character-operations';
 import { runwayStartOperations } from './runway-start-operation';
 import { videoTestOperations } from './video-test-operations';
@@ -85,7 +86,7 @@ const operations:Operation[]=(contentOpsTools as any[]).flatMap(def=>{
    snapshot:mutating?(args:any,tx:any)=>snapshot(f.name,args,tx):undefined,
    run:async(args:any,access:any)=>executeContentOpsTool(f.name,{...args,...('limit' in (f.parameters.properties||{})?{limit:Math.min(Math.max(Number(args.limit)||30,1),f.name === "list_published_posts" ? 500 : 100)}:{})},{access})}];
 });
-operations.push(...brandCharacterOperations, ...brandKitOperations, ...mediaRecoveryOperations, ...videoApprovalOperations, ...videoTestOperations, ...runwayStartOperations);
+operations.push(...runwayCharacterOperations, ...brandCharacterOperations, ...brandKitOperations, ...mediaRecoveryOperations, ...videoApprovalOperations, ...videoTestOperations, ...runwayStartOperations);
 operations.push({name:'get_video_brief_for_plan_item',description:'Read a video brief and its shots by plan item ID.',inputSchema:objectSchema({planItemId:string},['planItemId']),scope:'ixara-content:read',mutating:false,
  run:async args=>prisma.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId},include:{shots:{orderBy:{sortOrder:'asc'}}}})});
 operations.push({name:'get_record',description:'Read a complete Content record, blog, plan, variant, brand, asset or video brief.',
