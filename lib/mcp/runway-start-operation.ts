@@ -15,7 +15,7 @@ export const runwayStartOperations: Operation[] = [{
     if (input.startRequested === true) return { id: before.id, status: before.status, startRequested: true };
     const updated = await prisma.mediaGenerationJob.updateMany({ where: { id: args.jobId, status: "queued", input: { equals: before.input } }, data: { input: { ...input, startRequested: true } as never } });
     if (updated.count !== 1) throw new Error("Job changed; inspect it before retrying.");
-    await prisma.contentActionLog.create({ data: { userId: actor.id, actionType: "request_start", targetType: "media_generation_job", targetId: before.id, summary: "Requested Runway generation start", afterData: { startRequested: true }, source: "ai" } });
+    await prisma.contentActionLog.create({ data: { userId: actor.id, actionType: "request_start", targetType: "media_generation_job", targetId: before.id, summary: "Requested Runway generation start", afterData: { startRequested: true }, source: actor.source === "manual" ? "manual" : "ai" } });
     return { id: before.id, status: before.status, startRequested: true, estimatedCredits: input.estimatedCredits, note: "Worker may submit this job after this change is applied." };
   },
 }];

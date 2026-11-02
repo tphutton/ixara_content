@@ -4,9 +4,13 @@ import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getBrandProfileReadiness } from "@/lib/brand-profiles/intelligence";
 import { prisma } from "@/lib/prisma";
+import { runwayVoicePresets } from "@/lib/mcp/runway-character-operations";
 import {
   addBrandKitReferenceAction,
   createBrandCharacterAction,
+  queueRunwayCharacterAction,
+  startRunwayCharacterAction,
+  cancelRunwayCharacterAction,
   updateBrandCharacterAction,
   removeBrandKitReferenceAction,
   updateBrandKitReferenceAction,
@@ -43,7 +47,7 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
   const characterJobs = viewingProfile?.characters.length ? await prisma.mediaGenerationJob.findMany({
     where: { provider: "runway", targetType: "brand_character", targetId: { in: viewingProfile.characters.map(character => character.id) } },
     orderBy: { createdAt: "desc" },
-    select: { targetId: true, status: true, error: true },
+    select: { id: true, targetId: true, status: true, error: true, input: true },
   }) : [];
   const readinessRows = profiles.map((profile) => ({
     profile,
@@ -126,6 +130,7 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
                   const job = characterJobs.find(item => item.targetId === character.id);
                   const active = job && ["queued", "submitted", "running"].includes(job.status);
                   const locked = Boolean(character.providerCharacterId || active);
+                  const startRequested = job?.input && typeof job.input === "object" && !Array.isArray(job.input) && job.input.startRequested === true;
                   const references = viewingProfile.kitReferences.filter(ref => ref.role === "character" && ref.status === "approved" && ["image/png", "image/jpeg", "image/webp"].includes(ref.asset.mimeType ?? ""));
                   return <div className="quiet-panel stack" key={character.id}>
                     <div><strong>{character.name}</strong> <span className="inline-chip">{character.providerCharacterId ? "Connected to Runway" : active ? `Runway: ${job.status}` : "Profile saved · not connected to Runway"}</span></div>
@@ -138,6 +143,18 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
                       <label>Voice guidance <textarea name="voiceDescription" defaultValue={character.voiceDescription ?? ""} maxLength={2000} rows={2} /></label>
                       <button className="button button--secondary" type="submit">Save character</button>
                     </form>}
+                    {!character.providerCharacterId && !active ? <form action={queueRunwayCharacterAction.bind(null, character.id)} className="stack">
+                      <strong>Prepare a Runway character</strong>
+                      <p className="muted">Choose a preset voice to prepare the character. This step does not contact Runway or spend credits. Kit’s existing narration is not automatically matched to a preset.</p>
+                      <label>Runway voice <select name="voicePreset" required defaultValue=""><option value="" disabled>Select a voice</option>{runwayVoicePresets.map(voice => <option key={voice} value={voice}>{voice[0].toUpperCase() + voice.slice(1)}</option>)}</select></label>
+                      <button type="submit" className="button button--secondary">Prepare Runway character</button>
+                    </form> : null}
+                    {job?.status === "queued" ? <div className="stack">
+                      <p className="muted">Prepared. Starting sends the approved image and character details to Runway. Check current Runway pricing first.</p>
+                      {startRequested ? <p className="muted">Start requested. Waiting for the Runway worker to submit the character.</p> : process.env.RUNWAY_RUNNER_ENABLED === "true" && process.env.RUNWAYML_API_SECRET ? <form action={startRunwayCharacterAction.bind(null, job.id)}><button type="submit" className="button button--primary">Start Runway character</button></form> : <p className="muted">Runway processing is currently disabled. The prepared character will not be submitted.</p>}
+                      <form action={cancelRunwayCharacterAction.bind(null, job.id)}><button type="submit" className="button button--secondary">Cancel preparation</button></form>
+                    </div> : null}
+                    {job?.status === "submitted" && !character.providerCharacterId ? <p className="muted">Submission is being checked. Do not create another character if the result is uncertain.</p> : null}
                     {job?.status === "failed" ? <p className="muted">The last Runway job failed; check its status before trying again.</p> : null}
                   </div>;
                 }) : <p className="muted">No characters added yet.</p>}
