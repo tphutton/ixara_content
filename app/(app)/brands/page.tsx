@@ -130,6 +130,7 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
                   const job = characterJobs.find(item => item.targetId === character.id);
                   const active = job && ["queued", "submitted", "running"].includes(job.status);
                   const locked = Boolean(character.providerCharacterId || active);
+                  const startRequested = job?.input && typeof job.input === "object" && !Array.isArray(job.input) && job.input.startRequested === true;
                   const references = viewingProfile.kitReferences.filter(ref => ref.role === "character" && ref.status === "approved" && ["image/png", "image/jpeg", "image/webp"].includes(ref.asset.mimeType ?? ""));
                   return <div className="quiet-panel stack" key={character.id}>
                     <div><strong>{character.name}</strong> <span className="inline-chip">{character.providerCharacterId ? "Connected to Runway" : active ? `Runway: ${job.status}` : "Profile saved · not connected to Runway"}</span></div>
@@ -150,7 +151,7 @@ export default async function BrandsPage({ searchParams }: BrandsPageProps) {
                     </form> : null}
                     {job?.status === "queued" ? <div className="stack">
                       <p className="muted">Prepared. Starting sends the approved image and character details to Runway. Check current Runway pricing first.</p>
-                      {process.env.RUNWAY_RUNNER_ENABLED === "true" && process.env.RUNWAYML_API_SECRET ? <form action={startRunwayCharacterAction.bind(null, job.id)}><button type="submit" className="button button--primary">Start Runway character</button></form> : <p className="muted">Runway processing is currently disabled. The prepared character will not be submitted.</p>}
+                      {startRequested ? <p className="muted">Start requested. Waiting for the Runway worker to submit the character.</p> : process.env.RUNWAY_RUNNER_ENABLED === "true" && process.env.RUNWAYML_API_SECRET ? <form action={startRunwayCharacterAction.bind(null, job.id)}><button type="submit" className="button button--primary">Start Runway character</button></form> : <p className="muted">Runway processing is currently disabled. The prepared character will not be submitted.</p>}
                       <form action={cancelRunwayCharacterAction.bind(null, job.id)}><button type="submit" className="button button--secondary">Cancel preparation</button></form>
                     </div> : null}
                     {job?.status === "submitted" && !character.providerCharacterId ? <p className="muted">Submission is being checked. Do not create another character if the result is uncertain.</p> : null}
