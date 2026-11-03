@@ -102,6 +102,11 @@ async function main() {
   assert.equal(speechJob.status, "queued");
   assert.equal((speechJob.input as any).startRequested, undefined);
   await assert.rejects(call({ action: "preview", tool: "queue_character_speech_test", request_key: "runway-speech-duplicate", args: speechArgs }), /active speaking test/);
+  const production: any = await call({ action: "read", tool: "get_production_status", args: { planItemId: item.id } });
+  assert.ok(production.payload.speakingTests.some((job: any) => job.id === speechJob.id), "existing production status must expose the speech test");
+  const dashboard: any = await call({ action: "read", tool: "get_dashboard_summary", args: {} });
+  assert.equal(dashboard.payload.pendingRunwayStarts, 1, "dashboard must show all explicitly requested starts");
+
   await prisma.$disconnect();
   console.log("Runway PostgreSQL integration: concurrent budget, preview rollback and idempotent apply PASS");
 }

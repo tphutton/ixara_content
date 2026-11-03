@@ -781,7 +781,7 @@ async function updateScheduleEntryTool(args: Record<string, unknown>, context: T
 }
 
 async function getDashboardSummaryTool() {
-  const [contentCounts, blogCounts, upcomingSchedule, recentActions] = await Promise.all([
+  const [contentCounts, blogCounts, upcomingSchedule, recentActions, pendingRunwayStarts] = await Promise.all([
     prisma.content.groupBy({
       by: ["status"],
       _count: { status: true },
@@ -802,12 +802,14 @@ async function getDashboardSummaryTool() {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
+    prisma.mediaGenerationJob.count({ where: { provider: "runway", status: "queued", input: { path: ["startRequested"], equals: true } } }),
   ]);
 
   return {
     toolName: "get_dashboard_summary",
     summary: "Retrieved dashboard summary.",
     payload: {
+      pendingRunwayStarts,
       contentCounts: contentCounts.map((item) => ({
         status: item.status,
         count: item._count.status,
@@ -2417,6 +2419,11 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
     select: { id: true, status: true, provider: true, targetType: true, targetId: true, error: true, externalTaskId: true, outputAssetId: true, costCents: true, input: true },
     orderBy: { updatedAt: "desc" },
   });
+  const speakingTests = await prisma.mediaGenerationJob.findMany({
+    where: { provider: "runway", targetType: "character_speech", input: { path: ["planId"], equals: item.planId } },
+    select: { id: true, status: true, error: true, externalTaskId: true, outputAssetId: true, input: true },
+    orderBy: { updatedAt: "desc" },
+  });
   const status = getUnifiedProductionStatus({
     contentStatus: item.content?.status,
     briefStatus: item.videoBrief.status,
@@ -2434,6 +2441,7 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
       briefStatus: item.videoBrief.status,
       shotCount: item.videoBrief.shots.length,
       jobs,
+      speakingTests,
     },
   };
 }
