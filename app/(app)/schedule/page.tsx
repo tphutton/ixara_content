@@ -30,7 +30,7 @@ export default async function SchedulePage(props: Props) {
   const [slots, posts, campaignsResult, contentOptions] = await Promise.all([
     prisma.contentSchedule.findMany({
       include: {
-        content: { include: { primaryAsset: true } },
+        content: { include: { primaryAsset: true, selectedVariant: true } },
         blog: true,
         publishedPosts: { select: { id: true } },
       },
@@ -76,7 +76,13 @@ export default async function SchedulePage(props: Props) {
     brand: s.brand ?? s.content?.brand ?? s.blog?.brand ?? "Unassigned",
     platform: s.channel ?? "Unassigned",
     account: s.platformAccount ?? "",
-    caption: s.content?.body ?? s.blog?.text1 ?? "",
+    caption: s.content
+      ? [
+          s.content.selectedVariant?.hook ?? s.content.hook,
+          s.content.selectedVariant?.body ?? s.content.body,
+          s.content.selectedVariant?.cta ?? s.content.cta,
+        ].filter(Boolean).join("\n\n")
+      : s.blog?.text1 ?? "",
     campaign: s.campaignName,
     contentId: s.contentId,
     contentTitle: s.content?.title ?? null,
@@ -185,6 +191,7 @@ export default async function SchedulePage(props: Props) {
         initialView={search.view}
         initialPlatform={search.platform}
         initialStatus={search.status}
+        initialPeriod={search.period}
       />
     </section>
   );
