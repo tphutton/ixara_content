@@ -15,7 +15,10 @@ export function buildRenderArgs(timeline:Timeline, media:Map<string,LocalMedia>,
     if(source.kind==='image')args.push('-f','image2','-loop','1'); else args.push('-f','mov','-stream_loop','-1');
     if(scene.startSeconds)args.push('-ss',String(scene.startSeconds));
     args.push('-t',String(scene.durationSeconds),'-i',source.path);
-    filters.push(`[${index}:v]trim=duration=${scene.durationSeconds},setpts=PTS-STARTPTS,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=24,format=yuv420p[v${index}]`);
+    if (source.kind === 'image' && scene.motion && scene.motion !== 'none') {
+      const zoom = scene.motion === 'push' ? 'min(zoom+0.0008,1.08)' : 'if(eq(on,1),1.08,max(1.0,zoom-0.0008))';
+      filters.push(`[${index}:v]trim=duration=${scene.durationSeconds},setpts=PTS-STARTPTS,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2,setsar=1,zoompan=z='${zoom}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=720x1280:fps=24,format=yuv420p[v${index}]`);
+    } else filters.push(`[${index}:v]trim=duration=${scene.durationSeconds},setpts=PTS-STARTPTS,scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=24,format=yuv420p[v${index}]`);
   });
   timeline.audio.forEach((track,index)=>{
     const source=media.get(track.assetId);

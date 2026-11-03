@@ -1,4 +1,4 @@
-export type TimelineScene = {assetId:string;durationSeconds:number;startSeconds?:number};
+export type TimelineScene = {assetId:string;durationSeconds:number;startSeconds?:number;motion?:'none'|'push'|'pull'};
 export type TimelineAudio = {assetId:string;offsetSeconds?:number;volume?:number};
 export type Timeline = {scenes:TimelineScene[];audio:TimelineAudio[]};
 
@@ -9,6 +9,7 @@ export function validateTimeline(timeline:Timeline) {
   for(const scene of timeline.scenes) {
     if(!scene.assetId||!Number.isFinite(scene.durationSeconds)||scene.durationSeconds<0.5||scene.durationSeconds>30)throw new Error('Scenes must last between 0.5 and 30 seconds.');
     if(scene.startSeconds!==undefined&&(!Number.isFinite(scene.startSeconds)||scene.startSeconds<0||scene.startSeconds>600))throw new Error('Invalid scene start.');
+    if(scene.motion!==undefined&&!['none','push','pull'].includes(scene.motion))throw new Error('Unsupported image motion.');
     duration+=scene.durationSeconds;
   }
   if(duration>180)throw new Error('Draft renders are limited to three minutes.');
