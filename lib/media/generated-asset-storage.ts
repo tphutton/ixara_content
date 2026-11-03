@@ -21,8 +21,10 @@ export async function ingestGeneratedMedia(input: { jobId: string; outputUrl: st
     chunks.push(part);
   }
   const contentType = response.headers.get("content-type")?.split(";")[0] || "video/mp4";
-  if (!contentType.startsWith("video/")) throw new Error("Generated media is not a video.");
-  const bytes = Buffer.concat(chunks); const key = `generated/video/${input.jobId}.mp4`;
+  const image = input.targetType === "storyboard_image";
+  const extensions: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+  if (image ? !extensions[contentType] : !contentType.startsWith("video/")) throw new Error("Generated media type is invalid.");
+  const bytes = Buffer.concat(chunks); const key = image ? `generated/image/${input.jobId}.${extensions[contentType]}` : `generated/video/${input.jobId}.mp4`;
   const { client, bucket } = privateStorageClient();
   await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: bytes, ContentType: contentType, CacheControl: "private, no-store" }));
   const externalId = `media-generation:${input.jobId}`;
@@ -30,6 +32,6 @@ export async function ingestGeneratedMedia(input: { jobId: string; outputUrl: st
   const id = existing?.id ?? randomUUID(); const fileUrl = privateAssetUrl(id);
   const metadata = { storage: "private-s3", objectKey: key, generatedBy: "runway", generationJobId: input.jobId, targetType: input.targetType, targetId: input.targetId } as Prisma.InputJsonValue;
   return prisma.asset.upsert({ where: { source_externalId: { source: AssetSource.manual, externalId } },
-    create: { id, source: AssetSource.manual, externalId, title: input.title, fileUrl, mimeType: contentType, mediaType: "video", fileSize: bytes.length, metadata, tags: [], syncedAt: new Date() },
-    update: { title: input.title, fileUrl, mimeType: contentType, mediaType: "video", fileSize: bytes.length, metadata, syncedAt: new Date() } });
+    create: { id, source: AssetSource.manual, externalId, title: input.title, fileUrl, mimeType: contentType, mediaType: image ? "image" : "video", fileSize: bytes.length, metadata, tags: [], syncedAt: new Date() },
+    update: { title: input.title, fileUrl, mimeType: contentType, mediaType: image ? "image" : "video", fileSize: bytes.length, metadata, syncedAt: new Date() } });
 }
