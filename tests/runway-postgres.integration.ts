@@ -58,6 +58,12 @@ async function main() {
   await call({ action: "apply", change_set_id: preview.id });
   assert.equal(await prisma.mediaGenerationJob.count({ where: { targetId: shots[2].id } }), 1, "apply retry must not duplicate a job");
   const reviewed = await prisma.videoShot.create({ data: { videoBriefId: brief.id, sortOrder: 3, title: "Reviewed", durationSeconds: 5, prompt: "Reviewed prompt", status: "planned" } });
+  const shotEditPreview: any = await call({ action: "preview", tool: "update_video_brief", request_key: "shot-edit-omit-status", args: { planItemId: item.id, shotEdits: [{ shotId: reviewed.id, voiceover: "Exact narration." }] } });
+  assert.equal((await prisma.videoShot.findUniqueOrThrow({ where: { id: reviewed.id } })).voiceover, null, "shot edit preview must roll back");
+  await call({ action: "apply", change_set_id: shotEditPreview.id });
+  const editedShot = await prisma.videoShot.findUniqueOrThrow({ where: { id: reviewed.id } });
+  assert.equal(editedShot.voiceover, "Exact narration.");
+  assert.equal(editedShot.status, "planned", "omitted shot status must remain unchanged");
   const approval: any = await call({ action: "preview", tool: "approve_video_shots", request_key: "runway-approve-shots", args: { planItemId: item.id, shotIds: [reviewed.id], note: "Batch reviewed" } });
   assert.equal((await prisma.videoShot.findUniqueOrThrow({ where: { id: reviewed.id } })).status, "planned", "approval preview must roll back");
   await call({ action: "apply", change_set_id: approval.id });
