@@ -1,3 +1,4 @@
+import { runwayCostReconciliation } from './runway-cost-reconciliation';
 import { imageProductionOperations } from './image-production-operations';
 import { characterSpeechOperations } from './character-speech-operations';
 import { productionBudgetOperation } from './production-budget';
@@ -97,6 +98,7 @@ const operations:Operation[]=(contentOpsTools as any[]).flatMap(def=>{
 });
 operations.push(...characterSpeechOperations, linkRunwayCharacterOperation, ...runwayCharacterOperations, ...brandCharacterOperations, ...brandKitOperations, ...mediaRecoveryOperations, ...videoApprovalOperations, ...videoTestOperations, ...runwayStartOperations);
 operations.push(productionBudgetOperation);
+operations.push(runwayCostReconciliation);
 operations.push(...audioReviewOperations);
 operations.push(...videoBatchOperations);
 operations.push(...assemblyOperations);
