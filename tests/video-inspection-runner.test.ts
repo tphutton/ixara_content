@@ -19,6 +19,8 @@ describe('selected video inspection',()=>{
     m.jobs.mockResolvedValue([{id:'job',input:{assetId:'a',assetUpdatedAt:t.toISOString(),briefUpdatedAt:t.toISOString(),planItemId:'p',sourceJobId:'s'}}]);m.update.mockResolvedValue({count:1});
     m.asset.mockResolvedValue({id:'a',updatedAt:t});m.brief.mockResolvedValue({updatedAt:new Date('2026-01-02T00:00:00Z')});m.source.mockResolvedValue({outputAssetId:'a',status:'succeeded'});
     await runDueVideoInspections();expect(m.create).not.toHaveBeenCalled();expect(m.update.mock.calls[1][0].data.status).toBe('failed');
+    expect(m.update.mock.calls[1][0].data.input.failureStage).toBe('validation');
+    expect(m.update.mock.calls[1][0].data.input.providerMayHaveBeenCalled).toBe(false);
   });
   it('samples a real clip, sends bounded frames and saves only written findings',async()=>{
     vi.stubEnv('OPENAI_API_KEY','test');const t=new Date('2026-01-01T00:00:00Z'),dir=mkdtempSync(join(tmpdir(),'ixara-review-test-'));
