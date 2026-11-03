@@ -1,3 +1,4 @@
+import { processRunwaySpeechJob } from "@/lib/media/runway-speech-runner";
 import { processRunwayCharacterJob } from "@/lib/media/runway-character-runner";
 import { MediaGenerationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -53,6 +54,7 @@ async function persistOutput(job: { id: string; outputUrl: string; targetType: s
 
 async function processRunwayJob(job: { id: string; status: MediaGenerationStatus; externalTaskId: string | null; outputUrl: string | null; targetType: string; targetId: string; input: unknown }) {
   if (job.targetType === "brand_character") return processRunwayCharacterJob(job);
+  if (job.targetType === "character_speech") return processRunwaySpeechJob(job, persistOutput);
   if (job.status === MediaGenerationStatus.queued) {
     const input = asJobInput(job.input);
     if (!input.prompt || !input.durationSeconds || !input.aspectRatio) throw new Error("Generation job is missing prompt, duration, or aspect ratio.");
