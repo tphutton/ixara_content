@@ -2424,6 +2424,16 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
     select: { id: true, status: true, error: true, externalTaskId: true, outputAssetId: true, input: true },
     orderBy: { updatedAt: "desc" },
   });
+  const assemblyJobs = await prisma.mediaGenerationJob.findMany({
+    where: { provider: "local_editor", targetType: "video_assembly", targetId: planItemId },
+    select: { id: true, status: true, error: true, outputAssetId: true, input: true },
+    orderBy: { updatedAt: "desc" },
+  });
+  const audioInspections = await prisma.mediaGenerationJob.findMany({
+    where: { provider: "openai", targetType: "audio_inspection", input: { path: ["planItemId"], equals: planItemId } },
+    select: { id: true, status: true, error: true, input: true },
+    orderBy: { updatedAt: "desc" },
+  });
   const status = getUnifiedProductionStatus({
     contentStatus: item.content?.status,
     briefStatus: item.videoBrief.status,
@@ -2442,6 +2452,8 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
       shotCount: item.videoBrief.shots.length,
       jobs,
       speakingTests,
+      assemblyJobs,
+      audioInspections,
     },
   };
 }
