@@ -3,6 +3,7 @@ const run = vi.hoisted(() => vi.fn(async () => ({ processed: 0, results: [] })))
 vi.mock("@/lib/media/runner", () => ({ runDueMediaGenerationJobs: run }));
 vi.mock("@/lib/media/audio-inspection-runner", () => ({ runDueAudioInspections: vi.fn(async () => {}) }));
 vi.mock("@/lib/media/assembly-runner", () => ({ runDueVideoAssemblies: vi.fn(async () => {}) }));
+vi.mock("@/lib/media/video-inspection-runner", () => ({ runDueVideoInspections: vi.fn(async () => {}) }));
 import { startMediaRunner } from "@/lib/media/background-runner";
 
 describe("background runner", () => {
