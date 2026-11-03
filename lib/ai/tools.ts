@@ -2321,7 +2321,7 @@ async function updateVideoBriefTool(args: Record<string, unknown>, context: Tool
           visualDetails: edit.visualDetails !== undefined ? asOptionalString(edit.visualDetails) : undefined,
           onScreenText: edit.onScreenText !== undefined ? asOptionalString(edit.onScreenText) : undefined,
           voiceover: edit.voiceover !== undefined ? asOptionalString(edit.voiceover) : undefined,
-          status: asOptionalString(edit.status) as "planned" | "approved" | "generating" | "ready" | "needs_changes" | undefined,
+          status: (asOptionalString(edit.status) ?? undefined) as "planned" | "approved" | "generating" | "ready" | "needs_changes" | undefined,
         }))
     : [];
   const brief = await updateVideoBrief({
