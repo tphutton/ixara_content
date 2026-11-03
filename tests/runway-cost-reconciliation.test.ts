@@ -12,6 +12,11 @@ describe('provider-verified reservation reconciliation',()=>{
     const applied:any=await runwayCostReconciliation.external!.apply(args,{id:'actor'},preview);
     expect(applied.creditsReleased).toBe(3);expect(m.update.mock.calls[0][0].data.input).toMatchObject({estimatedCredits:5,originalEstimatedCredits:8,verifiedRunwayCredits:5});
   });
+  it('accepts preview keys reordered by database JSON storage',async()=>{
+    const preview:any=await runwayCostReconciliation.external!.preview(args,{},'key');
+    preview.jobs=preview.jobs.map((x:any)=>({charged:x.charged,id:x.id,reserved:x.reserved,taskId:x.taskId}));
+    const result:any=await runwayCostReconciliation.external!.apply(args,{id:'actor'},preview);expect(result.creditsReleased).toBe(3);
+  });
   it('never releases a failed or unsettled job',async()=>{
     m.findMany.mockResolvedValue([{...job,status:'failed'}]);await expect(runwayCostReconciliation.external!.preview(args,{},'key')).rejects.toThrow('successful');expect(m.task).not.toHaveBeenCalled();
   });

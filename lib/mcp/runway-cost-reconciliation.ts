@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getRunwayTask } from '@/lib/media/providers/runway';
-import { McpError, type Operation } from './engine';
+import { McpError, digest, type Operation } from './engine';
 
 type CostLine={id:string;taskId:string;reserved:number;charged:number};
 async function verify(planId:string, ids:string[]):Promise<CostLine[]> {
@@ -25,7 +25,7 @@ export const runwayCostReconciliation:Operation={
     preview:async(args)=>({planId:args.planId,jobs:await verify(args.planId,args.jobIds),note:'Read-only verification. No reservations changed.'}),
     apply:async(args,actor,preview)=>{
       const verified=await verify(args.planId,args.jobIds);
-      if(JSON.stringify(verified)!==JSON.stringify(preview.jobs))throw new McpError(409,'A job or provider cost changed. Preview again.');
+      if(digest(verified)!==digest(preview.jobs))throw new McpError(409,'A job or provider cost changed. Preview again.');
       await prisma.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`media-budget:${args.planId}`}, 0))::text`;
       const settled=[];
       for(const line of verified){
