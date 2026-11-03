@@ -9,6 +9,7 @@ import { runwayCharacterOperations } from './runway-character-operations';
 import { brandCharacterOperations } from './brand-character-operations';
 import { runwayStartOperations } from './runway-start-operation';
 import { videoTestOperations } from './video-test-operations';
+import { episodeBriefOperations } from './episode-brief-operations';
 import { videoApprovalOperations } from './video-approval-operations';
 import { mediaRecoveryOperations } from './media-recovery-operations';
 import { brandKitOperations } from './brand-kit-operations';
@@ -98,6 +99,7 @@ operations.push(productionBudgetOperation);
 operations.push(...audioReviewOperations);
 operations.push(...videoBatchOperations);
 operations.push(...assemblyOperations);
+operations.push(...episodeBriefOperations);
 operations.push(...videoReviewOperations);
 operations.push({name:'get_video_brief_for_plan_item',description:'Read a video brief and its shots by plan item ID.',inputSchema:objectSchema({planItemId:string},['planItemId']),scope:'ixara-content:read',mutating:false,
  run:async args=>prisma.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId},include:{shots:{orderBy:{sortOrder:'asc'}}}})});
