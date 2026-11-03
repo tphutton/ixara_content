@@ -95,6 +95,7 @@ export function PublishingCalendar({
   initialView,
   initialPlatform,
   initialStatus,
+  initialPeriod,
 }: {
   entries: CalendarEntry[];
   campaigns: CampaignWindow[];
@@ -105,11 +106,14 @@ export function PublishingCalendar({
   initialView?: string;
   initialPlatform?: string;
   initialStatus?: string;
+  initialPeriod?: string;
 }) {
   const [overrides, setOverrides] = useState<
     Record<string, { date: string; updatedAt: string; status: string }>
   >({});
-  const entries = initialEntries.map((e) => ({ ...e, ...overrides[e.id] }));
+  const entries = initialEntries
+    .map((e) => ({ ...e, ...overrides[e.id] }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
   const [movePair, setMovePair] = useState(false);
   const [moving, setMoving] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -130,10 +134,12 @@ export function PublishingCalendar({
   const [view, setView] = useState(
     initialView === "week"
       ? "week"
-      : initialView === "agenda"
-        ? "agenda"
-        : "month",
+      : initialView === "month"
+        ? "month"
+        : "agenda",
   );
+  const [period, setPeriod] = useState(initialPeriod === "past" ? "past" : "upcoming");
+  const [agendaLimit, setAgendaLimit] = useState(14);
   const [brand, setBrand] = useState(initialBrand ?? "all");
   const [platform, setPlatform] = useState(initialPlatform ?? "all");
   const [status, setStatus] = useState(initialStatus ?? "all");
@@ -150,9 +156,11 @@ export function PublishingCalendar({
       brand,
       platform,
       status,
+      period,
     });
     window.history.replaceState(null, "", `/schedule?${query}`);
-  }, [view, anchor, brand, platform, status]);
+  }, [view, anchor, brand, platform, status, period]);
+  useEffect(() => setAgendaLimit(14), [period, brand, platform, status]);
   const brands = [...new Set(entries.map((e) => e.brand))].sort();
   const monthStart = anchor.slice(0, 7) + "-01";
   const monday = (key: string) =>
@@ -176,16 +184,37 @@ export function PublishingCalendar({
       (status === "all"
         ? e.status !== "cancelled"
         : status === "attention"
-          ? ["missed", "failed"].includes(e.status)
+          ? ["missed", "failed"].includes(e.status) ||
+            (e.kind === "schedule" && ["planned", "ready", "scheduled"].includes(e.status) && new Date(e.date).getTime() < Date.now())
           : e.status === status) &&
-      calendarDay(e.date) >= start &&
-      calendarDay(e.date) <= end,
+      (view === "agenda"
+        ? period === "past"
+          ? calendarDay(e.date) < today
+          : calendarDay(e.date) >= today
+        : calendarDay(e.date) >= start && calendarDay(e.date) <= end),
   );
+  const agendaGroups = new Map<string, CalendarEntry[]>();
+  for (const entry of visible) {
+    const day = calendarDay(entry.date);
+    const group = agendaGroups.get(day) ?? [];
+    group.push(entry);
+    agendaGroups.set(day, group);
+  }
+  const agendaDays = [...agendaGroups.keys()].sort((a, b) =>
+    period === "past" ? b.localeCompare(a) : a.localeCompare(b),
+  );
+  const shownAgendaDays = agendaDays.slice(0, agendaLimit);
+  const campaignStart = view === "agenda"
+    ? (period === "past" ? shownAgendaDays.at(-1) : today) ?? today
+    : start;
+  const campaignEnd = view === "agenda"
+    ? (period === "past" ? shift(today, -1) : shownAgendaDays.at(-1)) ?? today
+    : end;
   const activeCampaigns = campaigns.filter(
     (c) =>
       c.start &&
-      calendarDay(c.start) <= end &&
-      calendarDay(c.end ?? c.start) >= start &&
+      calendarDay(c.start) <= campaignEnd &&
+      calendarDay(c.end ?? c.start) >= campaignStart &&
       (brand === "all" || c.brands.includes(brand)),
   );
   function navigate(amount: number) {
@@ -299,8 +328,8 @@ export function PublishingCalendar({
       className="publishing-card"
       data-status={e.status}
       key={`${e.kind}-${e.id}`}
-      draggable={Boolean(e.movable && !moving)}
-      aria-label={`${e.title}, ${e.platform}, ${e.status}${e.movable ? ", drag to another day or open to edit timing" : ""}`}
+      draggable={Boolean(view !== "agenda" && e.movable && !moving)}
+      aria-label={`${e.title}, ${e.platform}, ${e.status}${e.movable ? view === "agenda" ? ", open to edit timing" : ", drag to another day or open to edit timing" : ""}`}
       onDragStart={(event) => {
         event.dataTransfer.setData("application/x-ixara-schedule", e.id);
         event.dataTransfer.effectAllowed = "move";
@@ -346,8 +375,7 @@ export function PublishingCalendar({
           Move paired Facebook + Instagram posts together
         </label>
         <span className="muted">
-          Drag unpublished posts to a day. Times stay in Bangkok. Click a post
-          to edit date/time.
+          {view === "agenda" ? "Click a post to view its content or edit timing." : "Drag unpublished posts to a day, or click to edit timing."} All times are Bangkok.
         </span>
       </div>
       {(notice || moving) && (
@@ -398,6 +426,9 @@ export function PublishingCalendar({
                 <option value="all">All platforms</option>
                 <option value="instagram">Instagram</option>
                 <option value="facebook">Facebook</option>
+                <option value="story">Stories</option>
+                <option value="blog">Blog</option>
+                <option value="email">Email</option>
               </select>
             </label>
             <label>
@@ -426,15 +457,27 @@ export function PublishingCalendar({
         <div className="publishing-toolbar">
           <div>
             <h2>
-              {view === "week"
+              {view === "agenda"
+                ? period === "past" ? "Past agenda" : "Upcoming agenda"
+                : view === "week"
                 ? `${label(start, { day: "numeric", month: "short" })} – ${label(end, { day: "numeric", month: "short", year: "numeric" })}`
                 : label(monthStart, { month: "long", year: "numeric" })}
             </h2>
             <p className="muted">
-              {visible.length} posts in this view · Asia/Bangkok
+              {view === "agenda" ? period === "past" ? "Before today · Latest days first · " : "Today onward · " : ""}{visible.length} posts in this view · Asia/Bangkok
             </p>
           </div>
           <div className="toolbar__group">
+            {view === "agenda" ? (
+              <div className="agenda-period-tabs" role="group" aria-label="Agenda period">
+                {(["upcoming", "past"] as const).map((value) => (
+                  <button type="button" key={value} className="button button--secondary"
+                    aria-pressed={period === value} onClick={() => setPeriod(value)}>
+                    {value === "upcoming" ? "Upcoming" : "Past"}
+                  </button>
+                ))}
+              </div>
+            ) : <>
             <button
               className="button button--secondary"
               onClick={() => navigate(-1)}
@@ -455,6 +498,7 @@ export function PublishingCalendar({
             >
               →
             </button>
+            </>}
           </div>
         </div>
       </div>
@@ -472,25 +516,35 @@ export function PublishingCalendar({
         </section>
       )}
       {view === "agenda" ? (
-        <div className="quiet-panel">
+        <div className="publishing-agenda-list">
           {visible.length === 0 ? (
-            <p>No posts in this period.</p>
+            <p className="quiet-panel">{period === "past" ? "No past posts match these filters." : "No posts planned from today onward with these filters."}</p>
           ) : (
-            days.map((day) => {
-              const posts = visible.filter((e) => calendarDay(e.date) === day);
+            shownAgendaDays.map((day) => {
+              const posts = agendaGroups.get(day)!;
               return posts.length > 0 ? (
-                <section key={day}>
-                  <h3>
+                <section key={day} className="agenda-day quiet-panel" aria-label={day}>
+                  <header className="agenda-day__heading" data-today={day === today}>
+                  <h3><time dateTime={day}>
+                    {day === today ? "Today · " : day === shift(today, 1) ? "Tomorrow · " : ""}
                     {label(day, {
                       weekday: "long",
                       day: "numeric",
                       month: "short",
+                      year: "numeric",
                     })}
-                  </h3>
+                  </time></h3>
+                  <span className="muted">{posts.length} {posts.length === 1 ? "post" : "posts"}</span>
+                  </header>
                   <div className="publishing-agenda">{posts.map(card)}</div>
                 </section>
               ) : null;
             })
+          )}
+          {agendaDays.length > agendaLimit && (
+            <button type="button" className="button button--secondary" onClick={() => setAgendaLimit((n) => n + 14)}>
+              {period === "past" ? "Show earlier days" : "Show more upcoming days"}
+            </button>
           )}
         </div>
       ) : (
