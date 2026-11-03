@@ -90,6 +90,23 @@ async function main() {
     await call({ action: "apply", change_set_id: linkPreview.id });
     assert.equal(await prisma.contentActionLog.count({ where: { targetType: "brand_character", targetId: characterApplied.result.id, summary: "Linked existing verified Runway character" } }), 1);
   } finally { globalThis.fetch = originalFetch; }
+  await prisma.contentPlan.update({ where: { id: plan.id }, data: { mediaCreditBudget: 200 } });
+  const speechArgs = { planId: plan.id, characterId: characterApplied.result.id, text: "The St Louis Olympics, 1904.", estimatedSeconds: 4, reservedCredits: 10 };
+  const speechPreview: any = await call({ action: "preview", tool: "queue_character_speech_test", request_key: "runway-speech-test", args: speechArgs });
+  assert.equal(await prisma.mediaGenerationJob.count({ where: { targetType: "character_speech", targetId: characterApplied.result.id } }), 0, "preview must not queue speech or contact provider");
+  assert.equal(speechPreview.previewJson.reservedCredits, 10);
+  const speechApplied: any = await call({ action: "apply", change_set_id: speechPreview.id });
+  await call({ action: "apply", change_set_id: speechPreview.id });
+  assert.equal(await prisma.mediaGenerationJob.count({ where: { targetType: "character_speech", targetId: characterApplied.result.id } }), 1);
+  const speechJob = await prisma.mediaGenerationJob.findUniqueOrThrow({ where: { id: speechApplied.result.id } });
+  assert.equal(speechJob.status, "queued");
+  assert.equal((speechJob.input as any).startRequested, undefined);
+  await assert.rejects(call({ action: "preview", tool: "queue_character_speech_test", request_key: "runway-speech-duplicate", args: speechArgs }), /active speaking test/);
+  const production: any = await call({ action: "read", tool: "get_production_status", args: { planItemId: item.id } });
+  assert.ok(production.payload.speakingTests.some((job: any) => job.id === speechJob.id), "existing production status must expose the speech test");
+  const dashboard: any = await call({ action: "read", tool: "get_dashboard_summary", args: {} });
+  assert.equal(dashboard.payload.pendingRunwayStarts, 1, "dashboard must show all explicitly requested starts");
+
   await prisma.$disconnect();
   console.log("Runway PostgreSQL integration: concurrent budget, preview rollback and idempotent apply PASS");
 }
