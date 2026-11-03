@@ -2419,6 +2419,11 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
     select: { id: true, status: true, provider: true, targetType: true, targetId: true, error: true, externalTaskId: true, outputAssetId: true, costCents: true, input: true },
     orderBy: { updatedAt: "desc" },
   });
+  const imageJobs = await prisma.mediaGenerationJob.findMany({
+    where: { provider: "runway", targetType: "storyboard_image", targetId: { in: item.videoBrief.shots.map((shot) => shot.id) } },
+    select: { id: true, status: true, targetId: true, error: true, externalTaskId: true, outputAssetId: true, input: true },
+    orderBy: { updatedAt: "desc" },
+  });
   const speakingTests = await prisma.mediaGenerationJob.findMany({
     where: { provider: "runway", targetType: "character_speech", input: { path: ["planId"], equals: item.planId } },
     select: { id: true, status: true, error: true, externalTaskId: true, outputAssetId: true, input: true },
@@ -2456,6 +2461,7 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
       briefStatus: item.videoBrief.status,
       shotCount: item.videoBrief.shots.length,
       jobs,
+      imageJobs,
       speakingTests,
       assemblyJobs,
       audioInspections,
