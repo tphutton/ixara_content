@@ -1,5 +1,6 @@
 import { runDueMediaGenerationJobs } from "./runner";
 import { runDueAudioInspections } from "./audio-inspection-runner";
+import { runDueVideoAssemblies } from "./assembly-runner";
 
 type RunnerGlobal = typeof globalThis & { __ixaraMediaRunner?: NodeJS.Timeout };
 export function startMediaRunner() {
@@ -7,9 +8,9 @@ export function startMediaRunner() {
   if (state.__ixaraMediaRunner) return;
   let active = false;
   const tick = async () => {
-    if (active || !process.env.RUNWAYML_API_SECRET) return;
+    if (active) return;
     active = true;
-    try { await runDueMediaGenerationJobs(5); await runDueAudioInspections(); }
+    try { if (process.env.RUNWAYML_API_SECRET) await runDueMediaGenerationJobs(5); await runDueAudioInspections(); await runDueVideoAssemblies(); }
     catch { console.error("Media runner failed; it will retry on the next tick."); }
     finally { active = false; }
   };
