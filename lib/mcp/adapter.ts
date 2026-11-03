@@ -1,3 +1,4 @@
+import { imageProductionOperations } from './image-production-operations';
 import { characterSpeechOperations } from './character-speech-operations';
 import { productionBudgetOperation } from './production-budget';
 import { audioReviewOperations } from './audio-review-operations';
@@ -99,6 +100,7 @@ operations.push(productionBudgetOperation);
 operations.push(...audioReviewOperations);
 operations.push(...videoBatchOperations);
 operations.push(...assemblyOperations);
+operations.push(...imageProductionOperations);
 operations.push(...episodeBriefOperations);
 operations.push(...videoReviewOperations);
 operations.push({name:'get_video_brief_for_plan_item',description:'Read a video brief and its shots by plan item ID.',inputSchema:objectSchema({planItemId:string},['planItemId']),scope:'ixara-content:read',mutating:false,
