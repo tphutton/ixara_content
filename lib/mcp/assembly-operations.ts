@@ -3,7 +3,7 @@ import { validateTimeline, type Timeline } from '@/lib/media/timeline';
 import { privateObjectKey } from '@/lib/media/private-storage';
 import { McpError, type Operation } from './engine';
 
-const sceneSchema={type:'object',properties:{assetId:{type:'string'},durationSeconds:{type:'number'},startSeconds:{type:'number'}},required:['assetId','durationSeconds'],additionalProperties:false};
+const sceneSchema={type:'object',properties:{assetId:{type:'string'},durationSeconds:{type:'number'},startSeconds:{type:'number'},motion:{type:'string',enum:['none','push','pull']}},required:['assetId','durationSeconds'],additionalProperties:false};
 const audioSchema={type:'object',properties:{assetId:{type:'string'},offsetSeconds:{type:'number'},volume:{type:'number'}},required:['assetId'],additionalProperties:false};
 export const assemblyOperations:Operation[]=[{
   name:'queue_video_assembly',scope:'ixara-content:write',mutating:true,
@@ -25,6 +25,7 @@ export const assemblyOperations:Operation[]=[{
       if(!privateObjectKey(asset.metadata)||!asset.fileSize||asset.fileSize>100*1024*1024)throw new McpError(400,'Use privately stored assets up to 100 MB each.');
       total+=asset.fileSize;
       if(timeline.scenes.some(x=>x.assetId===asset.id)&&!['image/png','image/jpeg','image/webp','video/mp4'].includes(asset.mimeType||''))throw new McpError(400,'Scenes require PNG, JPEG, WebP or MP4 assets.');
+      if(asset.mimeType==='video/mp4'&&timeline.scenes.some(x=>x.assetId===asset.id&&x.motion&&x.motion!=='none'))throw new McpError(400,'Image motion can only be applied to stills.');
       if(timeline.audio.some(x=>x.assetId===asset.id)&&!['audio/mpeg','audio/wav','audio/x-wav','audio/mp4'].includes(asset.mimeType||''))throw new McpError(400,'Audio tracks require MP3, WAV or M4A assets.');
     }
     if(total>250*1024*1024)throw new McpError(400,'Combined source assets exceed 250 MB.');
