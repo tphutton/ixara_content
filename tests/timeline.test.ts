@@ -12,6 +12,7 @@ describe('draft timeline limits',()=>{
     expect(()=>validateTimeline({scenes:[{assetId:'a',durationSeconds:5}],audio:[{assetId:'v',offsetSeconds:6}]})).toThrow();
     expect(()=>validateTimeline({scenes:[{assetId:'a',durationSeconds:5}],audio:[{assetId:'v',volume:2}]})).toThrow();
   });
+  it('rejects unsupported motion',()=>expect(()=>validateTimeline({scenes:[{assetId:'x',durationSeconds:1,motion:'spin' as never}],audio:[]})).toThrow());
   it('limits input protocols and builds a single mixed output',()=>{
     const args=buildRenderArgs({scenes:[{assetId:'a',durationSeconds:5}],audio:[{assetId:'voice',volume:0.8}]},new Map([['a',{path:'/tmp/a.mp4',kind:'video'}],['voice',{path:'/tmp/v.mp3',kind:'audio'}]]),'/tmp/output.mp4');
     expect(args).toContain('file,pipe');
@@ -25,7 +26,7 @@ describe('draft timeline limits',()=>{
       execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','color=blue:s=64x96:d=1','-c:v','libx264','-y',video]);
       execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','color=red:s=64x96:d=1','-frames:v','1','-threads','1','-y',still]);
       execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','sine=frequency=440:duration=1','-y',audio]);
-      await renderTimeline({scenes:[{assetId:'scene',durationSeconds:1},{assetId:'still',durationSeconds:1}],audio:[{assetId:'voice'}]},new Map([['scene',{path:video,kind:'video'}],['still',{path:still,kind:'image'}],['voice',{path:audio,kind:'audio'}]]),output);
+      await renderTimeline({scenes:[{assetId:'scene',durationSeconds:1},{assetId:'still',durationSeconds:1,motion:'push'}],audio:[{assetId:'voice'}]},new Map([['scene',{path:video,kind:'video'}],['still',{path:still,kind:'image'}],['voice',{path:audio,kind:'audio'}]]),output);
       expect(statSync(output).size).toBeGreaterThan(1000);
       const probe=JSON.parse(execFileSync('ffprobe',['-v','error','-show_entries','format=duration:stream=codec_type','-of','json',output],{encoding:'utf8'}));
       expect(Number(probe.format.duration)).toBeCloseTo(2,1);
