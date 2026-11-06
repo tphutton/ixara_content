@@ -257,7 +257,12 @@ For each episode:
    These calls use OpenAI, may cost money, and do not retry automatically. The returned words
    are recognition output, not corrected or approved script text. Check differences before
    building captions or changing narration.
-4. Use `queue_video_assembly` with the full timeline, then `start_video_assembly`. Optional
+4. Use `queue_video_assembly` with `delivery: "full_draft"`, the full timeline, then
+   `start_video_assembly`. Map each scene to a storyboard `shotId` and set the narration
+   audio track `role` to `narration`. Full drafts require every storyboard shot to be covered,
+   sound to be selected, and a narration track when the brief has voiceover. The storyboard
+   is version-checked again before rendering. Omitted delivery defaults to an internal
+   workprint for compatibility. A full draft is not editorially approved automatically. Optional
    `scenes[].crop` selects normalized source bounds `{x,y,width,height}` before scaling.
    Optional `captions` contains ordered, non-overlapping `{startSeconds,endSeconds,text}` cues.
    Optional `ticks` contains `{offsetSeconds,volume}` cues generated locally, without Runway

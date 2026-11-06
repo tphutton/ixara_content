@@ -1,9 +1,10 @@
-export type TimelineScene = {assetId:string;durationSeconds:number;startSeconds?:number;motion?:'none'|'push'|'pull';crop?:{x:number;y:number;width:number;height:number}};
-export type TimelineAudio = {assetId:string;offsetSeconds?:number;volume?:number;loop?:boolean;fadeInSeconds?:number;fadeOutSeconds?:number};
+export type TimelineScene = {assetId:string;shotId?:string;durationSeconds:number;startSeconds?:number;motion?:'none'|'push'|'pull';crop?:{x:number;y:number;width:number;height:number}};
+export type TimelineAudio = {assetId:string;role?:'narration'|'music'|'effects';offsetSeconds?:number;volume?:number;loop?:boolean;fadeInSeconds?:number;fadeOutSeconds?:number};
 export type TimelineCaption = {startSeconds:number;endSeconds:number;text:string};
-export type Timeline = {scenes:TimelineScene[];audio:TimelineAudio[];captions?:TimelineCaption[];ticks?:{offsetSeconds:number;volume?:number}[]};
+export type Timeline = {delivery?:'workprint'|'full_draft';scenes:TimelineScene[];audio:TimelineAudio[];captions?:TimelineCaption[];ticks?:{offsetSeconds:number;volume?:number}[]};
 
 export function validateTimeline(timeline:Timeline) {
+  if(timeline.delivery!==undefined&&!['workprint','full_draft'].includes(timeline.delivery))throw new Error('Invalid delivery type.');
   if(!Array.isArray(timeline.scenes)||timeline.scenes.length<1||timeline.scenes.length>30)throw new Error('Choose one to 30 visual scenes.');
   if(!Array.isArray(timeline.audio)||timeline.audio.length>3)throw new Error('Choose at most three audio tracks.');
   let duration=0;
@@ -22,6 +23,7 @@ export function validateTimeline(timeline:Timeline) {
     if(!audio.assetId||!Number.isFinite(audio.offsetSeconds??0)||(audio.offsetSeconds??0)<0||(audio.offsetSeconds??0)>duration||!Number.isFinite(audio.volume??1)||(audio.volume??1)<0||(audio.volume??1)>1)throw new Error('Invalid audio track settings.');
   }
   for(const track of timeline.audio){
+    if(track.role!==undefined&&!['narration','music','effects'].includes(track.role))throw new Error('Invalid audio role.');
     if(track.loop!==undefined&&typeof track.loop!=='boolean')throw new Error('Invalid audio loop.');
     for(const fade of [track.fadeInSeconds,track.fadeOutSeconds])if(fade!==undefined&&(!Number.isFinite(fade)||fade<0||fade>duration-(track.offsetSeconds??0)))throw new Error('Invalid audio fade.');
   }
@@ -38,4 +40,15 @@ export function validateTimeline(timeline:Timeline) {
     for(const tick of timeline.ticks)if(!Number.isFinite(tick.offsetSeconds)||tick.offsetSeconds<0||tick.offsetSeconds+0.06>duration||!Number.isFinite(tick.volume??0.3)||(tick.volume??0.3)<0||(tick.volume??0.3)>1)throw new Error('Invalid stopwatch tick.');
   }
   return duration;
+}
+
+export function validateFullDraftCoverage(timeline:Timeline,shots:{id:string}[],requiresNarration:boolean){
+  validateTimeline(timeline);
+  if(timeline.delivery!=='full_draft')return;
+  const ids=new Set(shots.map(shot=>shot.id));
+  if(!ids.size||timeline.scenes.some(scene=>!scene.shotId||!ids.has(scene.shotId)))throw new Error('Every full-draft scene must map to a storyboard shot.');
+  const covered=new Set(timeline.scenes.map(scene=>scene.shotId));
+  if(shots.some(shot=>!covered.has(shot.id)))throw new Error('The full draft is missing storyboard coverage.');
+  if(!timeline.audio.length)throw new Error('A full draft requires a selected sound track.');
+  if(requiresNarration&&timeline.audio.filter(track=>track.role==='narration').length!==1)throw new Error('Select exactly one narration track for this voiced script.');
 }
