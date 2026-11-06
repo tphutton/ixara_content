@@ -237,3 +237,42 @@ The first user whose email matches `INITIAL_ADMIN_EMAIL` will be auto-approved a
 - The protected runner endpoints accept either `Authorization: Bearer <AUTOMATION_RUNNER_SECRET>` or `x-automation-secret` and are designed for Railway cron or an external scheduler.
 - Approved video generation jobs can be manually advanced through `/api/media/generation/run-due`; Railway cron wiring is intentionally deferred until the end-to-end content journey is ready.
 - See `BUILD_PROGRESS.md` for milestone-by-milestone status.
+
+
+## Episode production through MCP
+
+The editorial workflow is script and budget approval, then full-video review. Storyboarding,
+asset selection, generation, assembly and internal checks are production steps, not separate
+user approval requests. Publication remains a separate action. Budget exhaustion and missing
+credentials are genuine blockers; never increase a plan limit or silently change the voice.
+
+For each episode:
+
+1. Read the Brand Kit and save the exact approved script and production budget.
+2. Build the whole storyboard, with a selected visual for every beat, before paid generation.
+   Reuse approved references and keep character identity separate from historical subjects.
+3. Obtain the narration in the approved voice. Existing uploaded narration is supported.
+   `queue_narration_alignment` then `start_narration_alignment` transcribes one private MP3/WAV
+   with word timestamps. Inspect using `get_narration_alignment` or `get_production_status`.
+   These calls use OpenAI, may cost money, and do not retry automatically. The returned words
+   are recognition output, not corrected or approved script text. Check differences before
+   building captions or changing narration.
+4. Use `queue_video_assembly` with the full timeline, then `start_video_assembly`. Optional
+   `scenes[].crop` selects normalized source bounds `{x,y,width,height}` before scaling.
+   Optional `captions` contains ordered, non-overlapping `{startSeconds,endSeconds,text}` cues.
+   Optional `ticks` contains `{offsetSeconds,volume}` cues generated locally, without Runway
+   charges. Audio tracks accept `loop`, `fadeInSeconds`, `fadeOutSeconds`, gain and offset;
+   fades are relative to the track's active time in the video. The editor does not create
+   music: provide an existing audio asset when a music bed is wanted. Stills permit push/pull.
+5. Inspect the complete assembly and consolidate repairs. Saved `technicalReview` metadata
+   checks duration, 720x1280 video and expected audio stream presence. It does not establish
+   audible content, editorial quality, caption accuracy, lip sync or continuous motion quality.
+   Sampled-frame analysis also does not establish continuous video review. Never call an
+   unfinished assembly a ready first draft, or claim a review that was not performed.
+6. Present one complete draft for feedback, then preserve working assets during revisions.
+
+Assembly additions are optional and existing saved timelines remain valid. No database migration
+or extra Runway credits are required for local cropping, captions, ticks or audio mixing. The
+current editor requires FFmpeg/FFprobe with the subtitles filter (libass) and a sans-serif font
+on the production image. Standalone narration generation in a custom voice remains a separate
+provider capability; timestamp extraction does not implement or replace it.

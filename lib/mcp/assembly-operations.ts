@@ -3,16 +3,16 @@ import { validateTimeline, type Timeline } from '@/lib/media/timeline';
 import { privateObjectKey } from '@/lib/media/private-storage';
 import { McpError, type Operation } from './engine';
 
-const sceneSchema={type:'object',properties:{assetId:{type:'string'},durationSeconds:{type:'number'},startSeconds:{type:'number'},motion:{type:'string',enum:['none','push','pull']}},required:['assetId','durationSeconds'],additionalProperties:false};
-const audioSchema={type:'object',properties:{assetId:{type:'string'},offsetSeconds:{type:'number'},volume:{type:'number'}},required:['assetId'],additionalProperties:false};
+const sceneSchema={type:'object',properties:{assetId:{type:'string'},durationSeconds:{type:'number'},startSeconds:{type:'number'},motion:{type:'string',enum:['none','push','pull']},crop:{type:'object',properties:{x:{type:'number'},y:{type:'number'},width:{type:'number'},height:{type:'number'}},required:['x','y','width','height'],additionalProperties:false}},required:['assetId','durationSeconds'],additionalProperties:false};
+const audioSchema={type:'object',properties:{assetId:{type:'string'},offsetSeconds:{type:'number'},volume:{type:'number'},loop:{type:'boolean'},fadeInSeconds:{type:'number'},fadeOutSeconds:{type:'number'}},required:['assetId'],additionalProperties:false};
 export const assemblyOperations:Operation[]=[{
   name:'queue_video_assembly',scope:'ixara-content:write',mutating:true,
-  description:'Prepare a private draft render from existing assets. Does not render or publish. Start is separate.',
-  inputSchema:{type:'object',properties:{planItemId:{type:'string'},scenes:{type:'array',maxItems:30,items:sceneSchema},audio:{type:'array',maxItems:3,items:audioSchema}},required:['planItemId','scenes','audio'],additionalProperties:false},
+  description:'Prepare a private draft render from existing assets, with normalized source crops, timed captions, local stopwatch ticks and optional audio looping/fades. Does not render or publish. Start is separate.',
+  inputSchema:{type:'object',properties:{planItemId:{type:'string'},scenes:{type:'array',maxItems:30,items:sceneSchema},audio:{type:'array',maxItems:3,items:audioSchema},captions:{type:'array',maxItems:300,items:{type:'object',properties:{startSeconds:{type:'number'},endSeconds:{type:'number'},text:{type:'string'}},required:['startSeconds','endSeconds','text'],additionalProperties:false}},ticks:{type:'array',maxItems:180,items:{type:'object',properties:{offsetSeconds:{type:'number'},volume:{type:'number'}},required:['offsetSeconds'],additionalProperties:false}}},required:['planItemId','scenes','audio'],additionalProperties:false},
   snapshot:async(args,tx)=>({brief:await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId}}),assets:await tx.asset.findMany({where:{id:{in:[...args.scenes,...args.audio].map((x:{assetId:string})=>x.assetId)}},orderBy:{id:'asc'}}),jobs:await tx.mediaGenerationJob.findMany({where:{provider:'local_editor',targetType:'video_assembly',targetId:args.planItemId},orderBy:{id:'asc'}})}),
   run:async(args,actor)=>prisma.$transaction(async tx=>{
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`video-assembly:${args.planItemId}`}, 0))::text`;
-    const timeline:Timeline={scenes:args.scenes,audio:args.audio};
+    const timeline:Timeline={scenes:args.scenes,audio:args.audio,...(args.captions!==undefined?{captions:args.captions}:{}),...(args.ticks!==undefined?{ticks:args.ticks}:{})};
     const duration=validateTimeline(timeline);
     const brief=await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId}});
     const existing=await tx.mediaGenerationJob.findFirst({where:{provider:'local_editor',targetType:'video_assembly',targetId:args.planItemId,status:{in:['queued','running']}}});

@@ -2439,6 +2439,11 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
     select: { id: true, status: true, error: true, input: true },
     orderBy: { updatedAt: "desc" },
   });
+  const narrationAlignments = await prisma.mediaGenerationJob.findMany({
+    where: { provider: "openai", targetType: "narration_alignment", input: { path: ["planItemId"], equals: planItemId } },
+    select: { id: true, status: true, error: true, input: true },
+    orderBy: { updatedAt: "desc" },
+  });
   const videoInspections = await prisma.mediaGenerationJob.findMany({
     where: { provider: "openai", targetType: "video_inspection", input: { path: ["planItemId"], equals: planItemId } },
     select: { id: true, status: true, error: true, input: true },
@@ -2465,6 +2470,7 @@ async function getProductionStatusTool(args: Record<string, unknown>) {
       speakingTests,
       assemblyJobs,
       audioInspections,
+      narrationAlignments,
       videoInspections,
     },
   };
