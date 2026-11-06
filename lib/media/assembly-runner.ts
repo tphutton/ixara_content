@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { prisma } from '@/lib/prisma';
 import { privateAssetUrl, privateObjectKey, privateStorageClient } from './private-storage';
-import { renderTimeline, type LocalMedia } from './timeline-render';
+import { renderTimeline, inspectRenderedTimeline, type LocalMedia } from './timeline-render';
 import { validateTimeline, type Timeline } from './timeline';
 
 type AssemblyInput={planItemId:string;briefUpdatedAt:string;timeline:Timeline;assets:{id:string;updatedAt:string}[];startRequested:boolean};
@@ -41,12 +41,13 @@ export async function runDueVideoAssemblies(){
       }
       const output=join(directory,'draft.mp4');
       await renderTimeline(input.timeline,local,output);
+      const technicalReview=await inspectRenderedTimeline(input.timeline,output);
       const info=await stat(output);
       if(!info.size||info.size>150*1024*1024)throw new Error('Draft output is empty or too large.');
       const data=await readFile(output),key='generated/video/'+job.id+'.mp4';
       await client.send(new PutObjectCommand({Bucket:bucket,Key:key,Body:data,ContentType:'video/mp4',CacheControl:'private, no-store'}));
       const externalId='media-generation:'+job.id,id=randomUUID();
-      const asset=await prisma.asset.upsert({where:{source_externalId:{source:AssetSource.manual,externalId}},create:{id,source:AssetSource.manual,externalId,title:'Draft video assembly',fileUrl:privateAssetUrl(id),mimeType:'video/mp4',mediaType:'video',fileSize:data.length,metadata:{storage:'private-s3',objectKey:key,generatedBy:'local_editor',generationJobId:job.id},tags:[],syncedAt:new Date()},update:{}});
+      const asset=await prisma.asset.upsert({where:{source_externalId:{source:AssetSource.manual,externalId}},create:{id,source:AssetSource.manual,externalId,title:'Draft video assembly',fileUrl:privateAssetUrl(id),mimeType:'video/mp4',mediaType:'video',fileSize:data.length,metadata:{storage:'private-s3',objectKey:key,generatedBy:'local_editor',generationJobId:job.id,technicalReview},tags:[],syncedAt:new Date()},update:{}});
       await prisma.mediaGenerationJob.updateMany({where:{id:job.id,status:'running'},data:{status:'succeeded',outputAssetId:asset.id,outputUrl:asset.fileUrl,completedAt:new Date(),error:null}});
     }catch(error){
       const message=error instanceof Error&&error.message.includes('ENOENT')?'Draft renderer is unavailable: FFmpeg is not installed.':'Draft rendering failed. Check source assets and timeline before retrying.';
