@@ -1,20 +1,21 @@
 import { prisma } from '@/lib/prisma';
-import { validateTimeline, type Timeline } from '@/lib/media/timeline';
+import { validateTimeline, validateFullDraftCoverage, type Timeline } from '@/lib/media/timeline';
 import { privateObjectKey } from '@/lib/media/private-storage';
 import { McpError, type Operation } from './engine';
 
-const sceneSchema={type:'object',properties:{assetId:{type:'string'},durationSeconds:{type:'number'},startSeconds:{type:'number'},motion:{type:'string',enum:['none','push','pull']},crop:{type:'object',properties:{x:{type:'number'},y:{type:'number'},width:{type:'number'},height:{type:'number'}},required:['x','y','width','height'],additionalProperties:false}},required:['assetId','durationSeconds'],additionalProperties:false};
-const audioSchema={type:'object',properties:{assetId:{type:'string'},offsetSeconds:{type:'number'},volume:{type:'number'},loop:{type:'boolean'},fadeInSeconds:{type:'number'},fadeOutSeconds:{type:'number'}},required:['assetId'],additionalProperties:false};
+const sceneSchema={type:'object',properties:{assetId:{type:'string'},shotId:{type:'string'},durationSeconds:{type:'number'},startSeconds:{type:'number'},motion:{type:'string',enum:['none','push','pull']},crop:{type:'object',properties:{x:{type:'number'},y:{type:'number'},width:{type:'number'},height:{type:'number'}},required:['x','y','width','height'],additionalProperties:false}},required:['assetId','durationSeconds'],additionalProperties:false};
+const audioSchema={type:'object',properties:{assetId:{type:'string'},role:{type:'string',enum:['narration','music','effects']},offsetSeconds:{type:'number'},volume:{type:'number'},loop:{type:'boolean'},fadeInSeconds:{type:'number'},fadeOutSeconds:{type:'number'}},required:['assetId'],additionalProperties:false};
 export const assemblyOperations:Operation[]=[{
   name:'queue_video_assembly',scope:'ixara-content:write',mutating:true,
   description:'Prepare a private draft render from existing assets, with normalized source crops, timed captions, local stopwatch ticks and optional audio looping/fades. Does not render or publish. Start is separate.',
-  inputSchema:{type:'object',properties:{planItemId:{type:'string'},scenes:{type:'array',maxItems:30,items:sceneSchema},audio:{type:'array',maxItems:3,items:audioSchema},captions:{type:'array',maxItems:300,items:{type:'object',properties:{startSeconds:{type:'number'},endSeconds:{type:'number'},text:{type:'string'}},required:['startSeconds','endSeconds','text'],additionalProperties:false}},ticks:{type:'array',maxItems:180,items:{type:'object',properties:{offsetSeconds:{type:'number'},volume:{type:'number'}},required:['offsetSeconds'],additionalProperties:false}}},required:['planItemId','scenes','audio'],additionalProperties:false},
-  snapshot:async(args,tx)=>({brief:await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId}}),assets:await tx.asset.findMany({where:{id:{in:[...args.scenes,...args.audio].map((x:{assetId:string})=>x.assetId)}},orderBy:{id:'asc'}}),jobs:await tx.mediaGenerationJob.findMany({where:{provider:'local_editor',targetType:'video_assembly',targetId:args.planItemId},orderBy:{id:'asc'}})}),
+  inputSchema:{type:'object',properties:{planItemId:{type:'string'},delivery:{type:'string',enum:['workprint','full_draft']},scenes:{type:'array',maxItems:30,items:sceneSchema},audio:{type:'array',maxItems:3,items:audioSchema},captions:{type:'array',maxItems:300,items:{type:'object',properties:{startSeconds:{type:'number'},endSeconds:{type:'number'},text:{type:'string'}},required:['startSeconds','endSeconds','text'],additionalProperties:false}},ticks:{type:'array',maxItems:180,items:{type:'object',properties:{offsetSeconds:{type:'number'},volume:{type:'number'}},required:['offsetSeconds'],additionalProperties:false}}},required:['planItemId','scenes','audio'],additionalProperties:false},
+  snapshot:async(args,tx)=>({brief:await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId},include:{shots:true}}),assets:await tx.asset.findMany({where:{id:{in:[...args.scenes,...args.audio].map((x:{assetId:string})=>x.assetId)}},orderBy:{id:'asc'}}),jobs:await tx.mediaGenerationJob.findMany({where:{provider:'local_editor',targetType:'video_assembly',targetId:args.planItemId},orderBy:{id:'asc'}})}),
   run:async(args,actor)=>prisma.$transaction(async tx=>{
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`video-assembly:${args.planItemId}`}, 0))::text`;
-    const timeline:Timeline={scenes:args.scenes,audio:args.audio,...(args.captions!==undefined?{captions:args.captions}:{}),...(args.ticks!==undefined?{ticks:args.ticks}:{})};
+    const timeline:Timeline={...(args.delivery?{delivery:args.delivery}:{}),scenes:args.scenes,audio:args.audio,...(args.captions!==undefined?{captions:args.captions}:{}),...(args.ticks!==undefined?{ticks:args.ticks}:{})};
     const duration=validateTimeline(timeline);
-    const brief=await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId}});
+    const brief=await tx.videoBrief.findUniqueOrThrow({where:{planItemId:args.planItemId},include:{shots:true}});
+    validateFullDraftCoverage(timeline,brief.shots,!!brief.voiceover?.trim());
     const existing=await tx.mediaGenerationJob.findFirst({where:{provider:'local_editor',targetType:'video_assembly',targetId:args.planItemId,status:{in:['queued','running']}}});
     if(existing)throw new McpError(409,'A draft assembly is already pending for this video.');
     const ids=[...new Set([...timeline.scenes,...timeline.audio].map(x=>x.assetId))];
@@ -29,8 +30,8 @@ export const assemblyOperations:Operation[]=[{
       if(timeline.audio.some(x=>x.assetId===asset.id)&&!['audio/mpeg','audio/wav','audio/x-wav','audio/mp4'].includes(asset.mimeType||''))throw new McpError(400,'Audio tracks require MP3, WAV or M4A assets.');
     }
     if(total>250*1024*1024)throw new McpError(400,'Combined source assets exceed 250 MB.');
-    const job=await tx.mediaGenerationJob.create({data:{provider:'local_editor',targetType:'video_assembly',targetId:args.planItemId,createdById:actor.id,input:{planItemId:args.planItemId,briefUpdatedAt:brief.updatedAt.toISOString(),timeline:JSON.parse(JSON.stringify(timeline)),duration,assets:assets.map(a=>({id:a.id,updatedAt:a.updatedAt.toISOString()})),startRequested:false}}});
-    return {jobId:job.id,status:job.status,duration,note:'Draft timeline prepared. No render or publication has started.'};
+    const job=await tx.mediaGenerationJob.create({data:{provider:'local_editor',targetType:'video_assembly',targetId:args.planItemId,createdById:actor.id,input:{planItemId:args.planItemId,briefUpdatedAt:brief.updatedAt.toISOString(),shotVersions:brief.shots.map(shot=>({id:shot.id,updatedAt:shot.updatedAt.toISOString()})),timeline:JSON.parse(JSON.stringify(timeline)),duration,assets:assets.map(a=>({id:a.id,updatedAt:a.updatedAt.toISOString()})),startRequested:false}}});
+    return {jobId:job.id,status:job.status,duration,delivery:timeline.delivery??'workprint',note:'Draft timeline prepared. No render or publication has started.'};
   }),
 },{
   name:'start_video_assembly',scope:'ixara-content:write',mutating:true,

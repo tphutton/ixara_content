@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateTimeline } from '@/lib/media/timeline';
+import { validateTimeline, validateFullDraftCoverage } from '@/lib/media/timeline';
 import { buildRenderArgs, renderTimeline, buildSubtitleFile, inspectRenderedTimeline } from '@/lib/media/timeline-render';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, statSync } from 'node:fs';
@@ -26,6 +26,14 @@ describe('draft timeline limits',()=>{
     expect(()=>validateTimeline({...base,ticks:[{offsetSeconds:2}]})).toThrow();
     expect(()=>validateTimeline({...base,audio:[{assetId:'voice',fadeOutSeconds:3}]})).toThrow();
     expect(buildSubtitleFile({...base,captions:[{startSeconds:0,endSeconds:2,text:'Hello {\\\\p1} world'}]})).not.toContain('{');
+  });
+  it('blocks incomplete full drafts without changing workprint compatibility',()=>{
+    const complete={delivery:'full_draft' as const,scenes:[{assetId:'a',shotId:'one',durationSeconds:2}],audio:[{assetId:'voice',role:'narration' as const}]};
+    expect(()=>validateFullDraftCoverage(complete,[{id:'one'},{id:'two'}],true)).toThrow('missing storyboard');
+    expect(()=>validateFullDraftCoverage({...complete,audio:[]},[{id:'one'}],true)).toThrow('sound track');
+    expect(()=>validateFullDraftCoverage({...complete,audio:[{assetId:'music',role:'music'}]},[{id:'one'}],true)).toThrow('narration');
+    expect(()=>validateFullDraftCoverage(complete,[{id:'one'}],true)).not.toThrow();
+    expect(()=>validateFullDraftCoverage({scenes:[{assetId:'a',durationSeconds:2}],audio:[]},[{id:'one'}],true)).not.toThrow();
   });
   it('renders a short private draft from local video and audio',async()=>{
     const dir=mkdtempSync(join(tmpdir(),'ixara-test-'));

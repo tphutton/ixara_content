@@ -7,9 +7,9 @@ import { join } from 'node:path';
 import { prisma } from '@/lib/prisma';
 import { privateAssetUrl, privateObjectKey, privateStorageClient } from './private-storage';
 import { renderTimeline, inspectRenderedTimeline, type LocalMedia } from './timeline-render';
-import { validateTimeline, type Timeline } from './timeline';
+import { validateTimeline, validateFullDraftCoverage, type Timeline } from './timeline';
 
-type AssemblyInput={planItemId:string;briefUpdatedAt:string;timeline:Timeline;assets:{id:string;updatedAt:string}[];startRequested:boolean};
+type AssemblyInput={shotVersions?:{id:string;updatedAt:string}[];planItemId:string;briefUpdatedAt:string;timeline:Timeline;assets:{id:string;updatedAt:string}[];startRequested:boolean};
 const extensions:Record<string,string>={'image/png':'png','image/jpeg':'jpg','image/webp':'webp','video/mp4':'mp4','audio/mpeg':'mp3','audio/wav':'wav','audio/x-wav':'wav','audio/mp4':'m4a'};
 export async function runDueVideoAssemblies(){
   const jobs=await prisma.mediaGenerationJob.findMany({where:{provider:'local_editor',targetType:'video_assembly',status:'queued',input:{path:['startRequested'],equals:true}},orderBy:{createdAt:'asc'},take:1});
@@ -20,8 +20,10 @@ export async function runDueVideoAssemblies(){
     try{
       const input=job.input as unknown as AssemblyInput;
       validateTimeline(input.timeline);
-      const brief=await prisma.videoBrief.findUniqueOrThrow({where:{planItemId:input.planItemId}});
+      const brief=await prisma.videoBrief.findUniqueOrThrow({where:{planItemId:input.planItemId},include:{shots:true}});
       if(brief.updatedAt.toISOString()!==input.briefUpdatedAt)throw new Error('The video brief changed after the timeline was prepared.');
+      validateFullDraftCoverage(input.timeline,brief.shots,!!brief.voiceover?.trim());
+      if(input.timeline.delivery==='full_draft'&&(!input.shotVersions||input.shotVersions.length!==brief.shots.length||brief.shots.some(shot=>!input.shotVersions!.some(selected=>selected.id===shot.id&&selected.updatedAt===shot.updatedAt.toISOString()))))throw new Error('Storyboard changed after preparation.');
       directory=await mkdtemp(join(tmpdir(),'ixara-render-'));
       const {client,bucket}=privateStorageClient();
       const local=new Map<string,LocalMedia>();
@@ -47,7 +49,7 @@ export async function runDueVideoAssemblies(){
       const data=await readFile(output),key='generated/video/'+job.id+'.mp4';
       await client.send(new PutObjectCommand({Bucket:bucket,Key:key,Body:data,ContentType:'video/mp4',CacheControl:'private, no-store'}));
       const externalId='media-generation:'+job.id,id=randomUUID();
-      const asset=await prisma.asset.upsert({where:{source_externalId:{source:AssetSource.manual,externalId}},create:{id,source:AssetSource.manual,externalId,title:'Draft video assembly',fileUrl:privateAssetUrl(id),mimeType:'video/mp4',mediaType:'video',fileSize:data.length,metadata:{storage:'private-s3',objectKey:key,generatedBy:'local_editor',generationJobId:job.id,technicalReview},tags:[],syncedAt:new Date()},update:{}});
+      const asset=await prisma.asset.upsert({where:{source_externalId:{source:AssetSource.manual,externalId}},create:{id,source:AssetSource.manual,externalId,title:input.timeline.delivery==='full_draft'?'Full video draft':'Draft video assembly',fileUrl:privateAssetUrl(id),mimeType:'video/mp4',mediaType:'video',fileSize:data.length,metadata:{storage:'private-s3',objectKey:key,generatedBy:'local_editor',generationJobId:job.id,delivery:input.timeline.delivery??'workprint',editorialApproval:false,technicalReview},tags:[],syncedAt:new Date()},update:{}});
       await prisma.mediaGenerationJob.updateMany({where:{id:job.id,status:'running'},data:{status:'succeeded',outputAssetId:asset.id,outputUrl:asset.fileUrl,completedAt:new Date(),error:null}});
     }catch(error){
       const message=error instanceof Error&&error.message.includes('ENOENT')?'Draft renderer is unavailable: FFmpeg is not installed.':'Draft rendering failed. Check source assets and timeline before retrying.';
